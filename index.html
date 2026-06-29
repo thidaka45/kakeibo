@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#1D9E75">
 <title>かんたん家計簿</title>
 <link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -223,15 +224,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
-    <!-- 日付のみ上に配置 -->
-    <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;width:100%;">
+    <!-- 日付（カレンダー選択） -->
+    <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+      <span style="font-size:12px;color:var(--sub);white-space:nowrap;">📅 日付</span>
+      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;flex:1;cursor:pointer;">
     </div>
     <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
     <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
-    <!-- メモ（カテゴリの直後・記録ボタンの直前） -->
+    <!-- メモ（2行テキストエリア） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="memoInput" type="text" placeholder="メモ（任意）" style="padding:6px 10px;font-size:12px;width:100%;">
+      <textarea class="field-input" id="memoInput" placeholder="メモ（任意）"
+        style="padding:6px 10px;font-size:12px;width:100%;height:52px;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
@@ -266,13 +269,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <!-- 月次棒グラフ -->
   <div class="graph-card">
     <div class="graph-title">月別収支（直近6ヶ月）</div>
-    <div class="bar-chart" id="barChart"></div>
-    <div class="legend">
+    <!-- 棒グラフ＋月ラベルを一体化 -->
+    <div id="barChart" style="display:flex;align-items:flex-end;gap:6px;height:120px;margin-bottom:0;"></div>
+    <div class="legend" style="margin-top:6px;">
       <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>支出</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green);opacity:.6"></div>収入</div>
     </div>
-    <!-- 月選択タブ -->
-    <div style="display:flex;gap:4px;margin-top:10px;overflow-x:auto;padding-bottom:2px;" id="monthTabs"></div>
     <!-- 選択月の収支詳細 -->
     <div id="monthDetail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"></div>
   </div>
@@ -378,6 +380,10 @@ const CATS_INCOME = [
   {id:"salary",  emoji:"💰", label:"給与"},
   {id:"bonus",   emoji:"🎁", label:"賞与"},
   {id:"side",    emoji:"💻", label:"副業"},
+  {id:"invest",  emoji:"📈", label:"投資"},
+  {id:"pension", emoji:"🏦", label:"年金"},
+  {id:"rent",    emoji:"🏠", label:"家賃収入"},
+  {id:"gift",    emoji:"🤝", label:"贈与"},
   {id:"other",   emoji:"📦", label:"その他"},
 ];
 
@@ -593,27 +599,25 @@ function renderGraph() {
     const mt = txs.filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
     const exp = mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const inc = mt.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-    const expH = Math.round(exp / maxAmt * 120);
-    const incH = Math.round(inc / maxAmt * 120);
+    const expH = Math.round(exp / maxAmt * 100);
+    const incH = Math.round(inc / maxAmt * 100);
     const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
-    return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')" style="cursor:pointer;opacity:${isSelected?1:0.5};">
-      <div class="bar-wrap">
-        <div class="bar-inc" style="height:${incH}px"></div>
-        <div class="bar-exp" style="height:${expH}px"></div>
+    return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')"
+      style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+      <div style="flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;">
+        <div style="border-radius:4px 4px 0 0;background:var(--green);opacity:0.6;height:${incH}px;"></div>
+        <div style="border-radius:4px 4px 0 0;background:var(--red);height:${expH}px;"></div>
       </div>
-      <div class="bar-col-label" style="color:${isSelected?'var(--green)':'var(--muted)'};font-weight:${isSelected?700:400};">${label}</div>
+      <button style="
+        margin-top:5px;padding:3px 6px;border-radius:20px;
+        border:1px solid ${isSelected?'var(--green)':'var(--border)'};
+        background:${isSelected?'var(--green-l)':'transparent'};
+        color:${isSelected?'var(--green-d)':'var(--sub)'};
+        font-size:10px;font-weight:${isSelected?700:400};
+        cursor:pointer;font-family:inherit;white-space:nowrap;width:100%;">
+        ${label}
+      </button>
     </div>`;
-  }).join("");
-
-  // 月選択タブ
-  document.getElementById("monthTabs").innerHTML = months.map(({y,m,label}) => {
-    const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
-    return `<button onclick="selectGraphMonth(${y},${m},'${label}')"
-      style="flex-shrink:0;padding:4px 10px;border-radius:20px;border:1px solid ${isSelected?'var(--green)':'var(--border)'};
-      background:${isSelected?'var(--green-l)':'transparent'};color:${isSelected?'var(--green-d)':'var(--sub)'};
-      font-size:11px;font-weight:${isSelected?700:400};cursor:pointer;font-family:inherit;">
-      ${label}
-    </button>`;
   }).join("");
 
   // 選択月の詳細表示
@@ -655,18 +659,16 @@ function renderCatSummary(y, m) {
   const catTotals = CATS_EXPENSE.map(c => ({
     ...c,
     total: txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0)
-  })).filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
+  })).sort((a,b)=>b.total-a.total);
 
   const maxCat = catTotals[0]?.total || 1;
-  document.getElementById("catSummary").innerHTML = catTotals.length === 0
-    ? `<div style="font-size:13px;color:var(--muted);text-align:center;padding:10px;">データがありません</div>`
-    : catTotals.map(c =>
+  document.getElementById("catSummary").innerHTML = catTotals.map(c =>
         `<div class="cat-summary-row">
           <div class="cat-summary-name">${c.emoji} ${c.label}</div>
           <div class="cat-summary-bar-track">
             <div class="cat-summary-bar-fill" style="width:${Math.round(c.total/maxCat*100)}%"></div>
           </div>
-          <div class="cat-summary-val">${fmt(c.total)}</div>
+          <div class="cat-summary-val" style="color:${c.total>0?'var(--text)':'var(--muted)'};">${c.total>0?fmt(c.total):'—'}</div>
         </div>`
       ).join("");
 }
@@ -856,49 +858,133 @@ function showPage(name) {
 
 
 // ============================================================
-// CSVエクスポート
+// エクスポート（CSV / Excel 選択式）
 // ============================================================
-function exportCSV(range) {
+let exportFmt = "csv"; // デフォルト: CSV
+
+function setExportFmt(fmt) {
+  exportFmt = fmt;
+  // ボタンの見た目を切替
+  const csvBtn = document.getElementById("fmtCSV");
+  const xlsBtn = document.getElementById("fmtXLS");
+  if (fmt === "csv") {
+    csvBtn.style.background = "var(--card)";
+    csvBtn.style.color      = "var(--green)";
+    xlsBtn.style.background = "none";
+    xlsBtn.style.color      = "var(--sub)";
+  } else {
+    xlsBtn.style.background = "var(--card)";
+    xlsBtn.style.color      = "var(--green)";
+    csvBtn.style.background = "none";
+    csvBtn.style.color      = "var(--sub)";
+  }
+}
+
+function exportData(range) {
+  if (exportFmt === "excel") {
+    exportExcel(range);
+  } else {
+    exportCSV(range);
+  }
+}
+
+function getExportTxs(range) {
   const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
   let txs = loadTx().sort((a,b) => new Date(a.date) - new Date(b.date));
-
-  if (range === 'month') {
+  if (range === "month") {
     txs = txs.filter(t => {
       const d = new Date(t.date);
       return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
     });
   }
+  return { txs, allCats };
+}
 
-  if (txs.length === 0) {
-    showToast("エクスポートするデータがありません");
-    return;
-  }
+function getExportLabel(range) {
+  return range === "month"
+    ? `家計簿_${viewYear}年${viewMonth+1}月`
+    : `家計簿_全データ`;
+}
 
-  // BOM付きUTF-8（Excelで文字化けしない）
-  const BOM = "\uFEFF";
+// CSV出力
+function exportCSV(range) {
+  const { txs, allCats } = getExportTxs(range);
+  if (txs.length === 0) { showToast("データがありません"); return; }
+
+  const BOM    = "\uFEFF";
   const header = "日付,種別,カテゴリ,金額,メモ\n";
-  const rows = txs.map(t => {
-    const cat = allCats.find(c => c.id === t.cat) || { label: "その他" };
+  const rows   = txs.map(t => {
+    const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
     const type = t.type === "income" ? "収入" : "支出";
     const memo = (t.memo || "").replace(/,/g, "、");
     return `${t.date},${type},${cat.label},${t.amount},${memo}`;
   }).join("\n");
 
-  const csv  = BOM + header + rows;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-
-  const label = range === "month"
-    ? `家計簿_${viewYear}年${viewMonth+1}月`
-    : `家計簿_全データ`;
-
   a.href     = url;
-  a.download = `${label}.csv`;
+  a.download = getExportLabel(range) + ".csv";
   a.click();
   URL.revokeObjectURL(url);
+  showToast("CSVを保存しました");
+}
 
-  showToast(range === "month" ? "今月のCSVを保存しました" : "全データのCSVを保存しました");
+// Excel出力（SheetJS使用）
+function exportExcel(range) {
+  if (typeof XLSX === "undefined") {
+    showToast("Excel出力ライブラリを読み込み中です。しばらくお待ちください。");
+    return;
+  }
+
+  const { txs, allCats } = getExportTxs(range);
+  if (txs.length === 0) { showToast("データがありません"); return; }
+
+  // データ行を作成
+  const rows = txs.map(t => {
+    const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
+    return {
+      "日付":     t.date,
+      "種別":     t.type === "income" ? "収入" : "支出",
+      "カテゴリ": cat.label,
+      "金額":     t.amount,
+      "メモ":     t.memo || "",
+    };
+  });
+
+  // 月次サマリーシートのデータ
+  const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const summary = [
+    { "項目": "収入合計",   "金額": income },
+    { "項目": "支出合計",   "金額": expense },
+    { "項目": "収支",       "金額": income - expense },
+    { "項目": "予算",       "金額": BUDGET.total },
+    { "項目": "予算消化率", "金額": Math.round(expense / BUDGET.total * 100) + "%" },
+  ];
+
+  // Workbookを作成
+  const wb = XLSX.utils.book_new();
+
+  // シート1: 明細
+  const ws1 = XLSX.utils.json_to_sheet(rows);
+  ws1["!cols"] = [
+    { wch: 12 }, // 日付
+    { wch: 6  }, // 種別
+    { wch: 10 }, // カテゴリ
+    { wch: 10 }, // 金額
+    { wch: 20 }, // メモ
+  ];
+  XLSX.utils.book_append_sheet(wb, ws1, "明細");
+
+  // シート2: サマリー
+  const ws2 = XLSX.utils.json_to_sheet(summary);
+  ws2["!cols"] = [{ wch: 14 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws2, "サマリー");
+
+  // ダウンロード
+  XLSX.writeFile(wb, getExportLabel(range) + ".xlsx");
+  showToast("Excelファイルを保存しました");
 }
 
 // ============================================================
