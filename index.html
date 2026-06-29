@@ -223,13 +223,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
-    <!-- メモ・日付を横並びに -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-      <input class="field-input" id="memoInput" type="text" placeholder="メモ（任意）" style="padding:6px 10px;font-size:12px;">
-      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;">
+    <!-- 日付のみ上に配置 -->
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;width:100%;">
     </div>
-    <!-- カテゴリ -->
+    <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
     <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
+    <!-- メモ（カテゴリの直後・記録ボタンの直前） -->
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="memoInput" type="text" placeholder="メモ（任意）" style="padding:6px 10px;font-size:12px;width:100%;">
+    </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
   </div>
