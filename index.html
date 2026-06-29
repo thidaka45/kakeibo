@@ -85,8 +85,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .tx-amount.expense{color:var(--red);}
 
 /* ===== 入力 ===== */
-.type-toggle{display:flex;background:var(--border);border-radius:var(--radius-s);padding:3px;margin-bottom:16px;}
-.type-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;background:none;color:var(--sub);}
+.type-toggle{display:flex;background:var(--border);border-radius:var(--radius-s);padding:3px;margin-bottom:6px;}
+.type-btn{flex:1;padding:6px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit;background:none;color:var(--sub);}
 .type-btn.active-expense{background:var(--card);color:var(--red);}
 .type-btn.active-income{background:var(--card);color:var(--green);}
 .input-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-bottom:12px;}
@@ -95,9 +95,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-label{font-size:12px;color:var(--sub);}
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
-.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
-.cat-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
-.cat-btn .cat-emoji{font-size:18px;}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;height:110px;align-content:start;overflow:hidden;}
+.cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
+.cat-btn .cat-emoji{font-size:16px;}
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
 .submit-btn{width:100%;padding:14px;border-radius:var(--radius-s);border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;color:#fff;}
 .submit-btn.expense{background:var(--red);}
@@ -214,43 +214,41 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 入力 ===== -->
 <div class="page" id="page-input">
-  <div class="type-toggle">
+  <!-- 支出・収入トグル -->
+  <div class="type-toggle" style="margin-bottom:6px;">
     <button class="type-btn active-expense" id="typeExpense" onclick="setType('expense')">支出</button>
     <button class="type-btn" id="typeIncome" onclick="setType('income')">収入</button>
   </div>
-  <div class="input-card">
-    <div class="amount-display" id="amountDisplay">¥0</div>
+
+  <!-- 金額表示 -->
+  <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
+    <div class="amount-display" id="amountDisplay" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
+    <!-- メモ・日付を横並びに -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+      <input class="field-input" id="memoInput" type="text" placeholder="メモ（任意）" style="padding:6px 10px;font-size:12px;">
+      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;">
+    </div>
     <!-- カテゴリ -->
-    <div class="field-label" style="margin-bottom:8px">カテゴリ</div>
-    <div class="cat-grid" id="catGrid"></div>
-    <!-- メモ -->
-    <div class="field-row">
-      <label class="field-label">メモ（任意）</label>
-      <input class="field-input" id="memoInput" type="text" placeholder="例: スーパーで買い物">
-    </div>
-    <!-- 日付 -->
-    <div class="field-row">
-      <label class="field-label">日付</label>
-      <input class="field-input" id="dateInput" type="date">
-    </div>
-    <button class="submit-btn expense" id="submitBtn" onclick="submitTx()">支出を記録</button>
+    <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
+    <!-- 記録ボタン -->
+    <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
   </div>
 
   <!-- テンキー -->
-  <div class="input-card" style="padding:10px;">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('1')">1</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('2')">2</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('3')">3</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('4')">4</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('5')">5</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('6')">6</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('7')">7</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('8')">8</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('9')">9</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;" onclick="inputNum('000')">000</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:20px;font-weight:500;" onclick="inputNum('0')">0</button>
-      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:20px;color:var(--red);" onclick="inputNum('del')">⌫</button>
+  <div class="input-card" style="padding:8px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('1')">1</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('2')">2</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('3')">3</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('4')">4</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('5')">5</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('6')">6</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('7')">7</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('8')">8</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('9')">9</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;padding:10px;" onclick="inputNum('000')">000</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('0')">0</button>
+      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:18px;color:var(--red);padding:10px;" onclick="inputNum('del')">⌫</button>
     </div>
   </div>
 </div>
@@ -270,6 +268,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>支出</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green);opacity:.6"></div>収入</div>
     </div>
+    <!-- 月選択タブ -->
+    <div style="display:flex;gap:4px;margin-top:10px;overflow-x:auto;padding-bottom:2px;" id="monthTabs"></div>
+    <!-- 選択月の収支詳細 -->
+    <div id="monthDetail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"></div>
   </div>
   <!-- カテゴリ別 -->
   <div class="graph-card">
@@ -563,6 +565,8 @@ function submitTx() {
 // ============================================================
 // グラフ描画
 // ============================================================
+let selectedGraphMonth = null; // 選択中の月
+
 function renderGraph() {
   document.getElementById("graphMonthTitle").textContent =
     `${viewYear}年${viewMonth+1}月`;
@@ -575,6 +579,11 @@ function renderGraph() {
     months.push({y, m, label: `${m+1}月`});
   }
 
+  // 初期選択は最新月
+  if (!selectedGraphMonth) {
+    selectedGraphMonth = months[months.length - 1];
+  }
+
   const maxAmt = 350000;
   const barChart = document.getElementById("barChart");
   barChart.innerHTML = months.map(({y,m,label}) => {
@@ -583,20 +592,66 @@ function renderGraph() {
     const inc = mt.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
     const expH = Math.round(exp / maxAmt * 120);
     const incH = Math.round(inc / maxAmt * 120);
-    return `<div class="bar-col">
+    const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
+    return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')" style="cursor:pointer;opacity:${isSelected?1:0.5};">
       <div class="bar-wrap">
         <div class="bar-inc" style="height:${incH}px"></div>
         <div class="bar-exp" style="height:${expH}px"></div>
       </div>
-      <div class="bar-col-label">${label}</div>
+      <div class="bar-col-label" style="color:${isSelected?'var(--green)':'var(--muted)'};font-weight:${isSelected?700:400};">${label}</div>
     </div>`;
   }).join("");
 
-  // カテゴリ別
-  const curTxs = monthTxs().filter(t=>t.type==="expense");
+  // 月選択タブ
+  document.getElementById("monthTabs").innerHTML = months.map(({y,m,label}) => {
+    const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
+    return `<button onclick="selectGraphMonth(${y},${m},'${label}')"
+      style="flex-shrink:0;padding:4px 10px;border-radius:20px;border:1px solid ${isSelected?'var(--green)':'var(--border)'};
+      background:${isSelected?'var(--green-l)':'transparent'};color:${isSelected?'var(--green-d)':'var(--sub)'};
+      font-size:11px;font-weight:${isSelected?700:400};cursor:pointer;font-family:inherit;">
+      ${label}
+    </button>`;
+  }).join("");
+
+  // 選択月の詳細表示
+  renderMonthDetail(selectedGraphMonth.y, selectedGraphMonth.m);
+
+  // カテゴリ別（選択月）
+  renderCatSummary(selectedGraphMonth.y, selectedGraphMonth.m);
+}
+
+function selectGraphMonth(y, m, label) {
+  selectedGraphMonth = {y, m, label};
+  renderGraph();
+}
+
+function renderMonthDetail(y, m) {
+  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
+  const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const bal = inc - exp;
+  document.getElementById("monthDetail").innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+      <div style="background:var(--green-l);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--green-d);margin-bottom:2px;">収入</div>
+        <div style="font-size:13px;font-weight:700;color:var(--green-d);">${fmt(inc)}</div>
+      </div>
+      <div style="background:var(--red-l);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:var(--red);margin-bottom:2px;">支出</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);">${fmt(exp)}</div>
+      </div>
+      <div style="background:${bal>=0?'var(--blue-l)':'var(--red-l)'};border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;color:${bal>=0?'var(--blue)':'var(--red)'};margin-bottom:2px;">収支</div>
+        <div style="font-size:13px;font-weight:700;color:${bal>=0?'var(--blue)':'var(--red)'};">${bal>=0?'+':''}${fmt(bal)}</div>
+      </div>
+    </div>`;
+}
+
+function renderCatSummary(y, m) {
+  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m&&t.type==="expense"; });
   const catTotals = CATS_EXPENSE.map(c => ({
     ...c,
-    total: curTxs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0)
+    total: txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0)
   })).filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
 
   const maxCat = catTotals[0]?.total || 1;
