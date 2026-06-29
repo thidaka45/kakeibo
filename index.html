@@ -616,12 +616,13 @@ function renderGraph() {
 // ============================================================
 // レシートOCR（Gemini Flash API・完全無料）
 // ============================================================
-// 【APIキー取得方法】
-// 1. https://aistudio.google.com/ にアクセス
-// 2. Googleアカウントでログイン
-// 3. 「Get API key」→「Create API key」
-// 4. 発行されたキーを下記 GEMINI_API_KEY に貼り付ける
-const GEMINI_API_KEY = "AQ.Ab8RN6I931VI_bhBIy9HA6B0ilKUuKWAl0qdnTyznsRwk6vEAQ";
+// 【設定済み】
+// APIキー: thidaka45@gmail.com のGemini APIキー
+// 許可URL: https://thidaka45.github.io/kakeibo/ のみ
+const GEMINI_API_KEY = "AIzaSy_PASTE_YOUR_KEY_HERE"; // ← iPhoneでコピーしたキーに書き換えてください
+
+// 許可URL（このサイト以外からの利用を防止）
+const ALLOWED_ORIGIN = "https://thidaka45.github.io";
 
 // 1日の撮影上限（無料枠保護・悪用防止）
 const DAILY_OCR_LIMIT = 10;
@@ -645,6 +646,12 @@ let ocrData = null;
 async function handleReceipt(input) {
   const file = input.files[0];
   if (!file) return;
+
+  // 許可URLチェック
+  if (!window.location.origin.startsWith(ALLOWED_ORIGIN)) {
+    showToast("このサイトからのみご利用いただけます");
+    return;
+  }
 
   // 1日の上限チェック
   if (!checkOcrLimit()) {
@@ -709,10 +716,25 @@ async function handleReceipt(input) {
     showOcrResult(ocrData);
 
   } catch(e) {
-    // APIキー未設定 or エラー時はデモデータを表示
+    // エラー内容を画面に表示してデバッグしやすくする
     console.warn("Gemini API error:", e.message);
+
+    // エラーの種類を判定して表示
+    let errMsg = "エラー: " + e.message;
+    if (e.message.includes("API_KEY")) {
+      errMsg = "APIキーが無効です。設定を確認してください。";
+    } else if (e.message.includes("fetch")) {
+      errMsg = "通信エラー。インターネット接続を確認してください。";
+    } else if (e.message.includes("JSON")) {
+      errMsg = "AIの応答解析エラー。再度試してください。";
+    }
+
+    // エラー内容をトーストで表示
+    showToast(errMsg);
+
+    // デモデータを表示
     ocrData = {
-      store: "サンプルスーパー",
+      store: "⚠️ デモデータ（" + e.message.slice(0,20) + "）",
       date:  new Date().toISOString().slice(0, 10),
       items: [
         { name: "牛乳",      price: 198 },
@@ -723,9 +745,6 @@ async function handleReceipt(input) {
       total: 702
     };
     showOcrResult(ocrData);
-    if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-      showToast("デモ表示中 — APIキーを設定すると本物のレシートを読み取れます");
-    }
   } finally {
     document.getElementById("ocrLoading").classList.remove("show");
     input.value = "";
