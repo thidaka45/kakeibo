@@ -190,7 +190,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="budget-nums" id="budgetNums"></span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
-    <div class="budget-cats" id="budgetCats"></div>
+    <!-- 健全状況 -->
+    <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+      <span id="budgetStatusIcon" style="font-size:16px;"></span>
+      <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
+      <span id="budgetStatusSub" style="font-size:11px;color:var(--sub);margin-left:auto;"></span>
+    </div>
   </div>
 
   <!-- 直近取引 -->
@@ -225,9 +230,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
-    <div style="margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-      <span style="font-size:12px;color:var(--sub);white-space:nowrap;">📅 日付</span>
-      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:12px;flex:1;cursor:pointer;">
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
     </div>
     <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
     <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
@@ -270,7 +274,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="graph-card">
     <div class="graph-title">月別収支（直近6ヶ月）</div>
     <!-- 棒グラフ＋月ラベルを一体化 -->
-    <div id="barChart" style="display:flex;align-items:flex-end;gap:6px;height:120px;margin-bottom:0;"></div>
+    <div id="barChart" style="display:flex;align-items:flex-end;gap:6px;height:170px;margin-bottom:0;overflow:hidden;"></div>
     <div class="legend" style="margin-top:6px;">
       <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>支出</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--green);opacity:.6"></div>収入</div>
@@ -290,35 +294,35 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="section-title" style="margin-top:4px">AI画像読み取り</div>
   <div class="receipt-area">
 
-    <!-- 2ボタン方式 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+    <!-- 2ボタン方式（コンパクト） -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
 
       <!-- カメラ撮影 -->
-      <label class="receipt-upload" for="receiptCamera" style="padding:18px 10px;">
-        <div class="receipt-icon">📷</div>
-        <div class="receipt-upload-text" style="font-size:13px;">カメラで撮影</div>
-        <div class="receipt-upload-sub">紙のレシート</div>
+      <label class="receipt-upload" for="receiptCamera" style="padding:10px 8px;">
+        <div class="receipt-icon" style="font-size:24px;margin-bottom:4px;">📷</div>
+        <div class="receipt-upload-text" style="font-size:12px;">カメラで撮影</div>
+        <div class="receipt-upload-sub" style="font-size:10px;">紙のレシート</div>
       </label>
       <input type="file" id="receiptCamera" accept="image/*" capture="environment" onchange="handleReceipt(this)">
 
       <!-- 画像選択（スクショ対応） -->
-      <label class="receipt-upload" for="receiptGallery" style="padding:18px 10px;">
-        <div class="receipt-icon">🖼️</div>
-        <div class="receipt-upload-text" style="font-size:13px;">画像を選択</div>
-        <div class="receipt-upload-sub">スクショ・電子決済</div>
+      <label class="receipt-upload" for="receiptGallery" style="padding:10px 8px;">
+        <div class="receipt-icon" style="font-size:24px;margin-bottom:4px;">🖼️</div>
+        <div class="receipt-upload-text" style="font-size:12px;">画像を選択</div>
+        <div class="receipt-upload-sub" style="font-size:10px;">スクショ・電子決済</div>
       </label>
       <input type="file" id="receiptGallery" accept="image/*" onchange="handleReceipt(this)">
 
     </div>
 
-    <!-- 対応画像の説明 -->
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🧾 紙レシート</span>
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">📱 PayPay</span>
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">💳 クレカ明細</span>
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🏪 楽天Pay</span>
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🍎 Apple Pay</span>
-      <span style="font-size:11px;padding:3px 10px;border-radius:10px;background:var(--green-l);color:var(--green-d);">📧 メール明細</span>
+    <!-- 対応画像の説明（コンパクト） -->
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🧾 紙レシート</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">📱 PayPay</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">💳 クレカ明細</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🏪 楽天Pay</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">🍎 Apple Pay</span>
+      <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-l);color:var(--green-d);">📧 メール明細</span>
     </div>
 
     <div class="ocr-loading" id="ocrLoading">🤖 AIが画像を読み取り中...</div>
@@ -331,9 +335,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 
-  <div class="graph-card" style="margin-top:4px;">
-    <div class="graph-title" style="margin-bottom:8px;">使い方</div>
-    <div style="font-size:13px;color:var(--sub);line-height:1.8;">
+  <div class="graph-card" style="margin-top:6px;">
+    <div class="graph-title" style="margin-bottom:6px;font-size:12px;">使い方</div>
+    <div style="font-size:12px;color:var(--sub);line-height:1.7;">
       ① 紙レシートは「カメラで撮影」をタップ<br>
       ② 電子決済・スクショは「画像を選択」をタップ<br>
       ③ AIが店名・品目・合計金額を自動読み取り<br>
@@ -383,8 +387,8 @@ const CATS_INCOME = [
   {id:"invest",  emoji:"📈", label:"投資"},
   {id:"pension", emoji:"🏦", label:"年金"},
   {id:"rent",    emoji:"🏠", label:"家賃収入"},
-  {id:"gift",    emoji:"🤝", label:"贈与"},
   {id:"other",   emoji:"📦", label:"その他"},
+  {id:"carryover",emoji:"🔄", label:"繰越"},
 ];
 
 const BUDGET = {
@@ -463,19 +467,49 @@ function renderHome() {
   const pct = Math.min(Math.round(expense / BUDGET.total * 100), 100);
   const bar = document.getElementById("budgetBar");
   bar.style.width = pct + "%";
-  bar.className = "bar-fill " + (pct < 70 ? "bar-ok" : pct < 90 ? "bar-warn" : "bar-over");
+
+  // 残り日数から理想消化率を計算
+  const today    = new Date();
+  const lastDay  = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const isCurrentMonth = today.getFullYear()===viewYear && today.getMonth()===viewMonth;
+  const elapsedDays = isCurrentMonth ? today.getDate() : lastDay;
+  const idealPct = Math.round(elapsedDays / lastDay * 100);
+  const remaining = BUDGET.total - expense;
+  const remainDays = isCurrentMonth ? lastDay - today.getDate() : 0;
+
+  // 消化ペース判定（実際の消化率 vs 理想消化率）
+  const diff = pct - idealPct;
+  let statusIcon, statusText, statusColor, barClass;
+
+  if (!isCurrentMonth) {
+    // 過去月
+    if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
+    else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
+    else                 { statusIcon="🚨"; statusText="予算を超過しました"; statusColor="var(--red)"; barClass="bar-over"; }
+  } else if (pct >= 100) {
+    statusIcon="🚨"; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
+  } else if (diff >= 15) {
+    statusIcon="🚨"; statusText="消化ペースが速すぎます"; statusColor="var(--red)"; barClass="bar-over";
+  } else if (diff >= 5) {
+    statusIcon="⚠️"; statusText="やや使いすぎています"; statusColor="var(--amber)"; barClass="bar-warn";
+  } else if (diff >= -10) {
+    statusIcon="✅"; statusText="順調なペースです"; statusColor="var(--green)"; barClass="bar-ok";
+  } else {
+    statusIcon="💚"; statusText="節約ペースです！"; statusColor="var(--green)"; barClass="bar-ok";
+  }
+
+  bar.className = "bar-fill " + barClass;
+  bar.style.background = statusColor;
+
   document.getElementById("budgetLabel").textContent = `予算消化率  ${pct}%`;
   document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(BUDGET.total)}`;
-
-  // カテゴリ別残高
-  const catsEl = document.getElementById("budgetCats");
-  catsEl.innerHTML = CATS_EXPENSE.slice(0,3).map(c => {
-    const spent = txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0);
-    return `<div class="cat-row">
-      <span class="cat-name">${c.emoji} ${c.label}</span>
-      <span class="cat-val">${fmt(spent)}</span>
-    </div>`;
-  }).join("");
+  document.getElementById("budgetStatusIcon").textContent = statusIcon;
+  document.getElementById("budgetStatusText").textContent = statusText;
+  document.getElementById("budgetStatusText").style.color = statusColor;
+  document.getElementById("budgetStatusSub").textContent  =
+    isCurrentMonth
+      ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
+      : `(理想:${idealPct}% / 実績:${pct}%)`;
 
   // 直近取引（最新8件）
   const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
@@ -524,11 +558,52 @@ function setType(type) {
 
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
-  document.getElementById("catGrid").innerHTML = cats.map(c =>
-    `<button class="cat-btn ${c.id===selectedCat?"selected":""}" onclick="selectCat('${c.id}')">
+  document.getElementById("catGrid").innerHTML = cats.map(c => {
+    // 繰越ボタンは特別処理
+    if (c.id === "carryover") {
+      return `<button class="cat-btn ${c.id===selectedCat?"selected":""}"
+        onclick="applyCarryover()"
+        style="border-color:var(--blue);${c.id===selectedCat?'background:var(--blue-l);color:var(--blue);':''}">
+        <span class="cat-emoji">${c.emoji}</span>${c.label}
+      </button>`;
+    }
+    return `<button class="cat-btn ${c.id===selectedCat?"selected":""}" onclick="selectCat('${c.id}')">
       <span class="cat-emoji">${c.emoji}</span>${c.label}
-    </button>`
-  ).join("");
+    </button>`;
+  }).join("");
+}
+
+// 前月残高を自動計算して入力する
+function applyCarryover() {
+  // 前月の年月を計算
+  let prevMonth = viewMonth - 1;
+  let prevYear  = viewYear;
+  if (prevMonth < 0) { prevMonth = 11; prevYear--; }
+
+  // 前月の全取引を集計
+  const txs     = loadTx().filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+  });
+  const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const balance = income - expense;
+
+  if (balance <= 0) {
+    showToast(`${prevYear}年${prevMonth+1}月の残高は¥${balance.toLocaleString()}です。繰越額を確認してください。`);
+    return;
+  }
+
+  // カテゴリを繰越に設定して金額を自動入力
+  selectedCat = "carryover";
+  inputAmt    = String(balance);
+  document.getElementById("amountDisplay").textContent = "¥" + balance.toLocaleString("ja-JP");
+
+  // メモに前月残高を自動設定
+  document.getElementById("memoInput").value = `${prevYear}年${prevMonth+1}月繰越`;
+
+  renderCatGrid();
+  showToast(`${prevYear}年${prevMonth+1}月の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
 }
 
 function selectCat(id) {
@@ -593,14 +668,22 @@ function renderGraph() {
     selectedGraphMonth = months[months.length - 1];
   }
 
-  const maxAmt = 350000;
-  const barChart = document.getElementById("barChart");
-  barChart.innerHTML = months.map(({y,m,label}) => {
-    const mt = txs.filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
+  // 全月の最大値を動的に計算してスケール自動調整
+  const monthData = months.map(({y,m,label}) => {
+    const mt  = txs.filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
     const exp = mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const inc = mt.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-    const expH = Math.round(exp / maxAmt * 100);
-    const incH = Math.round(inc / maxAmt * 100);
+    return {y, m, label, exp, inc};
+  });
+  const maxAmt = Math.max(...monthData.map(d => Math.max(d.exp, d.inc)), 1);
+
+  const barChart = document.getElementById("barChart");
+  // コンテナの実際の高さからボタン分を引いて棒の最大高さを計算
+  const BAR_MAX_H = Math.max((barChart.clientHeight || 170) - 32, 80);
+
+  barChart.innerHTML = monthData.map(({y,m,label,exp,inc}) => {
+    const expH = Math.round(exp / maxAmt * BAR_MAX_H);
+    const incH = Math.round(inc / maxAmt * BAR_MAX_H);
     const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
     return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')"
       style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
