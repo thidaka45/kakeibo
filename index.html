@@ -46,15 +46,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ===== ホーム ===== */
 .month-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .month-nav{background:none;border:none;font-size:20px;cursor:pointer;color:var(--sub);padding:4px 8px;}
-.month-title{font-size:16px;font-weight:700;color:var(--text);}
+.month-title{font-size:14px;font-weight:700;color:var(--text);}
 
 /* 残高カード */
 .balance-card{background:var(--green);border-radius:var(--radius);padding:12px 16px 10px;margin-bottom:8px;color:#fff;}
 .balance-label{font-size:12px;opacity:.8;margin-bottom:4px;}
 .balance-amount{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1;}
 .balance-sub{display:flex;gap:16px;margin-top:6px;}
-.balance-sub-item{font-size:12px;opacity:.85;}
-.balance-sub-item span{display:block;font-size:16px;font-weight:600;margin-top:1px;}
+.balance-sub-item{font-size:11px;opacity:.85;}
+.balance-sub-item span{display:block;font-size:13px;font-weight:600;margin-top:1px;}
 
 /* 予算バー */
 .budget-card{background:var(--card);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 8px rgba(0,0,0,.05);}
@@ -68,8 +68,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .bar-over{background:var(--red);}
 .budget-cats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px;}
 .cat-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:6px;padding:4px 8px;}
-.cat-name{font-size:12px;color:var(--sub);}
-.cat-val{font-size:12px;font-weight:600;color:var(--text);}
+.cat-name{font-size:10px;color:var(--sub);}
+.cat-val{font-size:10px;font-weight:600;color:var(--text);}
 
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
@@ -78,9 +78,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 .tx-info{flex:1;}
-.tx-name{font-size:13px;font-weight:500;color:var(--text);}
-.tx-date{font-size:11px;color:var(--muted);}
-.tx-amount{font-size:14px;font-weight:700;}
+.tx-name{font-size:12px;font-weight:500;color:var(--text);}
+.tx-date{font-size:10px;color:var(--muted);}
+.tx-amount{font-size:12px;font-weight:700;}
 .tx-amount.income{color:var(--green);}
 .tx-amount.expense{color:var(--red);}
 
@@ -144,7 +144,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 
 /* エクスポートボタン */
-.export-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border-radius:var(--radius-s);border:1.5px solid var(--green);background:var(--green-l);color:var(--green-d);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-top:10px;}
+.export-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:8px;border-radius:var(--radius-s);border:1.5px solid var(--green);background:var(--green-l);color:var(--green-d);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-top:6px;}
 .export-btn:active{opacity:.7;}
 .export-section{background:var(--card);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-top:8px;}
 .export-title{font-size:13px;font-weight:600;color:var(--sub);margin-bottom:10px;}
@@ -207,7 +207,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       全データをCSVで保存
     </button>
-    <div class="export-note">💡 データはこのiPhoneにのみ保存されています。<br>定期的にCSVを保存してバックアップしてください。</div>
+
   </div>
 
 </div>
@@ -458,7 +458,7 @@ function renderHome() {
 
   // カテゴリ別残高
   const catsEl = document.getElementById("budgetCats");
-  catsEl.innerHTML = CATS_EXPENSE.slice(0,6).map(c => {
+  catsEl.innerHTML = CATS_EXPENSE.slice(0,3).map(c => {
     const spent = txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0);
     return `<div class="cat-row">
       <span class="cat-name">${c.emoji} ${c.label}</span>
@@ -467,7 +467,7 @@ function renderHome() {
   }).join("");
 
   // 直近取引（最新8件）
-  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,8);
+  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
   const allCats = [...CATS_EXPENSE,...CATS_INCOME];
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
