@@ -467,7 +467,7 @@ function renderHome() {
   }).join("");
 
   // 直近取引（最新8件）
-  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
+  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   const allCats = [...CATS_EXPENSE,...CATS_INCOME];
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
