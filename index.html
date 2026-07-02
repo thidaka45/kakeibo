@@ -96,7 +96,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-label{font-size:12px;color:var(--sub);}
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
-.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;height:110px;align-content:start;overflow:hidden;}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
 .cat-btn .cat-emoji{font-size:16px;}
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
@@ -496,14 +496,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 // 定数
 // ============================================================
 const CATS_EXPENSE = [
-  {id:"food",    emoji:"🛒", label:"食費"},
-  {id:"dining",  emoji:"🍜", label:"外食"},
-  {id:"transport",emoji:"🚃",label:"交通"},
-  {id:"util",    emoji:"💡", label:"光熱費"},
-  {id:"medical", emoji:"💊", label:"医療"},
-  {id:"daily",   emoji:"🧴", label:"日用品"},
-  {id:"enjoy",   emoji:"🎮", label:"娯楽"},
-  {id:"other",   emoji:"📦", label:"その他"},
+  {id:"food",     emoji:"🛒", label:"食費"},
+  {id:"dining",   emoji:"🍜", label:"外食費"},
+  {id:"daily",    emoji:"🧴", label:"日用品費"},
+  {id:"transport",emoji:"🚃", label:"交通費"},
+  {id:"comm",     emoji:"📱", label:"通信費"},
+  {id:"util",     emoji:"💡", label:"水道光熱費"},
+  {id:"housing",  emoji:"🏠", label:"住居費"},
+  {id:"medical",  emoji:"💊", label:"医療費"},
+  {id:"clothing", emoji:"👕", label:"被服費"},
+  {id:"beauty",   emoji:"💇", label:"美容・健康費"},
+  {id:"social",   emoji:"🎉", label:"交際費"},
+  {id:"enjoy",    emoji:"🎮", label:"趣味・娯楽費"},
+  {id:"tax",      emoji:"📋", label:"税金・保険料"},
 ];
 const CATS_INCOME = [
   {id:"salary",  emoji:"💰", label:"給与"},
@@ -516,16 +521,21 @@ const CATS_INCOME = [
   {id:"carryover",emoji:"🔄", label:"繰越"},
 ];
 
+// カテゴリ別の月予算（円）。金額はあくまで初期値なので、実情に合わせて調整してください。
+const BUDGET_CATS = {
+  food:40000, dining:15000, daily:10000, transport:10000,
+  comm:8000, util:15000, housing:80000, medical:5000,
+  clothing:6000, beauty:6000, social:12000, enjoy:15000, tax:10000
+};
 const BUDGET = {
-  food:240000, dining:30000, transport:20000,
-  util:15000, medical:10000, daily:20000, enjoy:20000, other:10000,
-  total:300000
+  ...BUDGET_CATS,
+  total: Object.values(BUDGET_CATS).reduce((s,v)=>s+v, 0)
 };
 
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "1.0.8"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "1.1.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1554,6 +1564,58 @@ function debugClearAll() {
 }
 
 // ============================================================
+// URL連携（Shortcuts + ChatGPT からのレシートデータ受信）
+// ============================================================
+// 期待するURL形式:
+//   https://thidaka45.github.io/kakeibo/?data=YYYY%2FMM%2FDD%2C店名%2C金額%2Cカテゴリ
+// dataパラメータの中身（デコード後）: "2026/07/02,〇〇スーパー,1280,食費"
+function receiveFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const raw = params.get("data");
+  if (!raw) return;
+
+  // 同じデータの重複登録・リロード時の再登録を防ぐため、先にURLをきれいにする
+  history.replaceState(null, "", location.pathname);
+
+  const parts = raw.split(",").map(s => s.trim());
+  if (parts.length < 4) {
+    showToast("受け取ったデータの形式が正しくありませんでした");
+    return;
+  }
+  const [rawDate, store, rawAmount, rawCat] = parts;
+
+  const date = rawDate.replace(/\//g, "-");
+  const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
+  if (!date || isNaN(amount)) {
+    showToast("受け取ったデータの形式が正しくありませんでした");
+    return;
+  }
+
+  const matched = CATS_EXPENSE.find(c => c.label === rawCat);
+  const cat = matched ? matched.id : CATS_EXPENSE[0].id;
+
+  const txs = loadTx();
+  txs.push({
+    id: Date.now(),
+    type: "expense",
+    cat,
+    amount,
+    memo: store || "",
+    date
+  });
+  saveTx(txs);
+
+  viewYear  = new Date(date).getFullYear();
+  viewMonth = new Date(date).getMonth();
+
+  showToast(
+    matched
+      ? `${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
+      : `${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
+  );
+}
+
+// ============================================================
 // 初期化
 // ============================================================
 function init() {
@@ -1561,6 +1623,7 @@ function init() {
   document.getElementById("versionText").textContent = APP_VERSION;
 
   initSample();
+  receiveFromUrl();
 
   const today = new Date().toISOString().slice(0,10);
   document.getElementById("dateInput").value = today;
