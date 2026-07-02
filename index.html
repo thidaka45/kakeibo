@@ -512,19 +512,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 // 定数
 // ============================================================
 const CATS_EXPENSE = [
-  {id:"food",     emoji:"🛒", label:"食費"},
-  {id:"dining",   emoji:"🍜", label:"外食費"},
-  {id:"daily",    emoji:"🧴", label:"日用品費"},
-  {id:"transport",emoji:"🚃", label:"交通費"},
-  {id:"comm",     emoji:"📱", label:"通信費"},
-  {id:"util",     emoji:"💡", label:"水道光熱費"},
-  {id:"housing",  emoji:"🏠", label:"住居費"},
-  {id:"medical",  emoji:"💊", label:"医療費"},
-  {id:"clothing", emoji:"👕", label:"被服費"},
-  {id:"beauty",   emoji:"💇", label:"美容・健康費"},
-  {id:"social",   emoji:"🎉", label:"交際費"},
-  {id:"enjoy",    emoji:"🎮", label:"趣味・娯楽費"},
-  {id:"tax",      emoji:"📋", label:"税金・保険料"},
+  {id:"food",      emoji:"🛒", label:"食料"},
+  {id:"dining",    emoji:"🍜", label:"外食"},
+  {id:"daily",     emoji:"🧴", label:"日用品"},
+  {id:"transport", emoji:"🚃", label:"交通"},
+  {id:"comm",      emoji:"📱", label:"通信"},
+  {id:"housing",   emoji:"🏠", label:"住居"},
+  {id:"medical",   emoji:"💊", label:"医療"},
+  {id:"social",    emoji:"🎉", label:"交際"},
+  {id:"other",     emoji:"📦", label:"その他"},
 ];
 const CATS_INCOME = [
   {id:"salary",  emoji:"💰", label:"給与"},
@@ -540,8 +536,7 @@ const CATS_INCOME = [
 // カテゴリ別の月予算（円）。金額はあくまで初期値なので、実情に合わせて調整してください。
 const BUDGET_CATS = {
   food:40000, dining:15000, daily:10000, transport:10000,
-  comm:8000, util:15000, housing:80000, medical:5000,
-  clothing:6000, beauty:6000, social:12000, enjoy:15000, tax:10000
+  comm:8000, housing:95000, medical:5000, social:27000, other:22000
 };
 const BUDGET = {
   ...BUDGET_CATS,
@@ -573,7 +568,7 @@ function initSample() {
     {id:2, type:"expense", cat:"food",      amount:8420,   memo:"スーパー",     date:`${y}-${String(m+1).padStart(2,"0")}-28`},
     {id:3, type:"expense", cat:"dining",    amount:3200,   memo:"ランチ",       date:`${y}-${String(m+1).padStart(2,"0")}-27`},
     {id:4, type:"expense", cat:"transport", amount:6600,   memo:"定期代",       date:`${y}-${String(m+1).padStart(2,"0")}-26`},
-    {id:5, type:"expense", cat:"util",      amount:9800,   memo:"電気代",       date:`${y}-${String(m+1).padStart(2,"0")}-25`},
+    {id:5, type:"expense", cat:"housing",   amount:9800,   memo:"電気代",       date:`${y}-${String(m+1).padStart(2,"0")}-25`},
     {id:6, type:"expense", cat:"food",      amount:5300,   memo:"コンビニ",     date:`${y}-${String(m+1).padStart(2,"0")}-24`},
     {id:7, type:"expense", cat:"daily",     amount:4100,   memo:"ドラッグストア",date:`${y}-${String(m+1).padStart(2,"0")}-23`},
   ];
