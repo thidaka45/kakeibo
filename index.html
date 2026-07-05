@@ -75,6 +75,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
 .tx-list{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);}
+#txList{max-height:270px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .tx-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);}
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
@@ -175,11 +176,21 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 残高カード -->
   <div class="balance-card">
-    <div class="balance-label">今月の残高</div>
-    <div class="balance-amount" id="balanceAmount">¥0</div>
-    <div class="balance-sub">
-      <div class="balance-sub-item">収入<span id="totalIncome" style="color:#A7F3D0">¥0</span></div>
-      <div class="balance-sub-item">支出<span id="totalExpense" style="color:#FCA5A5">¥0</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+      <div style="flex:1;min-width:0;">
+        <div class="balance-label">今月の残高</div>
+        <div class="balance-amount" id="balanceAmount">¥0</div>
+        <div class="balance-sub">
+          <div class="balance-sub-item">収入<span id="totalIncome" style="color:#A7F3D0">¥0</span></div>
+          <div class="balance-sub-item">支出<span id="totalExpense" style="color:#FCA5A5">¥0</span></div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-top:2px;">
+        <div style="font-size:10px;opacity:.8;">積立合計</div>
+        <div id="homeSavingsTotal" style="font-size:14px;font-weight:700;margin-bottom:6px;white-space:nowrap;">¥0</div>
+        <div style="font-size:10px;opacity:.8;">固定合計</div>
+        <div id="homeFixedTotal" style="font-size:14px;font-weight:700;white-space:nowrap;">¥0</div>
+      </div>
     </div>
   </div>
 
@@ -658,7 +669,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.2"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -726,6 +737,12 @@ function renderHome() {
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
 
+  // 積立合計・固定合計（残高カード右側）
+  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.balance||0),0);
+  const fixedTotal = ensureCycle().fixed_costs.reduce((s,i)=>s+(i.amount||0),0);
+  document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
+  document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
+
   // 予算バー
   const pct = Math.min(Math.round(expense / BUDGET.total * 100), 100);
   const bar = document.getElementById("budgetBar");
@@ -774,8 +791,8 @@ function renderHome() {
       ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
       : `(理想:${idealPct}% / 実績:${pct}%)`;
 
-  // 直近取引（最新8件）
-  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  // 直近取引（最新30件、枠内は6行分の高さでスクロール表示）
+  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,30);
   const allCats = [...CATS_EXPENSE,...CATS_INCOME];
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
