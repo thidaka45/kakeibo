@@ -672,7 +672,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.6"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.7"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -819,7 +819,7 @@ function renderHome() {
   document.getElementById("totalExpense").textContent  = fmt(expense);
 
   // 積立合計・固定合計（残高カード右側）
-  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.balance||0),0);
+  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.monthly||0),0);
   const fixedTotal = ensureCycle().fixed_costs.reduce((s,i)=>s+(i.amount||0),0);
   document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
   document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
@@ -1599,11 +1599,10 @@ function renderSavings() {
     const pct    = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
     const months = calcRemainingMonths(p.targetYear, p.targetMonth);
     const isWarn = months <= 2 && pct < 80;
-    const barClr = isWarn ? "var(--red)" : pct >= 80 ? "var(--green)" : "var(--blue)";
     const statusTxt = isWarn ? `⚠️ 要確認（残り${months}ヶ月）` : `残り${months}ヶ月`;
 
-    return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${cat.emoji}</div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:600;color:var(--text);">${p.name}</div>
@@ -1613,14 +1612,7 @@ function renderSavings() {
           <div style="font-size:10px;color:var(--sub);">月積立</div>
           <div style="font-size:14px;font-weight:700;color:var(--green-d);">${fmt(p.monthly||0)}</div>
         </div>
-        <button onclick="deleteSavingsPlan('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 4px;">×</button>
-      </div>
-      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:4px;">
-        <div style="height:100%;background:${barClr};border-radius:4px;width:${pct}%;transition:width .6s;"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;">
-        <span style="font-size:10px;color:var(--sub);">${pct}%</span>
-        <span style="font-size:10px;color:var(--muted);">${fmt(p.balance||0)} / ${fmt(p.amount)}</span>
+        <button onclick="event.stopPropagation();deleteSavingsPlan('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 4px;">×</button>
       </div>
     </div>`;
   }).join("");
