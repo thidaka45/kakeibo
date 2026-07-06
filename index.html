@@ -244,10 +244,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
     <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
-    <!-- メモ（2行テキストエリア） -->
+    <!-- メモ（支出は1行・収入は3行。高さはsetType()内で切替） -->
     <div style="margin-bottom:6px;">
       <textarea class="field-input" id="memoInput" placeholder="メモ（任意）"
-        style="padding:6px 10px;font-size:12px;width:100%;height:52px;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:6px 10px;font-size:12px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
@@ -669,7 +669,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.3"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -832,6 +832,10 @@ function setType(type) {
     type === "expense" ? "支出を記録" : "収入を記録";
   document.getElementById("submitBtn").className =
     "submit-btn " + type;
+
+  // メモ欄の行数を切替: 支出=1行 / 収入=3行
+  document.getElementById("memoInput").style.height =
+    type === "expense" ? "30px" : "66px";
 
   renderCatGrid();
 }
