@@ -669,7 +669,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.4"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -833,11 +833,23 @@ function setType(type) {
   document.getElementById("submitBtn").className =
     "submit-btn " + type;
 
-  // メモ欄の行数を切替: 支出=1行 / 収入=3行
-  document.getElementById("memoInput").style.height =
-    type === "expense" ? "30px" : "66px";
-
   renderCatGrid();
+
+  // メモ欄の高さ調整:
+  // 支出=10カテゴリ(3行)・収入=8カテゴリ(2行)のため、カテゴリ欄の行数が1行分異なる。
+  // 収入時はその差分（1行＋gap）をメモ欄に加算し、支出/収入で入力カード全体の高さが揃うようにする。
+  requestAnimationFrame(() => {
+    const memoEl = document.getElementById("memoInput");
+    const EXPENSE_MEMO_H = 30; // 支出時のメモ欄高さ（1行分）
+    const GRID_GAP = 4;        // .cat-gridのgapと合わせる
+    if (type === "expense") {
+      memoEl.style.height = EXPENSE_MEMO_H + "px";
+    } else {
+      const btn = document.querySelector("#catGrid .cat-btn");
+      const rowH = btn ? btn.offsetHeight : 43; // カテゴリ行1行分の高さ（実測、取得失敗時は推定値）
+      memoEl.style.height = (EXPENSE_MEMO_H + rowH + GRID_GAP) + "px";
+    }
+  });
 }
 
 function renderCatGrid() {
