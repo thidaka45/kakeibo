@@ -169,9 +169,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== ホーム ===== -->
 <div class="page active" id="page-home">
   <div class="month-header">
-    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="monthTitle"></span>
-    <button class="month-nav" onclick="changeMonth(1)">›</button>
+    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
 
   <!-- 残高カード -->
@@ -209,8 +209,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 
-  <!-- 直近取引 -->
-  <div class="section-title">直近の取引</div>
+  <!-- 今月の取引 -->
+  <div class="section-title">今月の取引</div>
   <div class="tx-list" id="txList"></div>
 
   <!-- レシート記録（長押しで起動・最下段） -->
@@ -275,9 +275,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph">
   <div class="month-header">
-    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="graphMonthTitle"></span>
-    <button class="month-nav" onclick="changeMonth(1)">›</button>
+    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
   <!-- 月次棒グラフ -->
   <div class="graph-card">
@@ -669,7 +669,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.4"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.5"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -700,24 +700,95 @@ function initSample() {
 }
 
 // ============================================================
-// 月管理
+// 月度管理
+// カレンダー上の1日〜末日ではなく、「主な収入（給与）が入ったタイミング」で
+// 区切られた期間（月度）を単位として管理する。
 // ============================================================
-let viewYear  = new Date().getFullYear();
-let viewMonth = new Date().getMonth();
+let viewPeriodIndex = null; // 表示中の月度インデックス（init()で最新の月度に設定）
 
-function changeMonth(d) {
-  viewMonth += d;
-  if (viewMonth > 11) { viewMonth = 0;  viewYear++; }
-  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+// 月度一覧を読み込む。存在しない場合は、既存の取引データの最も古い日付から
+// 暫定的に最初の月度を1件作成する（初回起動・既存データ移行時の保険）。
+function loadPeriods() {
+  try {
+    const p = JSON.parse(localStorage.getItem("kakeibo_periods") || "null");
+    if (p && p.length) return p;
+  } catch {}
+  return null;
+}
+function savePeriods(list) {
+  localStorage.setItem("kakeibo_periods", JSON.stringify(list));
+}
+function ensurePeriods() {
+  let periods = loadPeriods();
+  if (!periods) {
+    const txs = loadTx();
+    const startDate = txs.length
+      ? [...txs].map(t => t.date).sort()[0]
+      : new Date().toISOString().slice(0, 10);
+    periods = [{ id: "p_" + Date.now(), start_date: startDate }];
+    savePeriods(periods);
+  }
+  return periods;
+}
+
+// 新しい月度を開始する（「長押しで新しい月を開始」から呼ばれる）。追加後のインデックスを返す。
+function startNewPeriod(startDate) {
+  const periods = ensurePeriods();
+  periods.push({ id: "p_" + Date.now() + Math.random().toString(36).slice(2, 5), start_date: startDate });
+  savePeriods(periods);
+  return periods.length - 1;
+}
+
+// 指定インデックスの月度の開始日・終了日（終了日はexclusive）を返す。
+// 最新（進行中）の月度は終了日が未確定なので、資金繰りタブの「次回収入予定日」を暫定終了日として使う。
+function periodRange(idx) {
+  const periods = ensurePeriods();
+  const p = periods[idx];
+  const next = periods[idx + 1];
+  if (next) return { start: p.start_date, end: next.start_date };
+  const cycle = loadCycle();
+  return { start: p.start_date, end: (cycle && cycle.next_income_date) || null };
+}
+
+// 月度の表示ラベル（開始日の年月をもとに「◯年◯月度」とする）
+function periodLabel(idx) {
+  const periods = ensurePeriods();
+  const d = new Date(periods[idx].start_date);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月度`;
+}
+
+// 指定月度に属する取引を返す（開始日以上、終了日未満）
+function periodTxs(idx) {
+  const { start, end } = periodRange(idx);
+  return loadTx().filter(t => t.date >= start && (!end || t.date < end));
+}
+
+// 指定した日付が属する月度のインデックスを返す
+function findPeriodIndexForDate(dateStr) {
+  const periods = ensurePeriods();
+  for (let i = periods.length - 1; i >= 0; i--) {
+    if (dateStr >= periods[i].start_date) return i;
+  }
+  return 0;
+}
+
+// 月度を切り替える。作成済みの月度の範囲内でのみ移動できる（未来の月度は作成されるまで表示しない）。
+function changePeriod(d) {
+  const periods = ensurePeriods();
+  let idx = (viewPeriodIndex ?? periods.length - 1) + d;
+  idx = Math.max(0, Math.min(idx, periods.length - 1));
+  viewPeriodIndex = idx;
   renderHome();
   renderGraph();
 }
 
-function monthTxs() {
-  return loadTx().filter(t => {
-    const d = new Date(t.date);
-    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-  });
+// 月度が最初/最後の場合、該当方向のナビゲーションボタンを薄く表示して無効化する
+function updatePeriodNavButtons() {
+  const periods = ensurePeriods();
+  const atFirst = viewPeriodIndex <= 0;
+  const atLast  = viewPeriodIndex >= periods.length - 1;
+  document.querySelectorAll('.month-nav[data-dir="-1"]').forEach(b => { b.disabled = atFirst; b.style.opacity = atFirst ? .3 : 1; });
+  document.querySelectorAll('.month-nav[data-dir="1"]').forEach(b  => { b.disabled = atLast;  b.style.opacity = atLast  ? .3 : 1; });
 }
 
 function fmt(n) { return "¥" + n.toLocaleString("ja-JP"); }
@@ -726,13 +797,15 @@ function fmt(n) { return "¥" + n.toLocaleString("ja-JP"); }
 // ホーム描画
 // ============================================================
 function renderHome() {
-  const txs = monthTxs();
+  const periods = ensurePeriods();
+  if (viewPeriodIndex === null) viewPeriodIndex = periods.length - 1;
+
+  const txs = periodTxs(viewPeriodIndex);
   const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
   const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const balance = income - expense;
 
-  const mn = `${viewYear}年${viewMonth+1}月`;
-  document.getElementById("monthTitle").textContent = mn;
+  document.getElementById("monthTitle").textContent = periodLabel(viewPeriodIndex);
   document.getElementById("balanceAmount").textContent = fmt(balance);
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
@@ -748,21 +821,25 @@ function renderHome() {
   const bar = document.getElementById("budgetBar");
   bar.style.width = pct + "%";
 
-  // 残り日数から理想消化率を計算
-  const today    = new Date();
-  const lastDay  = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const isCurrentMonth = today.getFullYear()===viewYear && today.getMonth()===viewMonth;
-  const elapsedDays = isCurrentMonth ? today.getDate() : lastDay;
-  const idealPct = Math.round(elapsedDays / lastDay * 100);
+  // この月度の期間情報から理想消化率を計算する
+  // （最新の月度は終了日が未確定なため、資金繰りタブの「次回収入予定日」があればそれを使う）
+  const { start, end } = periodRange(viewPeriodIndex);
+  const isLatestPeriod = viewPeriodIndex === periods.length - 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const totalDays = end ? Math.max(daysBetween(start, end), 1) : null;
+  const elapsedDays = isLatestPeriod
+    ? Math.max(daysBetween(start, todayStr), 0)
+    : (totalDays || 0);
+  const idealPct = totalDays ? Math.round(Math.min(elapsedDays, totalDays) / totalDays * 100) : null;
   const remaining = BUDGET.total - expense;
-  const remainDays = isCurrentMonth ? lastDay - today.getDate() : 0;
+  const remainDays = isLatestPeriod && totalDays ? Math.max(totalDays - elapsedDays, 0) : 0;
 
-  // 消化ペース判定（実際の消化率 vs 理想消化率）
-  const diff = pct - idealPct;
+  // 消化ペース判定（実際の消化率 vs 理想消化率。理想値が不明な場合は消化率のみで判定）
+  const diff = idealPct !== null ? pct - idealPct : null;
   let statusIcon, statusText, statusColor, barClass;
 
-  if (!isCurrentMonth) {
-    // 過去月
+  if (!isLatestPeriod || idealPct === null) {
+    // 過去の月度、または次回収入予定日が未設定で理想消化率が計算できない場合
     if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
     else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
     else                 { statusIcon="🚨"; statusText="予算を超過しました"; statusColor="var(--red)"; barClass="bar-over"; }
@@ -787,12 +864,12 @@ function renderHome() {
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
   document.getElementById("budgetStatusSub").textContent  =
-    isCurrentMonth
+    isLatestPeriod && totalDays
       ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
-      : `(理想:${idealPct}% / 実績:${pct}%)`;
+      : (idealPct !== null ? `(理想:${idealPct}% / 実績:${pct}%)` : "");
 
-  // 直近取引（最新30件、枠内は6行分の高さでスクロール表示）
-  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,30);
+  // 今月の取引（この月度に属する取引を新しい順に表示。残高・収入・支出と同じ集計対象）
+  const recent = [...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const allCats = [...CATS_EXPENSE,...CATS_INCOME];
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
@@ -809,6 +886,8 @@ function renderHome() {
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
       }).join("");
+
+  updatePeriodNavButtons();
 }
 
 // ============================================================
@@ -869,24 +948,23 @@ function renderCatGrid() {
   }).join("");
 }
 
-// 前月残高を自動計算して入力する
+// 前の月度の残高を自動計算して入力する
 function applyCarryover() {
-  // 前月の年月を計算
-  let prevMonth = viewMonth - 1;
-  let prevYear  = viewYear;
-  if (prevMonth < 0) { prevMonth = 11; prevYear--; }
+  const prevIdx = viewPeriodIndex - 1;
+  if (prevIdx < 0) {
+    showToast("前の月度がありません");
+    return;
+  }
+  const prevLabel = periodLabel(prevIdx);
 
-  // 前月の全取引を集計
-  const txs     = loadTx().filter(t => {
-    const d = new Date(t.date);
-    return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
-  });
+  // 前の月度の全取引を集計
+  const txs     = periodTxs(prevIdx);
   const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
   const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const balance = income - expense;
 
   if (balance <= 0) {
-    showToast(`${prevYear}年${prevMonth+1}月の残高は¥${balance.toLocaleString()}です。繰越額を確認してください。`);
+    showToast(`${prevLabel}の残高は¥${balance.toLocaleString()}です。繰越額を確認してください。`);
     return;
   }
 
@@ -895,11 +973,11 @@ function applyCarryover() {
   inputAmt    = String(balance);
   document.getElementById("amountDisplay").textContent = "¥" + balance.toLocaleString("ja-JP");
 
-  // メモに前月残高を自動設定
-  document.getElementById("memoInput").value = `${prevYear}年${prevMonth+1}月繰越`;
+  // メモに前の月度の残高を自動設定
+  document.getElementById("memoInput").value = `${prevLabel}繰越`;
 
   renderCatGrid();
-  showToast(`${prevYear}年${prevMonth+1}月の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
+  showToast(`${prevLabel}の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
 }
 
 function selectCat(id) {
@@ -946,43 +1024,43 @@ function submitTx() {
 // ============================================================
 // グラフ描画
 // ============================================================
-let selectedGraphMonth = null; // 選択中の月
+let selectedGraphPeriodIdx = null; // 選択中の月度インデックス
 
 function renderGraph() {
-  document.getElementById("graphMonthTitle").textContent =
-    `${viewYear}年${viewMonth+1}月`;
+  const periods = ensurePeriods();
+  if (viewPeriodIndex === null) viewPeriodIndex = periods.length - 1;
 
-  const txs = loadTx();
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    let m = viewMonth - i, y = viewYear;
-    if (m < 0) { m += 12; y--; }
-    months.push({y, m, label: `${m+1}月`});
+  document.getElementById("graphMonthTitle").textContent = periodLabel(viewPeriodIndex);
+
+  // 表示中の月度を最新とみなし、直近最大6件の月度を表示する（作成済みの月度のみ）
+  const endIdx = viewPeriodIndex;
+  const startIdx = Math.max(0, endIdx - 5);
+  const idxList = [];
+  for (let i = startIdx; i <= endIdx; i++) idxList.push(i);
+
+  if (selectedGraphPeriodIdx === null || selectedGraphPeriodIdx < startIdx || selectedGraphPeriodIdx > endIdx) {
+    selectedGraphPeriodIdx = endIdx;
   }
 
-  // 初期選択は最新月
-  if (!selectedGraphMonth) {
-    selectedGraphMonth = months[months.length - 1];
-  }
-
-  // 全月の最大値を動的に計算してスケール自動調整
-  const monthData = months.map(({y,m,label}) => {
-    const mt  = txs.filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
-    const exp = mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
-    const inc = mt.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-    return {y, m, label, exp, inc};
+  // 各月度の最大値を動的に計算してスケール自動調整
+  const periodData = idxList.map(idx => {
+    const txs = periodTxs(idx);
+    const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const d = new Date(periods[idx].start_date);
+    return { idx, label: `${d.getMonth()+1}月度`, exp, inc };
   });
-  const maxAmt = Math.max(...monthData.map(d => Math.max(d.exp, d.inc)), 1);
+  const maxAmt = Math.max(...periodData.map(d => Math.max(d.exp, d.inc)), 1);
 
   const barChart = document.getElementById("barChart");
   // コンテナの実際の高さからボタン分を引いて棒の最大高さを計算
   const BAR_MAX_H = Math.max((barChart.clientHeight || 170) - 32, 80);
 
-  barChart.innerHTML = monthData.map(({y,m,label,exp,inc}) => {
+  barChart.innerHTML = periodData.map(({idx,label,exp,inc}) => {
     const expH = Math.round(exp / maxAmt * BAR_MAX_H);
     const incH = Math.round(inc / maxAmt * BAR_MAX_H);
-    const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
-    return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')"
+    const isSelected = selectedGraphPeriodIdx === idx;
+    return `<div class="bar-col" onclick="selectGraphPeriod(${idx})"
       style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
       <div style="flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;">
         <div style="border-radius:4px 4px 0 0;background:var(--green);opacity:0.6;height:${incH}px;"></div>
@@ -1000,20 +1078,22 @@ function renderGraph() {
     </div>`;
   }).join("");
 
-  // 選択月の詳細表示
-  renderMonthDetail(selectedGraphMonth.y, selectedGraphMonth.m);
+  // 選択した月度の詳細表示
+  renderMonthDetail(selectedGraphPeriodIdx);
 
-  // カテゴリ別（選択月）
-  renderCatSummary(selectedGraphMonth.y, selectedGraphMonth.m);
+  // カテゴリ別（選択した月度）
+  renderCatSummary(selectedGraphPeriodIdx);
+
+  updatePeriodNavButtons();
 }
 
-function selectGraphMonth(y, m, label) {
-  selectedGraphMonth = {y, m, label};
+function selectGraphPeriod(idx) {
+  selectedGraphPeriodIdx = idx;
   renderGraph();
 }
 
-function renderMonthDetail(y, m) {
-  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
+function renderMonthDetail(idx) {
+  const txs = periodTxs(idx);
   const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
   const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const bal = inc - exp;
@@ -1034,8 +1114,8 @@ function renderMonthDetail(y, m) {
     </div>`;
 }
 
-function renderCatSummary(y, m) {
-  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m&&t.type==="expense"; });
+function renderCatSummary(idx) {
+  const txs = periodTxs(idx).filter(t=>t.type==="expense");
   const catTotals = CATS_EXPENSE.map(c => ({
     ...c,
     total: txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0)
@@ -1302,17 +1382,14 @@ function getExportTxs(range) {
   const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
   let txs = loadTx().sort((a,b) => new Date(a.date) - new Date(b.date));
   if (range === "month") {
-    txs = txs.filter(t => {
-      const d = new Date(t.date);
-      return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-    });
+    txs = periodTxs(viewPeriodIndex).sort((a,b) => new Date(a.date) - new Date(b.date));
   }
   return { txs, allCats };
 }
 
 function getExportLabel(range) {
   return range === "month"
-    ? `家計簿_${viewYear}年${viewMonth+1}月`
+    ? `家計簿_${periodLabel(viewPeriodIndex)}`
     : `家計簿_全データ`;
 }
 
@@ -2119,11 +2196,12 @@ function startNewMonth() {
   const cycle = beginNewCycle();
   if (!cycle) return;
 
+  const today = new Date().toISOString().slice(0, 10);
+
   const appliedFor = localStorage.getItem("kakeibo_cycle_budget_applied");
   if (appliedFor === cycle.cycle_id) {
     showToast("この期間はすでに開始済みです（固定費・積立の再計上はスキップしました）");
   } else {
-    const today = new Date().toISOString().slice(0, 10);
     const txs = loadTx();
     let fixedTotal = 0, savingsTotal = 0;
 
@@ -2156,8 +2234,8 @@ function startNewMonth() {
     showToast(`新しい月を開始しました（固定費 ${fmt(fixedTotal)} ／積立 ${fmt(savingsTotal)} を確保）`);
   }
 
-  viewYear  = new Date().getFullYear();
-  viewMonth = new Date().getMonth();
+  // 新しい月度を開始し、表示もその月度に切り替える
+  viewPeriodIndex = startNewPeriod(today);
   renderHome();
 
   if (confirm("続けて収入（給与など）を入力しますか？")) {
@@ -2340,8 +2418,7 @@ function receiveFromUrl() {
   saveTx(txs);
   adjustBalance(-amount);
 
-  viewYear  = new Date(date).getFullYear();
-  viewMonth = new Date(date).getMonth();
+  viewPeriodIndex = findPeriodIndexForDate(date);
 
   showToast(
     matched
