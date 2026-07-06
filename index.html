@@ -334,7 +334,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 入力フォーム（モーダル風） -->
   <div id="savingsForm" style="display:none;background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-top:10px;">
-    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;" id="savingsFormTitle">新しい積立プラン</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);" id="savingsFormTitle">新しい積立プラン</div>
+      <button onclick="closeSavingsForm()" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 0 0 10px;">×</button>
+    </div>
 
     <!-- カテゴリ選択 -->
     <div style="margin-bottom:10px;">
@@ -672,7 +675,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.7"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.8"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1619,9 +1622,17 @@ function renderSavings() {
 }
 
 function openSavingsForm(id) {
-  editingSavingsId = id || null;
   const form = document.getElementById("savingsForm");
+
+  // 同じ項目を再タップした場合はトグルで閉じる
+  if (id && editingSavingsId === id && form.style.display === "block") {
+    closeSavingsForm();
+    return;
+  }
+
+  editingSavingsId = id || null;
   form.style.display = "block";
+  form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   // 年月セレクトを生成
   const now = new Date();
