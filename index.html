@@ -684,7 +684,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.19"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.20"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1590,21 +1590,31 @@ function renderSavings() {
     return;
   }
 
-  // 表示用に各種指標を事前計算し、問題のある項目（isWarn）が上に来るよう並べ替える
+  // 表示用に各種指標を事前計算し、問題のある項目（未達見込）が上に来るよう並べ替える
   const enriched = plans.map(p => {
-    const pct    = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const isWarn = months <= 2 && pct < 80;
-    return { p, pct, months, isWarn };
+    const pct     = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
+    const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
+    const balance = p.balance || 0;
+    const monthly = p.monthly || 0;
+    // 既に目標達成（残高が必要金額以上）
+    const isAchieved = p.amount > 0 && balance >= p.amount;
+    // このまま今の月々積立額を続けた場合、期限までに到達できるか
+    const projected = balance + monthly * months;
+    const onTrack = isAchieved || (p.amount > 0 && projected >= p.amount);
+    let status, statusColor, barColor;
+    if (isAchieved)      { status = "目標達成"; statusColor = "var(--blue)";  barColor = "var(--blue)"; }
+    else if (onTrack)    { status = "達成見込"; statusColor = "var(--green)"; barColor = "var(--green)"; }
+    else                 { status = "未達見込"; statusColor = "var(--amber)"; barColor = "var(--amber)"; }
+    const isWarn = !isAchieved && !onTrack;
+    return { p, pct, months, isWarn, status, statusColor, barColor };
   });
   enriched.sort((a, b) => {
     if (a.isWarn !== b.isWarn) return a.isWarn ? -1 : 1;
     return a.months - b.months;
   });
 
-  listEl.innerHTML = enriched.map(({ p, pct, months, isWarn }) => {
+  listEl.innerHTML = enriched.map(({ p, pct, months, status, statusColor, barColor }) => {
     const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
-    const barColor = isWarn ? 'var(--amber)' : 'var(--green)';
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1614,9 +1624,8 @@ function renderSavings() {
             <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
             <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
           </div>
-          <div style="display:flex;align-items:center;gap:0;margin-top:4px;">
-            <span style="font-size:10px;width:14px;flex-shrink:0;">${isWarn ? '⚠️' : ''}</span>
-            <span style="font-size:10px;color:${isWarn ? 'var(--amber)' : 'var(--sub)'};white-space:nowrap;flex-shrink:0;">残り<span style="display:inline-block;width:18px;text-align:right;">${months}</span>か月：</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+            <span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:44px;">${status}</span>
             <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
           </div>
         </div>
