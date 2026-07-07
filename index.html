@@ -687,7 +687,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.16"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.17"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1622,12 +1622,12 @@ function renderSavings() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
             <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
-            <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}/月</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            <span style="font-size:10px;color:${isWarn ? 'var(--amber)' : 'var(--sub)'};white-space:nowrap;flex-shrink:0;">${isWarn ? '⚠️ ' : ''}${pct}%</span>
+          <div style="display:flex;align-items:center;gap:0;margin-top:4px;">
+            <span style="font-size:10px;width:14px;flex-shrink:0;">${isWarn ? '⚠️' : ''}</span>
+            <span style="font-size:10px;color:${isWarn ? 'var(--amber)' : 'var(--sub)'};white-space:nowrap;flex-shrink:0;">残り<span style="display:inline-block;width:18px;text-align:right;">${months}</span>か月：</span>
             <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
-            <span style="font-size:10px;color:var(--muted);white-space:nowrap;flex-shrink:0;">残り${months}ヶ月</span>
           </div>
         </div>
         <button onclick="event.stopPropagation();deleteSavingsPlan('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 4px;flex-shrink:0;">×</button>
