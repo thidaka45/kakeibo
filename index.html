@@ -324,9 +324,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 
-  <!-- 警告エリア -->
-  <div id="savingsAlert" style="display:none;background:var(--amber-l);border:0.5px solid var(--amber);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--amber);"></div>
-
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <span style="font-size:12px;font-weight:600;color:var(--sub);">積立プラン</span>
@@ -687,7 +684,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.17"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.19"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1585,22 +1582,6 @@ function renderSavings() {
   document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly);
   document.getElementById("savingsTotalBalance").textContent = fmt(totalBalance);
 
-  // 警告（残り2ヶ月以内で達成率80%未満）
-  const now = new Date();
-  const alerts = plans.filter(p => {
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const pct    = p.amount > 0 ? (p.balance || 0) / p.amount : 1;
-    return months <= 2 && pct < 0.8;
-  });
-  const alertEl = document.getElementById("savingsAlert");
-  if (alerts.length > 0) {
-    alertEl.style.display = "block";
-    alertEl.innerHTML = "⚠️ " + alerts.map(p =>
-      `「${p.name}」まで${calcRemainingMonths(p.targetYear, p.targetMonth)}ヶ月。月々¥${p.monthly?.toLocaleString()}の積立が必要です。`
-    ).join("<br>");
-  } else {
-    alertEl.style.display = "none";
-  }
 
   // プランリスト
   const listEl = document.getElementById("savingsList");
@@ -1609,11 +1590,20 @@ function renderSavings() {
     return;
   }
 
-  listEl.innerHTML = plans.map(p => {
-    const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
+  // 表示用に各種指標を事前計算し、問題のある項目（isWarn）が上に来るよう並べ替える
+  const enriched = plans.map(p => {
     const pct    = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
     const months = calcRemainingMonths(p.targetYear, p.targetMonth);
     const isWarn = months <= 2 && pct < 80;
+    return { p, pct, months, isWarn };
+  });
+  enriched.sort((a, b) => {
+    if (a.isWarn !== b.isWarn) return a.isWarn ? -1 : 1;
+    return a.months - b.months;
+  });
+
+  listEl.innerHTML = enriched.map(({ p, pct, months, isWarn }) => {
+    const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
     const barColor = isWarn ? 'var(--amber)' : 'var(--green)';
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
