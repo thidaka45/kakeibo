@@ -32,7 +32,7 @@
   --radius-s:10px;
   font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
 }
-body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top);}
+body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top);touch-action:manipulation;}
 
 /* ナビゲーション */
 .nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;}
@@ -675,7 +675,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.10"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.11"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
