@@ -314,13 +314,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- サマリー -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-    <div style="background:var(--card);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05);">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">今月の積立合計</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);" id="savingsTotalMonthly">¥0</div>
+    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
+      <div class="balance-label">今月の積立合計</div>
+      <div class="balance-amount" style="font-size:18px;" id="savingsTotalMonthly">¥0</div>
     </div>
-    <div style="background:var(--card);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05);">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">積立残高合計</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);" id="savingsTotalBalance">¥0</div>
+    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
+      <div class="balance-label">積立残高合計</div>
+      <div class="balance-amount" style="font-size:18px;" id="savingsTotalBalance">¥0</div>
     </div>
   </div>
 
@@ -687,7 +687,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.23"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.25"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1619,7 +1619,7 @@ function renderSavings() {
   listEl.innerHTML = enriched.map(({ p, pct, months, status, statusColor, barColor, bgColor }) => {
     const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
 
-    return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:${bgColor};border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+    return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${cat.emoji}</div>
         <div style="flex:1;min-width:0;">
@@ -1649,6 +1649,7 @@ function openSavingsForm(id) {
 
   editingSavingsId = id || null;
   form.style.display = "block";
+  document.getElementById("savingsList").style.display = "none";
   form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   // 年月セレクトを生成
@@ -1729,6 +1730,7 @@ function selectSavingsCat(id) {
 
 function closeSavingsForm() {
   document.getElementById("savingsForm").style.display = "none";
+  document.getElementById("savingsList").style.display = "block";
   editingSavingsId = null;
 }
 
