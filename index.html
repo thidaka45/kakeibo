@@ -43,6 +43,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 14px 70px;max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
+#page-savings.active,#page-fixedcosts.active{display:flex;}
 
 /* ===== ホーム ===== */
 .month-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -299,8 +300,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 <!-- ===== 積立 ===== -->
-<div class="page" id="page-savings">
-<div style="position:sticky;top:0;background:var(--bg);z-index:5;padding-bottom:4px;">
+<div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;">
+<div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="section-title" style="margin-top:4px">計画積立</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -331,6 +332,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   </div>
 </div>
 
+<div style="flex:1;overflow-y:auto;padding:0 14px 70px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <!-- 積立プランリスト -->
   <div id="savingsList"></div>
 
@@ -452,6 +454,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 </div>
+</div>
 
 <!-- ===== 資金繰り ===== -->
 <div class="page" id="page-cashflow">
@@ -547,8 +550,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 <!-- ===== 固定費 ===== -->
-<div class="page" id="page-fixedcosts">
-<div style="position:sticky;top:0;background:var(--bg);z-index:5;padding-bottom:4px;">
+<div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;">
+<div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="section-title" style="margin-top:4px">固定費管理</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -563,6 +566,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   </div>
   <button onclick="openFixedCostForm()" style="width:100%;padding:10px;border-radius:var(--radius-s);border:1.5px dashed var(--border);background:none;color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit;">＋ 固定費を追加（水道光熱費・ローン・お小遣いなど）</button>
 </div>
+
+<div style="flex:1;overflow-y:auto;padding:0 14px 70px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="tx-list" id="cfFixedCostList" style="margin:10px 0 8px;"></div>
 
   <!-- 固定費 登録・編集フォーム -->
@@ -593,6 +598,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="font-size:11px;color:var(--muted);line-height:1.7;padding:4px 2px;">
     ここで登録した固定費は、「資金繰り」ページの評価に自動的に反映されます。
   </div>
+</div>
 </div>
 
 <!-- バージョン表示 -->
@@ -679,7 +685,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.12"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.13"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
