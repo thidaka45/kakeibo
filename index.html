@@ -326,8 +326,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <span style="font-size:12px;font-weight:600;color:var(--sub);">積立プラン</span>
-    <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;">＋ 追加</button>
+    <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
+      <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">積立プラン</span>
+      <span id="savingsWarnNote" style="font-size:11px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+    </div>
+    <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
 </div>
 
@@ -687,7 +690,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.25"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.26"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1588,8 +1591,10 @@ function renderSavings() {
 
   // プランリスト
   const listEl = document.getElementById("savingsList");
+  const warnNoteEl = document.getElementById("savingsWarnNote");
   if (plans.length === 0) {
     listEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">積立プランがありません<br>「＋ 追加」から作成してください</div>`;
+    warnNoteEl.textContent = "";
     return;
   }
 
@@ -1610,6 +1615,11 @@ function renderSavings() {
     else                 { status = "注意"; statusColor = "var(--amber)"; barColor = "var(--amber)"; bgColor = "var(--amber-l)"; order = 0; }
     return { p, pct, months, status, statusColor, barColor, bgColor, order };
   });
+
+  // 「積立プラン」ラベル右横に注意件数を表示
+  const warnCount = enriched.filter(e => e.order === 0).length;
+  warnNoteEl.textContent = warnCount > 0 ? `⚠️ 注意 ${warnCount}件` : "";
+
   // 表示順：注意 → 達成 → 順調
   enriched.sort((a, b) => {
     if (a.order !== b.order) return a.order - b.order;
