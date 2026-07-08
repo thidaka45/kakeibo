@@ -32,7 +32,7 @@
   --radius-s:10px;
   font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
 }
-body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top);}
+body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;padding-top:env(safe-area-inset-top);touch-action:manipulation;}
 
 /* ナビゲーション */
 .nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;}
@@ -43,6 +43,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 14px 70px;max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
+#page-savings.active,#page-fixedcosts.active{display:flex;}
 
 /* ===== ホーム ===== */
 .month-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -95,7 +96,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .amount-display{font-size:36px;font-weight:700;color:var(--text);text-align:center;padding:12px 0;border-bottom:2px solid var(--border);margin-bottom:14px;letter-spacing:-1px;min-height:60px;}
 .field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
 .field-label{font-size:12px;color:var(--sub);}
-.field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
+.field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:16px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
@@ -123,6 +124,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-summary-name{font-size:12px;color:var(--sub);width:60px;flex-shrink:0;}
 .cat-summary-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .cat-summary-bar-fill{height:100%;border-radius:4px;background:var(--red);transition:width .6s;}
+.savings-bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.savings-bar-fill{height:100%;border-radius:3px;transition:width .6s;}
 .cat-summary-val{font-size:12px;font-weight:600;color:var(--text);width:60px;text-align:right;}
 
 /* ===== レシート ===== */
@@ -169,20 +172,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== ホーム ===== -->
 <div class="page active" id="page-home">
   <div class="month-header">
-    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="monthTitle"></span>
-    <button class="month-nav" onclick="changeMonth(1)">›</button>
+    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
 
   <!-- 残高カード -->
   <div class="balance-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
       <div style="flex:1;min-width:0;">
-        <div class="balance-label">今月の残高</div>
+        <div class="balance-label">今月度の残高</div>
         <div class="balance-amount" id="balanceAmount">¥0</div>
         <div class="balance-sub">
-          <div class="balance-sub-item">収入<span id="totalIncome" style="color:#A7F3D0">¥0</span></div>
-          <div class="balance-sub-item">支出<span id="totalExpense" style="color:#FCA5A5">¥0</span></div>
+          <div class="balance-sub-item">総収入<span id="totalIncome" style="color:#A7F3D0">¥0</span></div>
+          <div class="balance-sub-item">総支出<span id="totalExpense" style="color:#FCA5A5">¥0</span></div>
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;padding-top:2px;">
@@ -209,8 +212,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 
-  <!-- 直近取引 -->
-  <div class="section-title">直近の取引</div>
+  <!-- 今月度の取引 -->
+  <div class="section-title">今月度の取引</div>
   <div class="tx-list" id="txList"></div>
 
   <!-- レシート記録（長押しで起動・最下段） -->
@@ -244,10 +247,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
     <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
-    <!-- メモ（2行テキストエリア） -->
+    <!-- メモ（支出は1行・収入は3行。高さはsetType()内で切替） -->
     <div style="margin-bottom:6px;">
       <textarea class="field-input" id="memoInput" placeholder="メモ（任意）"
-        style="padding:6px 10px;font-size:12px;width:100%;height:52px;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:6px 10px;font-size:16px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
@@ -275,9 +278,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph">
   <div class="month-header">
-    <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="graphMonthTitle"></span>
-    <button class="month-nav" onclick="changeMonth(1)">›</button>
+    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
   <!-- 月次棒グラフ -->
   <div class="graph-card">
@@ -299,69 +302,89 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 <!-- ===== 積立 ===== -->
-<div class="page" id="page-savings">
+<div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;">
+<div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="section-title" style="margin-top:4px">計画積立</div>
+
+  <!-- 「新しい月を開始」フロー中の案内バナー -->
+  <div id="flowNextToFixed" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
+    <div style="font-size:12px;color:var(--blue);margin-bottom:6px;">積立プランを確認したら、次は固定費の確認に進みましょう。</div>
+    <button onclick="proceedFlowToFixedCosts()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">次へ：固定費の確認 →</button>
+  </div>
 
   <!-- サマリー -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-    <div style="background:var(--card);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05);">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">今月の積立合計</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);" id="savingsTotalMonthly">¥0</div>
+    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
+      <div class="balance-label">今月の積立合計</div>
+      <div class="balance-amount" style="font-size:18px;" id="savingsTotalMonthly">¥0</div>
     </div>
-    <div style="background:var(--card);border-radius:var(--radius);padding:10px 12px;box-shadow:0 1px 8px rgba(0,0,0,.05);">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">積立残高合計</div>
-      <div style="font-size:18px;font-weight:700;color:var(--text);" id="savingsTotalBalance">¥0</div>
+    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
+      <div class="balance-label">積立残高合計</div>
+      <div class="balance-amount" style="font-size:18px;" id="savingsTotalBalance">¥0</div>
     </div>
   </div>
-
-  <!-- 警告エリア -->
-  <div id="savingsAlert" style="display:none;background:var(--amber-l);border:0.5px solid var(--amber);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--amber);"></div>
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <span style="font-size:12px;font-weight:600;color:var(--sub);">積立プラン</span>
-    <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;">＋ 追加</button>
+    <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
+      <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">積立プラン</span>
+      <span id="savingsWarnNote" style="font-size:11px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+    </div>
+    <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
+</div>
 
+<div style="flex:1;overflow-y:auto;padding:0 14px 70px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <!-- 積立プランリスト -->
   <div id="savingsList"></div>
 
   <!-- 入力フォーム（モーダル風） -->
   <div id="savingsForm" style="display:none;background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-top:10px;">
-    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;" id="savingsFormTitle">新しい積立プラン</div>
-
-    <!-- カテゴリ選択 -->
-    <div style="margin-bottom:10px;">
-      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">カテゴリ</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;" id="savingsCatGrid"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);" id="savingsFormTitle">新しい積立プラン</div>
+      <button onclick="closeSavingsForm()" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 0 0 10px;">×</button>
     </div>
 
-    <!-- 目的名 -->
+    <!-- アイコン＋項目名 -->
     <div style="margin-bottom:8px;">
-      <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:13px;">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:6px;">
+        <select class="field-select" id="savingsIcon" style="padding:8px 6px;font-size:14px;" onchange="onSavingsIconSelect()"></select>
+        <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
+      </div>
     </div>
 
-    <!-- 必要金額 -->
-    <div style="margin-bottom:8px;">
-      <input class="field-input" id="savingsAmount" type="number" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:13px;" inputmode="numeric">
-    </div>
-
-    <!-- 必要年月 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-      <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:13px;"></select>
-      <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:13px;"></select>
-    </div>
-
-    <!-- 現在の積立額 -->
+    <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
     <div style="margin-bottom:10px;">
-      <input class="field-input" id="savingsBalance" type="number" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:13px;" inputmode="numeric">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">目標年月・目標金額・月額（自動計算）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+        <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
+        <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
+      </div>
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
+        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
+
+      <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
+        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
+
+      <!-- 積立月額（逆算・読み取り専用） -->
+      <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">積立月額（参考）：</span>
+        <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 122px;font-size:16px;background:var(--surface);color:var(--text);">
+      </div>
+      <div id="savingsCalcDetail" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
     </div>
 
-    <!-- 逆算結果 -->
-    <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:none;">
-      <div style="font-size:11px;color:var(--green-d);margin-bottom:2px;">月々の積立額（逆算）</div>
-      <div style="font-size:20px;font-weight:700;color:var(--green-d);" id="savingsCalcAmt">¥0</div>
-      <div style="font-size:11px;color:var(--green-d);margin-top:2px;" id="savingsCalcDetail"></div>
+    <!-- 積立月額（手動入力） -->
+    <div style="margin-bottom:10px;">
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--blue);pointer-events:none;z-index:1;">積立月額：</span>
+        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
     </div>
 
     <!-- ボタン -->
@@ -369,77 +392,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
     </div>
+    <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
   </div>
-  <!-- デバッグパネル -->
-  <div style="margin-top:12px;">
-    <button onclick="toggleDebug()" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;">
-      🔧 デバッグパネル
-    </button>
-    <div id="debugPanel" style="display:none;background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:12px;margin-top:6px;font-size:11px;color:var(--sub);">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">積立データ診断</div>
-
-      <!-- ストレージ確認 -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">💾 ストレージ状態</div>
-        <div id="debugStorage"></div>
-      </div>
-
-      <!-- 計算確認 -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">🧮 計算チェック</div>
-        <div id="debugCalc"></div>
-      </div>
-
-      <!-- 警告チェック -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">⚠️ 警告チェック</div>
-        <div id="debugAlert"></div>
-      </div>
-
-      <!-- 操作ボタン -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
-        <button onclick="debugAddSample()" style="padding:7px;border-radius:6px;border:0.5px solid var(--border);background:transparent;font-size:11px;cursor:pointer;font-family:inherit;color:var(--sub);">サンプルデータ追加</button>
-        <button onclick="debugClearAll()" style="padding:7px;border-radius:6px;border:0.5px solid var(--red);background:var(--red-l);font-size:11px;cursor:pointer;font-family:inherit;color:var(--red);">全データ削除</button>
-      </div>
-
-      <!-- RAWデータ -->
-      <div style="margin-top:10px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">📄 RAWデータ</div>
-        <pre id="debugRaw" style="font-size:10px;color:var(--muted);white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius:6px;padding:8px;max-height:150px;overflow-y:auto;font-family:monospace;"></pre>
-      </div>
-
-      <!-- 旧方式レシート読み取り（直接Gemini API呼び出し。日髙個人の無料枠を消費するためデバッグ用途限定） -->
-      <div style="margin-top:14px;border-top:0.5px solid var(--border);padding-top:10px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:6px;">🧾 旧方式レシート読み取り（デバッグ用）</div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-          通常のレシート記録はホーム画面の「📷 レシートを記録」（Shortcuts経由）をご利用ください。
-          こちらは開発時の動作確認用で、日髙個人のAPI無料枠を直接消費します。
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-          <label class="receipt-upload" for="receiptCamera" style="padding:8px 6px;">
-            <div class="receipt-icon" style="font-size:20px;margin-bottom:2px;">📷</div>
-            <div class="receipt-upload-text" style="font-size:11px;">カメラで撮影</div>
-          </label>
-          <input type="file" id="receiptCamera" accept="image/*" capture="environment" onchange="handleReceiptCamera(this)">
-
-          <label class="receipt-upload" for="receiptGallery" style="padding:8px 6px;">
-            <div class="receipt-icon" style="font-size:20px;margin-bottom:2px;">🖼️</div>
-            <div class="receipt-upload-text" style="font-size:11px;">画像を選択</div>
-          </label>
-          <input type="file" id="receiptGallery" accept="image/*" onchange="handleReceipt(this)">
-        </div>
-
-        <div class="ocr-loading" id="ocrLoading">🤖 AIが画像を読み取り中...</div>
-
-        <div class="ocr-result" id="ocrResult">
-          <div class="ocr-title">読み取り結果</div>
-          <div class="ocr-items" id="ocrItems"></div>
-          <div class="ocr-total" id="ocrTotal"></div>
-          <button class="ocr-btn" onclick="registerFromOcr()">この内容で支出を記録</button>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 </div>
 
 <!-- ===== 資金繰り ===== -->
@@ -452,7 +407,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="budget-label">現在の総残高（口座＋手持ち）</span>
     </div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:15px;">
+      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:16px;">
       <button onclick="setAvailableBalance()" style="padding:8px 12px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">補正</button>
     </div>
     <div style="font-size:11px;color:var(--muted);line-height:1.6;">
@@ -466,7 +421,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="budget-label">次回収入予定日</span>
       <span class="budget-nums" id="cfDaysRemaining"></span>
     </div>
-    <input class="field-input" id="cfNextIncomeInput" type="date" style="width:100%;padding:8px 10px;font-size:14px;" onchange="updateNextIncomeDate(this.value)">
+    <input class="field-input" id="cfNextIncomeInput" type="date" style="width:100%;padding:8px 10px;font-size:16px;" onchange="updateNextIncomeDate(this.value)">
   </div>
 
   <!-- 評価結果 -->
@@ -536,24 +491,25 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 <!-- ===== 固定費 ===== -->
-<div class="page" id="page-fixedcosts">
+<div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;">
+<div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="section-title" style="margin-top:4px">固定費管理</div>
 
-  <!-- 現在のサイクル情報 -->
-  <div class="budget-card" style="margin-bottom:10px;">
-    <div class="budget-row" style="margin-bottom:0;">
-      <span class="budget-label">現在のサイクル</span>
-      <span class="budget-nums" id="fcCycleRange"></span>
-    </div>
+  <!-- 「新しい月を開始」フロー中の案内バナー -->
+  <div id="flowFinish" style="display:none;background:var(--green-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
+    <div style="font-size:12px;color:var(--green-d);margin-bottom:6px;">固定費を確認したら、この月度の準備は完了です。</div>
+    <button onclick="finishNewMonthFlow()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">完了してホームへ →</button>
   </div>
 
   <!-- 固定費一覧 -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <span class="section-title" style="margin:0;">登録済みの固定費</span>
-    <button onclick="openCycleModal()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;">新しい期間を始める</button>
   </div>
-  <div class="tx-list" id="cfFixedCostList" style="margin-bottom:8px;"></div>
-  <button onclick="openFixedCostForm()" style="width:100%;padding:10px;border-radius:var(--radius-s);border:1.5px dashed var(--border);background:none;color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px;">＋ 固定費を追加（水道光熱費・ローン・お小遣いなど）</button>
+  <button onclick="openFixedCostForm()" style="width:100%;padding:10px;border-radius:var(--radius-s);border:1.5px dashed var(--border);background:none;color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit;">＋ 固定費を追加（水道光熱費・ローン・お小遣いなど）</button>
+</div>
+
+<div style="flex:1;overflow-y:auto;padding:0 14px 70px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div class="tx-list" id="cfFixedCostList" style="margin:10px 0 8px;"></div>
 
   <!-- 固定費 登録・編集フォーム -->
   <div id="fixedCostForm" style="display:none;background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-bottom:14px;">
@@ -565,11 +521,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
 
     <div style="margin-bottom:8px;">
-      <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:13px;">
+      <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-      <input class="field-input" id="fcAmount" type="number" placeholder="金額（円）" style="padding:8px 10px;font-size:13px;" inputmode="numeric">
-      <input class="field-input" id="fcDueDay" type="number" placeholder="支払日（1-31）" min="1" max="31" style="padding:8px 10px;font-size:13px;" inputmode="numeric">
+      <input class="field-input" id="fcAmount" type="number" placeholder="金額（円）" style="padding:8px 10px;font-size:16px;" inputmode="numeric">
+      <input class="field-input" id="fcDueDay" type="number" placeholder="支払日（1-31）" min="1" max="31" style="padding:8px 10px;font-size:16px;" inputmode="numeric">
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
       金額が分からない場合は空欄のままで登録できます。使えないお金として先に項目だけ確保し、次の期間を始めるタイミングでまとめて入力を促します。
@@ -583,6 +539,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="font-size:11px;color:var(--muted);line-height:1.7;padding:4px 2px;">
     ここで登録した固定費は、「資金繰り」ページの評価に自動的に反映されます。
   </div>
+</div>
 </div>
 
 <!-- バージョン表示 -->
@@ -652,7 +609,9 @@ const CATS_INCOME = [
   {id:"carryover",emoji:"🔄", label:"繰越"},
 ];
 
-// カテゴリ別の月予算（円）。金額はあくまで初期値なので、実情に合わせて調整してください。
+// 【非推奨・未使用】旧POC版で使っていた固定カテゴリ予算。
+// 現在、ホーム画面の予算総額は「その月度に入力された収入合計」で計算しており、この値は使用していない。
+// FIXED_LIKE_CATSのカテゴリキー一覧としての役割のみ残存。
 const BUDGET_CATS = {
   food:40000, dining:15000, daily:10000, transport:10000,
   comm:8000, housing:95000, medical:5000, social:27000, savings:18000, other:22000
@@ -661,15 +620,11 @@ const BUDGET_CATS = {
 // 資金繰り評価（日次の生活費ペース算出）で除外するカテゴリ。
 // 固定費（住居・通信）や貯蓄は「普段の生活費」ではなく別枠で管理するため対象外とする。
 const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
-const BUDGET = {
-  ...BUDGET_CATS,
-  total: Object.values(BUDGET_CATS).reduce((s,v)=>s+v, 0)
-};
 
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.44"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -681,88 +636,198 @@ function saveTx(txs) {
   localStorage.setItem("kakeibo_tx", JSON.stringify(txs));
 }
 
-// サンプルデータ（初回のみ）
-function initSample() {
-  if (localStorage.getItem("kakeibo_init")) return;
-  const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth();
-  const sample = [
-    {id:1, type:"income",  cat:"salary",    amount:280000, memo:"6月給与",     date:`${y}-${String(m+1).padStart(2,"0")}-25`},
-    {id:2, type:"expense", cat:"food",      amount:8420,   memo:"スーパー",     date:`${y}-${String(m+1).padStart(2,"0")}-28`},
-    {id:3, type:"expense", cat:"dining",    amount:3200,   memo:"ランチ",       date:`${y}-${String(m+1).padStart(2,"0")}-27`},
-    {id:4, type:"expense", cat:"transport", amount:6600,   memo:"定期代",       date:`${y}-${String(m+1).padStart(2,"0")}-26`},
-    {id:5, type:"expense", cat:"housing",   amount:9800,   memo:"電気代",       date:`${y}-${String(m+1).padStart(2,"0")}-25`},
-    {id:6, type:"expense", cat:"food",      amount:5300,   memo:"コンビニ",     date:`${y}-${String(m+1).padStart(2,"0")}-24`},
-    {id:7, type:"expense", cat:"daily",     amount:4100,   memo:"ドラッグストア",date:`${y}-${String(m+1).padStart(2,"0")}-23`},
-  ];
-  saveTx(sample);
-  localStorage.setItem("kakeibo_init","1");
+
+
+// ============================================================
+// 月度管理
+// カレンダー上の1日〜末日ではなく、「主な収入（給与）が入ったタイミング」で
+// 区切られた期間（月度）を単位として管理する。
+// サービスの開始は「その他」タブの「新しい月を開始」のみ。月度が1件もない状態が初期状態。
+// ============================================================
+let viewPeriodIndex = null; // 表示中の月度インデックス
+
+// 月度一覧を読み込む（未作成の場合は null）
+function loadPeriods() {
+  try {
+    const p = JSON.parse(localStorage.getItem("kakeibo_periods") || "null");
+    if (p && p.length) return p;
+  } catch {}
+  return null;
+}
+function savePeriods(list) {
+  localStorage.setItem("kakeibo_periods", JSON.stringify(list));
+}
+// 月度一覧を返す（存在しない場合は空配列。自動生成はしない）
+function ensurePeriods() {
+  return loadPeriods() || [];
 }
 
-// ============================================================
-// 月管理
-// ============================================================
-let viewYear  = new Date().getFullYear();
-let viewMonth = new Date().getMonth();
+// 新しい月度を開始する（「長押しで新しい月を開始」から呼ばれる）。追加後のインデックスを返す。
+function startNewPeriod(startDate) {
+  const periods = ensurePeriods();
+  periods.push({ id: "p_" + Date.now() + Math.random().toString(36).slice(2, 5), start_date: startDate });
+  savePeriods(periods);
+  return periods.length - 1;
+}
 
-function changeMonth(d) {
-  viewMonth += d;
-  if (viewMonth > 11) { viewMonth = 0;  viewYear++; }
-  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+// 開始日から見た「対象期間の終了日」（翌月の同じ日の前日、両端含む）を返す。
+// 予算消化率の理想値計算など、月度の“長さ”の基準として使う。
+function periodNominalEnd(startDate) {
+  const d = new Date(startDate);
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// 指定インデックスの月度の実際の開始日・終了日（終了日はexclusive、進行中ならnull）を返す。
+// 取引の振り分け（この月度に属するかどうか）に使用する。
+function periodRange(idx) {
+  const periods = ensurePeriods();
+  const p = periods[idx];
+  const next = periods[idx + 1];
+  return { start: p.start_date, end: next ? next.start_date : null };
+}
+
+// 月度の表示ラベル（開始日の年月をもとに「◯年◯月度」とする）
+function periodLabel(idx) {
+  const periods = ensurePeriods();
+  const d = new Date(periods[idx].start_date);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月度`;
+}
+
+// 指定月度に属する取引を返す（開始日以上、終了日未満）
+function periodTxs(idx) {
+  const { start, end } = periodRange(idx);
+  return loadTx().filter(t => t.date >= start && (!end || t.date < end));
+}
+
+// 指定した日付が属する月度のインデックスを返す
+function findPeriodIndexForDate(dateStr) {
+  const periods = ensurePeriods();
+  for (let i = periods.length - 1; i >= 0; i--) {
+    if (dateStr >= periods[i].start_date) return i;
+  }
+  return 0;
+}
+
+// 月度を切り替える。作成済みの月度の範囲内でのみ移動できる（未来の月度は作成されるまで表示しない）。
+function changePeriod(d) {
+  const periods = ensurePeriods();
+  if (!periods.length) return;
+  let idx = (viewPeriodIndex ?? periods.length - 1) + d;
+  idx = Math.max(0, Math.min(idx, periods.length - 1));
+  viewPeriodIndex = idx;
   renderHome();
   renderGraph();
 }
 
-function monthTxs() {
-  return loadTx().filter(t => {
-    const d = new Date(t.date);
-    return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-  });
+// 月度が最初/最後の場合、該当方向のナビゲーションボタンを薄く表示して無効化する
+function updatePeriodNavButtons() {
+  const periods = ensurePeriods();
+  const atFirst = !periods.length || viewPeriodIndex <= 0;
+  const atLast  = !periods.length || viewPeriodIndex >= periods.length - 1;
+  document.querySelectorAll('.month-nav[data-dir="-1"]').forEach(b => { b.disabled = atFirst; b.style.opacity = atFirst ? .3 : 1; });
+  document.querySelectorAll('.month-nav[data-dir="1"]').forEach(b  => { b.disabled = atLast;  b.style.opacity = atLast  ? .3 : 1; });
 }
 
-function fmt(n) { return "¥" + n.toLocaleString("ja-JP"); }
+function fmt(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "¥" + n.toLocaleString("ja-JP"); }
+
+// 数値入力欄に¥マーク＋カンマ区切りをリアルタイム表示する（type=text用）
+function formatYenInput(el) {
+  const raw = el.value.replace(/[^\d]/g, "");
+  el.value = raw ? "¥" + parseInt(raw, 10).toLocaleString("ja-JP") : "";
+  if (typeof updateSavingsCalc === "function") updateSavingsCalc();
+}
+// 保存時などに¥・カンマを除いた純粋な数値を取り出す
+function parseYenInput(id) {
+  const raw = document.getElementById(id).value.replace(/[^\d]/g, "");
+  return raw ? parseInt(raw, 10) : 0;
+}
 
 // ============================================================
 // ホーム描画
 // ============================================================
 function renderHome() {
-  const txs = monthTxs();
+  const periods = ensurePeriods();
+
+  // 月度が1件も無い（サービス未開始）場合は空状態を表示する
+  if (!periods.length) {
+    document.getElementById("monthTitle").textContent = "未開始";
+    document.getElementById("balanceAmount").textContent = fmt(0);
+    document.getElementById("totalIncome").textContent   = fmt(0);
+    document.getElementById("totalExpense").textContent  = fmt(0);
+    document.getElementById("homeSavingsTotal").textContent = fmt(0);
+    document.getElementById("homeFixedTotal").textContent   = fmt(0);
+    document.getElementById("budgetBar").style.width = "0%";
+    document.getElementById("budgetLabel").textContent = "予算消化率  0%";
+    document.getElementById("budgetNums").textContent  = "";
+    document.getElementById("budgetStatusIcon").textContent = "";
+    document.getElementById("budgetStatusText").textContent = "";
+    document.getElementById("budgetStatusSub").textContent  = "";
+    document.getElementById("txList").innerHTML =
+      `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;">「その他」タブの<br>「長押しで新しい月を開始」から<br>家計簿をスタートしてください</div>`;
+    updatePeriodNavButtons();
+    return;
+  }
+
+  if (viewPeriodIndex === null || viewPeriodIndex > periods.length - 1) viewPeriodIndex = periods.length - 1;
+
+  const txs = periodTxs(viewPeriodIndex);
   const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-  const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
-  const balance = income - expense;
+  const expenseTx = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
 
-  const mn = `${viewYear}年${viewMonth+1}月`;
-  document.getElementById("monthTitle").textContent = mn;
-  document.getElementById("balanceAmount").textContent = fmt(balance);
-  document.getElementById("totalIncome").textContent   = fmt(income);
-  document.getElementById("totalExpense").textContent  = fmt(expense);
-
-  // 積立合計・固定合計（残高カード右側）
-  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.balance||0),0);
+  // 積立合計・固定合計（残高カード右側／支出・予算の両方に反映）
+  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.monthly||0),0);
   const fixedTotal = ensureCycle().fixed_costs.reduce((s,i)=>s+(i.amount||0),0);
   document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
   document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
 
-  // 予算バー
-  const pct = Math.min(Math.round(expense / BUDGET.total * 100), 100);
-  const bar = document.getElementById("budgetBar");
-  bar.style.width = pct + "%";
+  // 総支出＝取引の支出合計＋今月の積立合計＋今月の固定費合計
+  const expense = expenseTx + savingsTotal + fixedTotal;
+  const balance = income - expense;
 
-  // 残り日数から理想消化率を計算
-  const today    = new Date();
-  const lastDay  = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const isCurrentMonth = today.getFullYear()===viewYear && today.getMonth()===viewMonth;
-  const elapsedDays = isCurrentMonth ? today.getDate() : lastDay;
-  const idealPct = Math.round(elapsedDays / lastDay * 100);
-  const remaining = BUDGET.total - expense;
-  const remainDays = isCurrentMonth ? lastDay - today.getDate() : 0;
+  // 予算総額＝この月度に入力された収入の合計
+  const budgetTotal = income;
+
+  document.getElementById("monthTitle").textContent = periodLabel(viewPeriodIndex);
+  document.getElementById("balanceAmount").textContent = fmt(balance);
+  document.getElementById("totalIncome").textContent   = fmt(income);
+  document.getElementById("totalExpense").textContent  = fmt(expense);
+
+  // 予算バー
+  // 収入未入力（予算総額0）でも支出（積立・固定費など）が発生している場合は、
+  // 「予算オーバー」であることが一目で分かるよう100%超過として扱う
+  let pct;
+  if (budgetTotal > 0) {
+    pct = Math.round(expense / budgetTotal * 100);
+  } else {
+    pct = expense > 0 ? 999 : 0; // 収入0円で支出ありは大幅超過扱い
+  }
+  const barWidthPct = Math.min(pct, 100);
+  const bar = document.getElementById("budgetBar");
+  bar.style.width = barWidthPct + "%";
+
+  // 対象期間（開始日の翌月同日の前日まで）から理想消化率を計算する
+  const { start } = periodRange(viewPeriodIndex);
+  const nominalEnd = periodNominalEnd(start);
+  const isLatestPeriod = viewPeriodIndex === periods.length - 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const totalDays = daysBetween(start, nominalEnd) + 1;
+  const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
+  const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
+  const idealPct = Math.round(elapsedDays / totalDays * 100);
+  const remaining = budgetTotal - expense;
+  const remainDays = isLatestPeriod ? Math.max(totalDays - elapsedDays, 0) : 0;
 
   // 消化ペース判定（実際の消化率 vs 理想消化率）
   const diff = pct - idealPct;
   let statusIcon, statusText, statusColor, barClass;
 
-  if (!isCurrentMonth) {
-    // 過去月
+  if (budgetTotal <= 0 && expense > 0) {
+    // 収入がまだ入力されておらず、積立・固定費などの支出だけが先行している状態
+    statusIcon="🚨"; statusText="収入が未入力です（支出が先行しています）"; statusColor="var(--red)"; barClass="bar-over";
+  } else if (!isLatestPeriod) {
+    // 過去の月度
     if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
     else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
     else                 { statusIcon="🚨"; statusText="予算を超過しました"; statusColor="var(--red)"; barClass="bar-over"; }
@@ -781,18 +846,21 @@ function renderHome() {
   bar.className = "bar-fill " + barClass;
   bar.style.background = statusColor;
 
-  document.getElementById("budgetLabel").textContent = `予算消化率  ${pct}%`;
-  document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(BUDGET.total)}`;
+  document.getElementById("budgetLabel").textContent =
+    budgetTotal <= 0 && expense > 0 ? `予算消化率  収入未入力` : `予算消化率  ${pct}%`;
+  document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(budgetTotal)}`;
   document.getElementById("budgetStatusIcon").textContent = statusIcon;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
   document.getElementById("budgetStatusSub").textContent  =
-    isCurrentMonth
+    budgetTotal <= 0 && expense > 0
+      ? `不足額 ¥${expense.toLocaleString()}（収入を入力すると解消されます）`
+      : isLatestPeriod
       ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
       : `(理想:${idealPct}% / 実績:${pct}%)`;
 
-  // 直近取引（最新30件、枠内は6行分の高さでスクロール表示）
-  const recent = [...loadTx()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,30);
+  // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
+  const recent = [...txs].sort((a,b)=>b.id-a.id);
   const allCats = [...CATS_EXPENSE,...CATS_INCOME];
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
@@ -809,6 +877,8 @@ function renderHome() {
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
       }).join("");
+
+  updatePeriodNavButtons();
 }
 
 // ============================================================
@@ -834,6 +904,22 @@ function setType(type) {
     "submit-btn " + type;
 
   renderCatGrid();
+
+  // メモ欄の高さ調整:
+  // 支出=10カテゴリ(3行)・収入=8カテゴリ(2行)のため、カテゴリ欄の行数が1行分異なる。
+  // 収入時はその差分（1行＋gap）をメモ欄に加算し、支出/収入で入力カード全体の高さが揃うようにする。
+  requestAnimationFrame(() => {
+    const memoEl = document.getElementById("memoInput");
+    const EXPENSE_MEMO_H = 30; // 支出時のメモ欄高さ（1行分）
+    const GRID_GAP = 4;        // .cat-gridのgapと合わせる
+    if (type === "expense") {
+      memoEl.style.height = EXPENSE_MEMO_H + "px";
+    } else {
+      const btn = document.querySelector("#catGrid .cat-btn");
+      const rowH = btn ? btn.offsetHeight : 43; // カテゴリ行1行分の高さ（実測、取得失敗時は推定値）
+      memoEl.style.height = (EXPENSE_MEMO_H + rowH + GRID_GAP) + "px";
+    }
+  });
 }
 
 function renderCatGrid() {
@@ -853,24 +939,27 @@ function renderCatGrid() {
   }).join("");
 }
 
-// 前月残高を自動計算して入力する
+// 前の月度の残高を自動計算して入力する
 function applyCarryover() {
-  // 前月の年月を計算
-  let prevMonth = viewMonth - 1;
-  let prevYear  = viewYear;
-  if (prevMonth < 0) { prevMonth = 11; prevYear--; }
+  if (viewPeriodIndex === null) {
+    showToast("前の月度がありません");
+    return;
+  }
+  const prevIdx = viewPeriodIndex - 1;
+  if (prevIdx < 0) {
+    showToast("前の月度がありません");
+    return;
+  }
+  const prevLabel = periodLabel(prevIdx);
 
-  // 前月の全取引を集計
-  const txs     = loadTx().filter(t => {
-    const d = new Date(t.date);
-    return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
-  });
+  // 前の月度の全取引を集計
+  const txs     = periodTxs(prevIdx);
   const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
   const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const balance = income - expense;
 
   if (balance <= 0) {
-    showToast(`${prevYear}年${prevMonth+1}月の残高は¥${balance.toLocaleString()}です。繰越額を確認してください。`);
+    showToast(`${prevLabel}の残高は¥${balance.toLocaleString()}です。繰越額を確認してください。`);
     return;
   }
 
@@ -879,11 +968,11 @@ function applyCarryover() {
   inputAmt    = String(balance);
   document.getElementById("amountDisplay").textContent = "¥" + balance.toLocaleString("ja-JP");
 
-  // メモに前月残高を自動設定
-  document.getElementById("memoInput").value = `${prevYear}年${prevMonth+1}月繰越`;
+  // メモに前の月度の残高を自動設定
+  document.getElementById("memoInput").value = `${prevLabel}繰越`;
 
   renderCatGrid();
-  showToast(`${prevYear}年${prevMonth+1}月の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
+  showToast(`${prevLabel}の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
 }
 
 function selectCat(id) {
@@ -925,48 +1014,66 @@ function submitTx() {
   document.getElementById("memoInput").value = "";
   showToast(inputType==="expense" ? "支出を記録しました" : "収入を記録しました");
   renderHome();
+
+  // 「新しい月を開始」フロー中に収入を記録した場合、続けて積立の確認に案内する
+  if (newMonthFlowStep === "income" && inputType === "income") {
+    newMonthFlowStep = "savings";
+    showPage("savings");
+    showToast("収入を記録しました。続けて積立プランを確認してください");
+  }
 }
 
 // ============================================================
 // グラフ描画
 // ============================================================
-let selectedGraphMonth = null; // 選択中の月
+let selectedGraphPeriodIdx = null; // 選択中の月度インデックス
 
 function renderGraph() {
-  document.getElementById("graphMonthTitle").textContent =
-    `${viewYear}年${viewMonth+1}月`;
+  const periods = ensurePeriods();
 
-  const txs = loadTx();
-  const months = [];
-  for (let i = 5; i >= 0; i--) {
-    let m = viewMonth - i, y = viewYear;
-    if (m < 0) { m += 12; y--; }
-    months.push({y, m, label: `${m+1}月`});
+  if (!periods.length) {
+    document.getElementById("graphMonthTitle").textContent = "未開始";
+    document.getElementById("barChart").innerHTML =
+      `<div style="width:100%;text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">「その他」タブから新しい月を開始してください</div>`;
+    document.getElementById("monthDetail").innerHTML = "";
+    document.getElementById("catSummary").innerHTML = "";
+    updatePeriodNavButtons();
+    return;
   }
 
-  // 初期選択は最新月
-  if (!selectedGraphMonth) {
-    selectedGraphMonth = months[months.length - 1];
+  if (viewPeriodIndex === null || viewPeriodIndex > periods.length - 1) viewPeriodIndex = periods.length - 1;
+
+  document.getElementById("graphMonthTitle").textContent = periodLabel(viewPeriodIndex);
+
+  // 表示中の月度を最新とみなし、直近最大6件の月度を表示する（作成済みの月度のみ）
+  const endIdx = viewPeriodIndex;
+  const startIdx = Math.max(0, endIdx - 5);
+  const idxList = [];
+  for (let i = startIdx; i <= endIdx; i++) idxList.push(i);
+
+  if (selectedGraphPeriodIdx === null || selectedGraphPeriodIdx < startIdx || selectedGraphPeriodIdx > endIdx) {
+    selectedGraphPeriodIdx = endIdx;
   }
 
-  // 全月の最大値を動的に計算してスケール自動調整
-  const monthData = months.map(({y,m,label}) => {
-    const mt  = txs.filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
-    const exp = mt.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
-    const inc = mt.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-    return {y, m, label, exp, inc};
+  // 各月度の最大値を動的に計算してスケール自動調整
+  const periodData = idxList.map(idx => {
+    const txs = periodTxs(idx);
+    const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const d = new Date(periods[idx].start_date);
+    return { idx, label: `${d.getMonth()+1}月度`, exp, inc };
   });
-  const maxAmt = Math.max(...monthData.map(d => Math.max(d.exp, d.inc)), 1);
+  const maxAmt = Math.max(...periodData.map(d => Math.max(d.exp, d.inc)), 1);
 
   const barChart = document.getElementById("barChart");
   // コンテナの実際の高さからボタン分を引いて棒の最大高さを計算
   const BAR_MAX_H = Math.max((barChart.clientHeight || 170) - 32, 80);
 
-  barChart.innerHTML = monthData.map(({y,m,label,exp,inc}) => {
+  barChart.innerHTML = periodData.map(({idx,label,exp,inc}) => {
     const expH = Math.round(exp / maxAmt * BAR_MAX_H);
     const incH = Math.round(inc / maxAmt * BAR_MAX_H);
-    const isSelected = selectedGraphMonth.y===y && selectedGraphMonth.m===m;
-    return `<div class="bar-col" onclick="selectGraphMonth(${y},${m},'${label}')"
+    const isSelected = selectedGraphPeriodIdx === idx;
+    return `<div class="bar-col" onclick="selectGraphPeriod(${idx})"
       style="flex:1;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
       <div style="flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;">
         <div style="border-radius:4px 4px 0 0;background:var(--green);opacity:0.6;height:${incH}px;"></div>
@@ -984,20 +1091,22 @@ function renderGraph() {
     </div>`;
   }).join("");
 
-  // 選択月の詳細表示
-  renderMonthDetail(selectedGraphMonth.y, selectedGraphMonth.m);
+  // 選択した月度の詳細表示
+  renderMonthDetail(selectedGraphPeriodIdx);
 
-  // カテゴリ別（選択月）
-  renderCatSummary(selectedGraphMonth.y, selectedGraphMonth.m);
+  // カテゴリ別（選択した月度）
+  renderCatSummary(selectedGraphPeriodIdx);
+
+  updatePeriodNavButtons();
 }
 
-function selectGraphMonth(y, m, label) {
-  selectedGraphMonth = {y, m, label};
+function selectGraphPeriod(idx) {
+  selectedGraphPeriodIdx = idx;
   renderGraph();
 }
 
-function renderMonthDetail(y, m) {
-  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m; });
+function renderMonthDetail(idx) {
+  const txs = periodTxs(idx);
   const inc = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
   const exp = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
   const bal = inc - exp;
@@ -1018,8 +1127,8 @@ function renderMonthDetail(y, m) {
     </div>`;
 }
 
-function renderCatSummary(y, m) {
-  const txs = loadTx().filter(t=>{ const d=new Date(t.date); return d.getFullYear()===y&&d.getMonth()===m&&t.type==="expense"; });
+function renderCatSummary(idx) {
+  const txs = periodTxs(idx).filter(t=>t.type==="expense");
   const catTotals = CATS_EXPENSE.map(c => ({
     ...c,
     total: txs.filter(t=>t.cat===c.id).reduce((s,t)=>s+t.amount,0)
@@ -1038,205 +1147,6 @@ function renderCatSummary(y, m) {
 }
 
 // ============================================================
-// レシートOCR（Gemini Flash API・完全無料）
-// ============================================================
-// 【設定済み】
-// APIキー: thidaka45@gmail.com のGemini APIキー
-// 許可URL: https://thidaka45.github.io/kakeibo/ のみ
-const GEMINI_API_KEY = "AIzaSy_PASTE_YOUR_KEY_HERE"; // ← iPhoneでコピーしたキーに書き換えてください
-
-// 許可URL（このサイト以外からの利用を防止）
-const ALLOWED_ORIGIN = "https://thidaka45.github.io";
-
-// 1日の撮影上限（無料枠保護・悪用防止）
-const DAILY_OCR_LIMIT = 10;
-
-function checkOcrLimit() {
-  const today = new Date().toISOString().slice(0, 10);
-  const key   = `ocr_count_${today}`;
-  const count = parseInt(localStorage.getItem(key) || "0");
-  if (count >= DAILY_OCR_LIMIT) return false;
-  localStorage.setItem(key, count + 1);
-  return true;
-}
-
-function getOcrCount() {
-  const today = new Date().toISOString().slice(0, 10);
-  return parseInt(localStorage.getItem(`ocr_count_${today}`) || "0");
-}
-
-let ocrData = null;
-
-// カメラ撮影専用（JPEG変換してから処理）
-async function handleReceiptCamera(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // Canvasを使ってJPEG形式に変換
-  const img = new Image();
-  const url = URL.createObjectURL(file);
-  img.onload = async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width  = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
-
-    // JPEG形式のBlobに変換
-    canvas.toBlob(async blob => {
-      const convertedFile = new File([blob], "receipt.jpg", { type: "image/jpeg" });
-      const fakeInput = { files: [convertedFile] };
-      await handleReceipt(fakeInput);
-    }, "image/jpeg", 0.9);
-  };
-  img.src = url;
-}
-
-async function handleReceipt(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // 許可URLチェック
-  if (!window.location.origin.startsWith(ALLOWED_ORIGIN)) {
-    showToast("このサイトからのみご利用いただけます");
-    return;
-  }
-
-  // 1日の上限チェック
-  if (!checkOcrLimit()) {
-    showToast(`本日の読み取り上限（${DAILY_OCR_LIMIT}枚）に達しました`);
-    input.value = "";
-    return;
-  }
-
-  document.getElementById("ocrLoading").classList.add("show");
-  document.getElementById("ocrLoading").textContent =
-    `🤖 AIがレシートを読み取り中... (本日${getOcrCount()}/${DAILY_OCR_LIMIT}枚)`;
-  document.getElementById("ocrResult").classList.remove("show");
-
-  try {
-    const base64 = await fileToBase64(file);
-
-    // Gemini Flash API呼び出し
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                inline_data: {
-                  mime_type: file.type,
-                  data: base64
-                }
-              },
-              {
-                text: `この画像（紙のレシート・電子決済スクショ・クレカ明細・PayPay・楽天Pay・Apple Pay・メール明細など）を読み取り、以下のJSON形式のみで返してください。説明文不要。
-{
-  "store": "店名またはサービス名",
-  "date": "YYYY-MM-DD",
-  "items": [{"name": "品名またはカテゴリ", "price": 金額(数値)}],
-  "total": 合計金額(数値)
-}
-ルール:
-- 日付が読み取れない場合は今日の日付を使用
-- 金額は税込み合計を使用
-- 電子決済の場合は決済金額をtotalに設定
-- 品目が不明な場合は「お買い物」など一般的な名称を使用
-- PayPayなどQR決済は決済先の店名をstoreに設定`
-              }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 500
-          }
-        })
-      }
-    );
-
-    const data  = await res.json();
-
-    // APIエラーチェック
-    if (data.error) {
-      throw new Error(`API Error ${data.error.code}: ${data.error.message}`);
-    }
-
-    const text  = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!text) throw new Error("AIからの応答が空です: " + JSON.stringify(data).slice(0,100));
-
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("JSON形式ではありません: " + text.slice(0,100));
-    ocrData = JSON.parse(match[0]);
-    showOcrResult(ocrData);
-
-  } catch(e) {
-    // エラー内容を画面に表示してデバッグしやすくする
-    console.warn("Gemini API error:", e.message);
-
-    // エラー内容をそのままトーストで表示（デバッグ用）
-    const errMsg = e.message.slice(0, 80);
-    showToast(errMsg);
-    console.error("OCR Error:", e.message);
-
-    // デモデータを表示
-    ocrData = {
-      store: "⚠️ デモデータ（" + e.message.slice(0,20) + "）",
-      date:  new Date().toISOString().slice(0, 10),
-      items: [
-        { name: "牛乳",      price: 198 },
-        { name: "食パン",    price: 168 },
-        { name: "卵（10個）",price: 238 },
-        { name: "きゅうり", price:  98 },
-      ],
-      total: 702
-    };
-    showOcrResult(ocrData);
-  } finally {
-    document.getElementById("ocrLoading").classList.remove("show");
-    input.value = "";
-  }
-}
-
-function showOcrResult(d) {
-  document.getElementById("ocrItems").innerHTML =
-    d.items.map(i => `<div class="ocr-item"><span>${i.name}</span><span>${fmt(i.price)}</span></div>`).join("");
-  document.getElementById("ocrTotal").innerHTML =
-    `<span>合計（${d.store}）</span><span>${fmt(d.total)}</span>`;
-  document.getElementById("ocrResult").classList.add("show");
-}
-
-function registerFromOcr() {
-  if (!ocrData) return;
-  const txs = loadTx();
-  txs.push({
-    id: Date.now(),
-    type: "expense",
-    cat: "food",
-    amount: ocrData.total,
-    memo: ocrData.store,
-    date: ocrData.date || new Date().toISOString().slice(0,10),
-  });
-  saveTx(txs);
-  adjustBalance(-ocrData.total);
-  document.getElementById("ocrResult").classList.remove("show");
-  showToast("レシートを記録しました");
-  renderHome();
-}
-
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(",")[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-// ============================================================
 // ページ切替
 // ============================================================
 function showPage(name) {
@@ -1245,9 +1155,14 @@ function showPage(name) {
     document.getElementById(`nav-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
-  if (name==="savings")    renderSavings();
-  if (name==="fixedcosts") renderFixedCostsPage();
+  if (name==="savings")    { renderSavings(); toggleFlowBanner("flowNextToFixed", newMonthFlowStep === "savings"); }
+  if (name==="fixedcosts") { renderFixedCostsPage(); toggleFlowBanner("flowFinish", newMonthFlowStep === "fixedcosts"); }
   if (name==="cashflow")   renderCashflow();
+}
+
+function toggleFlowBanner(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? "block" : "none";
 }
 
 
@@ -1285,18 +1200,15 @@ function exportData(range) {
 function getExportTxs(range) {
   const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
   let txs = loadTx().sort((a,b) => new Date(a.date) - new Date(b.date));
-  if (range === "month") {
-    txs = txs.filter(t => {
-      const d = new Date(t.date);
-      return d.getFullYear() === viewYear && d.getMonth() === viewMonth;
-    });
+  if (range === "month" && viewPeriodIndex !== null && ensurePeriods().length) {
+    txs = periodTxs(viewPeriodIndex).sort((a,b) => new Date(a.date) - new Date(b.date));
   }
   return { txs, allCats };
 }
 
 function getExportLabel(range) {
-  return range === "month"
-    ? `家計簿_${viewYear}年${viewMonth+1}月`
+  return range === "month" && viewPeriodIndex !== null && ensurePeriods().length
+    ? `家計簿_${periodLabel(viewPeriodIndex)}`
     : `家計簿_全データ`;
 }
 
@@ -1353,8 +1265,8 @@ function exportExcel(range) {
     { "項目": "収入合計",   "金額": income },
     { "項目": "支出合計",   "金額": expense },
     { "項目": "収支",       "金額": income - expense },
-    { "項目": "予算",       "金額": BUDGET.total },
-    { "項目": "予算消化率", "金額": Math.round(expense / BUDGET.total * 100) + "%" },
+    { "項目": "予算（収入合計）", "金額": income },
+    { "項目": "予算消化率", "金額": income > 0 ? Math.round(expense / income * 100) + "%" : "-" },
   ];
 
   // Workbookを作成
@@ -1440,69 +1352,81 @@ function renderSavings() {
   // サマリー
   const totalMonthly  = plans.reduce((s, p) => s + (p.monthly || 0), 0);
   const totalBalance  = plans.reduce((s, p) => s + (p.balance || 0), 0);
-  document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly);
+  document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly) + "／月";
   document.getElementById("savingsTotalBalance").textContent = fmt(totalBalance);
 
-  // 警告（残り2ヶ月以内で達成率80%未満）
-  const now = new Date();
-  const alerts = plans.filter(p => {
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const pct    = p.amount > 0 ? (p.balance || 0) / p.amount : 1;
-    return months <= 2 && pct < 0.8;
-  });
-  const alertEl = document.getElementById("savingsAlert");
-  if (alerts.length > 0) {
-    alertEl.style.display = "block";
-    alertEl.innerHTML = "⚠️ " + alerts.map(p =>
-      `「${p.name}」まで${calcRemainingMonths(p.targetYear, p.targetMonth)}ヶ月。月々¥${p.monthly?.toLocaleString()}の積立が必要です。`
-    ).join("<br>");
-  } else {
-    alertEl.style.display = "none";
-  }
 
   // プランリスト
   const listEl = document.getElementById("savingsList");
+  const warnNoteEl = document.getElementById("savingsWarnNote");
   if (plans.length === 0) {
     listEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">積立プランがありません<br>「＋ 追加」から作成してください</div>`;
+    warnNoteEl.textContent = "";
     return;
   }
 
-  listEl.innerHTML = plans.map(p => {
-    const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
-    const pct    = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const isWarn = months <= 2 && pct < 80;
-    const barClr = isWarn ? "var(--red)" : pct >= 80 ? "var(--green)" : "var(--blue)";
-    const statusTxt = isWarn ? `⚠️ 要確認（残り${months}ヶ月）` : `残り${months}ヶ月`;
+  // 表示用に各種指標を事前計算する
+  const enriched = plans.map(p => {
+    const pct     = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
+    const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
+    const balance = p.balance || 0;
+    const monthly = p.monthly || 0;
+    // 既に目標達成（残高が必要金額以上）
+    const isAchieved = p.amount > 0 && balance >= p.amount;
+    // このまま今の月々積立額を続けた場合、期限までに到達できるか
+    const projected = balance + monthly * months;
+    const onTrack = isAchieved || (p.amount > 0 && projected >= p.amount);
+    let status, statusColor, barColor, bgColor, order;
+    if (isAchieved)      { status = "達成"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
+    else if (onTrack)    { status = "順調"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
+    else                 { status = "注意"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
+    return { p, pct, months, status, statusColor, barColor, bgColor, order };
+  });
 
-    return `<div style="background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+  // 「積立プラン」ラベル右横に注意件数を表示
+  const warnCount = enriched.filter(e => e.order === 0).length;
+  warnNoteEl.textContent = warnCount > 0 ? `⚠️ 注意 ${warnCount}件` : "";
+
+  // 表示順：注意 → 達成 → 順調
+  enriched.sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.months - b.months;
+  });
+
+  listEl.innerHTML = enriched.map(({ p, pct, months, status, statusColor, barColor, bgColor }) => {
+    const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
+
+    return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${cat.emoji}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${p.name}</div>
-          <div style="font-size:10px;color:var(--muted);">${p.targetYear}年${p.targetMonth}月 / ${statusTxt}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
+            <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+            <span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:50px;">残<span style="display:inline-block;width:16px;text-align:right;">${months}</span>ヶ月</span>
+            <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:var(--sub);">月積立</div>
-          <div style="font-size:14px;font-weight:700;color:var(--green-d);">${fmt(p.monthly||0)}</div>
-        </div>
-        <button onclick="deleteSavingsPlan('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 4px;">×</button>
-      </div>
-      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:4px;">
-        <div style="height:100%;background:${barClr};border-radius:4px;width:${pct}%;transition:width .6s;"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;">
-        <span style="font-size:10px;color:var(--sub);">${pct}%</span>
-        <span style="font-size:10px;color:var(--muted);">${fmt(p.balance||0)} / ${fmt(p.amount)}</span>
       </div>
     </div>`;
   }).join("");
 }
 
 function openSavingsForm(id) {
-  editingSavingsId = id || null;
   const form = document.getElementById("savingsForm");
+
+  // 同じ項目を再タップした場合はトグルで閉じる
+  if (id && editingSavingsId === id && form.style.display === "block") {
+    closeSavingsForm();
+    return;
+  }
+
+  editingSavingsId = id || null;
   form.style.display = "block";
+  document.getElementById("savingsList").style.display = "none";
+  form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   // 年月セレクトを生成
   const now = new Date();
@@ -1517,13 +1441,9 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // カテゴリグリッド
-  document.getElementById("savingsCatGrid").innerHTML = SAVINGS_CATS.map(c =>
-    `<button class="cat-btn ${c.id===selectedSavingsCat?"selected":""}"
-      onclick="selectSavingsCat('${c.id}')"
-      style="padding:5px 2px;border-radius:8px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;">
-      <span style="font-size:16px;">${c.emoji}</span>${c.label}
-    </button>`
+  // アイコン選択プルダウン
+  document.getElementById("savingsIcon").innerHTML = SAVINGS_CATS.map(c =>
+    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
   ).join("");
 
   // 既存データ編集の場合
@@ -1531,180 +1451,119 @@ function openSavingsForm(id) {
     const plans = loadSavingsPlans();
     const p = plans.find(x => x.id === id);
     if (p) {
+      selectedSavingsCat = p.cat;
+      document.getElementById("savingsIcon").value    = p.cat;
       document.getElementById("savingsName").value    = p.name;
-      document.getElementById("savingsAmount").value  = p.amount;
-      document.getElementById("savingsBalance").value = p.balance || 0;
+      document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
+      document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
-      selectedSavingsCat = p.cat;
+      document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
+      document.getElementById("savingsDeleteBtn").style.display = "block";
     }
   } else {
+    selectedSavingsCat = SAVINGS_CATS[0].id;
+    document.getElementById("savingsIcon").value    = SAVINGS_CATS[0].id;
     document.getElementById("savingsName").value    = "";
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
+    document.getElementById("savingsMonthlyManual").value = "";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
+    document.getElementById("savingsDeleteBtn").style.display = "none";
   }
 
   // 入力変化で逆算
-  ["savingsAmount","savingsBalance","savingsYear","savingsMonth"].forEach(id => {
-    document.getElementById(id).addEventListener("input", updateSavingsCalc);
-    document.getElementById(id).addEventListener("change", updateSavingsCalc);
+  ["savingsAmount","savingsBalance","savingsYear","savingsMonth"].forEach(fid => {
+    document.getElementById(fid).addEventListener("input", updateSavingsCalc);
+    document.getElementById(fid).addEventListener("change", updateSavingsCalc);
   });
   updateSavingsCalc();
 }
 
 function updateSavingsCalc() {
-  const amount  = parseInt(document.getElementById("savingsAmount").value  || 0);
-  const balance = parseInt(document.getElementById("savingsBalance").value || 0);
+  const amount  = parseYenInput("savingsAmount");
+  const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
-  const calcEl  = document.getElementById("savingsCalc");
+  const displayEl = document.getElementById("savingsCalcDisplay");
+  const detailEl  = document.getElementById("savingsCalcDetail");
 
   if (amount > 0 && year && month) {
     const { monthly, months, remaining } = calcMonthly(amount, balance, year, month);
-    calcEl.style.display = "block";
-    document.getElementById("savingsCalcAmt").textContent = fmt(monthly);
-    document.getElementById("savingsCalcDetail").textContent =
-      `残り${months}ヶ月 / 不足額${fmt(remaining)}`;
+    displayEl.value = fmt(monthly);
+    detailEl.textContent = `残り${months}ヶ月 / 不足額${fmt(remaining)}`;
   } else {
-    calcEl.style.display = "none";
+    displayEl.value = "";
+    detailEl.textContent = "";
   }
 }
 
-function selectSavingsCat(id) {
-  selectedSavingsCat = id;
-  document.querySelectorAll("#savingsCatGrid .cat-btn").forEach(b => b.classList.remove("selected"));
-  event.target.closest("button").classList.add("selected");
+function onSavingsIconSelect() {
+  selectedSavingsCat = document.getElementById("savingsIcon").value;
 }
 
 function closeSavingsForm() {
   document.getElementById("savingsForm").style.display = "none";
+  document.getElementById("savingsList").style.display = "block";
   editingSavingsId = null;
 }
 
 function saveSavingsPlan() {
+  const catId   = document.getElementById("savingsIcon").value;
   const name    = document.getElementById("savingsName").value.trim();
-  const amount  = parseInt(document.getElementById("savingsAmount").value || 0);
-  const balance = parseInt(document.getElementById("savingsBalance").value || 0);
+  const amount  = parseYenInput("savingsAmount");
+  const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
+  const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
 
-  if (!name)   { showToast("目的名を入力してください"); return; }
+  if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
-  const { monthly } = calcMonthly(amount, balance, year, month);
+  const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month);
+  const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
+
+  // この月々積立額のペースを続けた場合、期限までに目標金額へ到達できるか確認
+  const projected = balance + monthly * months;
+  if (amount > 0 && projected < amount) {
+    const shortage = amount - projected;
+    const ok = confirm(
+      `この積立月額（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
+      `不足見込み額：${fmt(shortage)}\n\n` +
+      `このまま保存してよろしいですか？`
+    );
+    if (!ok) return;
+  }
+
   const plans = loadSavingsPlans();
+  const isEditing = !!editingSavingsId;
 
   if (editingSavingsId) {
     const idx = plans.findIndex(p => p.id === editingSavingsId);
-    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cat:selectedSavingsCat, monthly };
+    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly };
   } else {
-    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cat:selectedSavingsCat, monthly });
+    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly });
   }
 
   saveSavingsPlans(plans);
   closeSavingsForm();
   renderSavings();
-  showToast(editingSavingsId ? "更新しました" : "積立プランを追加しました");
+  renderHome();
+  showToast(isEditing ? "更新しました" : "積立プランを追加しました");
 }
 
 function deleteSavingsPlan(id) {
+  if (!id) return;
+  if (!confirm("この積立プランを削除しますか？")) return;
   const plans = loadSavingsPlans().filter(p => p.id !== id);
   saveSavingsPlans(plans);
+  closeSavingsForm();
   renderSavings();
+  renderHome();
   showToast("削除しました");
-}
-
-// ============================================================
-// 積立デバッグ機能
-// ============================================================
-function toggleDebug() {
-  const panel = document.getElementById("debugPanel");
-  const isOpen = panel.style.display !== "none";
-  panel.style.display = isOpen ? "none" : "block";
-  if (!isOpen) updateDebugPanel();
-}
-
-function updateDebugPanel() {
-  const plans = loadSavingsPlans();
-  const now   = new Date();
-
-  // ストレージ状態
-  const rawData = localStorage.getItem("savings_plans") || "[]";
-  const byteSize = new Blob([rawData]).size;
-  document.getElementById("debugStorage").innerHTML = [
-    `件数: <b>${plans.length}件</b>`,
-    `データサイズ: <b>${byteSize} bytes</b>`,
-    `localStorage使用量: <b>${JSON.stringify(localStorage).length} bytes</b>`,
-    `最終更新: <b>${now.toLocaleString("ja-JP")}</b>`,
-  ].map(s => `<div style="padding:2px 0;">${s}</div>`).join("");
-
-  // 計算チェック
-  if (plans.length === 0) {
-    document.getElementById("debugCalc").innerHTML = '<div style="color:var(--muted);">プランなし</div>';
-  } else {
-    document.getElementById("debugCalc").innerHTML = plans.map(p => {
-      const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
-      const remaining = Math.max((p.amount||0) - (p.balance||0), 0);
-      const monthly = Math.ceil(remaining / months);
-      const stored  = p.monthly || 0;
-      const match   = monthly === stored ? "✅" : "⚠️ 不一致";
-      return `<div style="padding:3px 0;border-bottom:0.5px solid var(--border);">
-        <b>${p.name}</b><br>
-        残り${months}ヶ月 / 不足額${fmt(remaining)} / 月々${fmt(monthly)} ${match}
-        ${monthly !== stored ? `（保存値: ${fmt(stored)}）` : ""}
-      </div>`;
-    }).join("");
-  }
-
-  // 警告チェック
-  const warnPlans = plans.filter(p => {
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const pct    = p.amount > 0 ? (p.balance||0) / p.amount : 1;
-    return months <= 2 && pct < 0.8;
-  });
-  document.getElementById("debugAlert").innerHTML = warnPlans.length === 0
-    ? '<div style="color:var(--green);">✅ 警告なし</div>'
-    : warnPlans.map(p => `<div style="color:var(--red);">⚠️ ${p.name}（残り${calcRemainingMonths(p.targetYear,p.targetMonth)}ヶ月）</div>`).join("");
-
-  // RAWデータ
-  document.getElementById("debugRaw").textContent =
-    JSON.stringify(plans, null, 2);
-}
-
-function debugAddSample() {
-  const plans = loadSavingsPlans();
-  const now   = new Date();
-  const samples = [
-    { id: "s1", name:"車検費用",     cat:"car",     amount:100000, balance:60000, targetYear:now.getFullYear(),   targetMonth:now.getMonth()+3,  monthly:0 },
-    { id: "s2", name:"旅行費用",     cat:"travel",  amount:80000,  balance:20000, targetYear:now.getFullYear()+1, targetMonth:3,                 monthly:0 },
-    { id: "s3", name:"固定資産税",   cat:"tax",     amount:50000,  balance:10000, targetYear:now.getFullYear()+1, targetMonth:4,                 monthly:0 },
-  ];
-  samples.forEach(s => {
-    const m = s.targetMonth > 12 ? s.targetMonth - 12 : s.targetMonth;
-    const y = s.targetMonth > 12 ? s.targetYear + 1 : s.targetYear;
-    const { monthly } = calcMonthly(s.amount, s.balance, y, m);
-    s.monthly = monthly;
-    s.targetYear  = y;
-    s.targetMonth = m;
-    s.id = Date.now().toString() + Math.random();
-    if (!plans.find(p => p.name === s.name)) plans.push(s);
-  });
-  saveSavingsPlans(plans);
-  renderSavings();
-  updateDebugPanel();
-  showToast("サンプルデータを追加しました");
-}
-
-function debugClearAll() {
-  if (!confirm("全ての積立データを削除しますか？")) return;
-  localStorage.removeItem("savings_plans");
-  renderSavings();
-  updateDebugPanel();
-  showToast("全データを削除しました");
 }
 
 // ============================================================
@@ -1843,16 +1702,9 @@ function renderCashflow() {
   renderConfirmQueue();
 }
 
-// 固定費ページの描画（サイクル範囲表示＋一覧）
+// 固定費ページの描画
 function renderFixedCostsPage() {
   const cycle = ensureCycle();
-  const rangeEl = document.getElementById("fcCycleRange");
-  if (cycle.cycle_id) {
-    const [from, , to] = cycle.cycle_id.split("_");
-    rangeEl.textContent = `${from} 〜 ${cycle.next_income_date}`;
-  } else {
-    rangeEl.textContent = `〜 ${cycle.next_income_date}（未確定）`;
-  }
   renderFixedCostList(cycle);
 }
 
@@ -1966,6 +1818,7 @@ function saveFixedCostItem() {
   saveCycle(cycle);
   closeFixedCostForm();
   renderCashflow();
+  renderHome();
   showToast(amount === 0 ? `「${name}」を仮登録しました（金額は後で入力できます）` : `「${name}」を保存しました`);
 }
 
@@ -1975,64 +1828,8 @@ function deleteFixedCostItem(id) {
   cycle.fixed_costs = cycle.fixed_costs.filter(i => i.id !== id);
   saveCycle(cycle);
   renderCashflow();
+  renderHome();
   showToast("削除しました");
-}
-
-// 新しい期間（サイクル）を始める：既存の固定費を一括確認し、次回収入日を更新する
-// 固定費の一括確認＋次回収入日の更新を行う共通処理。
-// 更新後のcycleオブジェクトを返す（キャンセル時はnull）。
-function beginNewCycle() {
-  const cycle = ensureCycle();
-  if (cycle.fixed_costs.length) {
-    const lines = cycle.fixed_costs.map((item, i) =>
-      `${i + 1}. ${item.item}（現在: ${fmt(item.amount || 0)}${item.due_day ? ` / 毎月${item.due_day}日` : ""}）`
-    ).join("\n");
-    alert(`現在の固定費:\n${lines}\n\n続けて1件ずつ、今回の金額を確認します。`);
-  }
-
-  const nextDate = prompt("次回収入予定日を入力してください（YYYY-MM-DD）", cycle.next_income_date || "");
-  if (!nextDate) return null;
-
-  const updatedCosts = cycle.fixed_costs.map(item => {
-    const input = prompt(`「${item.item}」の今回の金額を入力してください（変更なければそのまま）`, item.amount || 0);
-    if (input === null) return item;
-    const amt = parseInt(input, 10) || 0;
-    let due = item.due_day;
-    if (item.source === "pending_registration" || due == null) {
-      const dueInput = prompt(`「${item.item}」の支払日（毎月何日か）を入力してください`, due || "");
-      due = dueInput ? parseInt(dueInput, 10) : null;
-    }
-    const unchanged = amt === item.amount && item.source !== "pending_registration";
-    return {
-      id: item.id,
-      item: item.item,
-      cat: item.cat,
-      amount: amt,
-      due_day: due,
-      source: unchanged ? "carried_over" : "updated",
-      previous_amount: item.amount
-    };
-  });
-
-  const today = new Date().toISOString().slice(0, 10);
-  const newCycle = {
-    cycle_id: `${today}_to_${nextDate}`,
-    created_by: "manual_button",
-    created_at: new Date().toISOString(),
-    next_income_date: nextDate,
-    fixed_costs: updatedCosts
-  };
-  saveCycle(newCycle);
-  return newCycle;
-}
-
-// 固定費ページからの「新しい期間を始める」
-function openCycleModal() {
-  const cycle = beginNewCycle();
-  if (!cycle) return;
-  renderCashflow();
-  renderFixedCostsPage();
-  showToast("新しい期間を開始しました");
 }
 
 // 誤操作防止：ボタンを1.2秒長押しした場合のみ startNewMonth() を実行する
@@ -2093,25 +1890,45 @@ function cancelHoldReceipt() {
   if (fill) fill.style.width = "0%";
 }
 
-// ホームタブからの「新しい月を始める」：
-// 固定費・積立の確認までは openCycleModal と同じ流れを使い、
-// 加えて「使えないお金」として固定費・積立分を予算取引として計上し、
-// 家計簿の残高が 0円－固定費合計－積立費 からスタートするようにする。
+// 新しい月度を開始する。
+// ・初回：まだ月度が無いので、収入入力→積立プラン登録→固定費項目登録の順に案内するだけ
+//   （このタイミングでは「月初確保」の支出計上は行わない。次回以降のための準備登録）。
+// ・2回目以降：前月の積立（今月分を加算した合計）・固定費（前月の項目・金額をそのまま）を
+//   「月初確保」の支出として自動的に計上した上で、月度を切り替える。
+let newMonthFlowStep = null; // null | "income" | "savings" | "fixedcosts"
+
 function startNewMonth() {
-  if (!confirm("新しい月を始めます。固定費・積立分を「使えないお金」として確保し、今月の残高を0円からスタートします。よろしいですか？")) return;
+  const periods = ensurePeriods();
+  const isFirstTime = periods.length === 0;
 
-  const cycle = beginNewCycle();
-  if (!cycle) return;
+  const confirmMsg = isFirstTime
+    ? "家計簿をこの日から開始します。まず収入（給与など）の入力から始めましょう。よろしいですか？"
+    : "新しい月度を開始します。まず収入（給与など）を入力してください。よろしいですか？";
+  if (!confirm(confirmMsg)) return;
 
-  const appliedFor = localStorage.getItem("kakeibo_cycle_budget_applied");
-  if (appliedFor === cycle.cycle_id) {
-    showToast("この期間はすでに開始済みです（固定費・積立の再計上はスキップしました）");
-  } else {
-    const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (!isFirstTime) {
     const txs = loadTx();
     let fixedTotal = 0, savingsTotal = 0;
 
-    // 固定費を予算取引として計上（実際の支払いではなく、月初時点の「確保」）
+    // 積立: 前月の各プランに今月分を加算し、「月初確保」の支出として記録する
+    const plans = loadSavingsPlans();
+    plans.forEach(p => {
+      if (p.monthly > 0) {
+        txs.push({
+          id: Date.now() + Math.random(), type: "expense", cat: "savings",
+          amount: p.monthly, memo: `${p.name}（積立・月初確保）`,
+          date: today, source: "cycle_savings"
+        });
+        p.balance = (p.balance || 0) + p.monthly;
+        savingsTotal += p.monthly;
+      }
+    });
+    saveSavingsPlans(plans);
+
+    // 固定費: 前月の項目・金額をそのまま引き継ぎ、「月初確保」の支出として記録する
+    const cycle = ensureCycle();
     cycle.fixed_costs.forEach(item => {
       if (item.amount > 0) {
         txs.push({
@@ -2123,31 +1940,32 @@ function startNewMonth() {
       }
     });
 
-    // 計画積立の今月分も同様に確保
-    loadSavingsPlans().forEach(p => {
-      if (p.monthly > 0) {
-        txs.push({
-          id: Date.now() + Math.random(), type: "expense", cat: "savings",
-          amount: p.monthly, memo: `${p.name}（積立・月初確保）`,
-          date: today, source: "cycle_savings"
-        });
-        savingsTotal += p.monthly;
-      }
-    });
-
     saveTx(txs);
-    localStorage.setItem("kakeibo_cycle_budget_applied", cycle.cycle_id);
-    showToast(`新しい月を開始しました（固定費 ${fmt(fixedTotal)} ／積立 ${fmt(savingsTotal)} を確保）`);
+    showToast(`固定費 ${fmt(fixedTotal)} ／積立 ${fmt(savingsTotal)} を今月度分として確保しました`);
   }
 
-  viewYear  = new Date().getFullYear();
-  viewMonth = new Date().getMonth();
+  // 新しい月度を開始し、表示もその月度に切り替える
+  viewPeriodIndex = startNewPeriod(today);
   renderHome();
 
-  if (confirm("続けて収入（給与など）を入力しますか？")) {
-    showPage("input");
-    setType("income");
-  }
+  // ①収入 → ②積立 → ③固定費 の順に案内する
+  newMonthFlowStep = "income";
+  showPage("input");
+  setType("income");
+  showToast("まず収入を入力してください");
+}
+
+// 積立タブから固定費タブへ（新しい月を開始フローの一部）
+function proceedFlowToFixedCosts() {
+  newMonthFlowStep = "fixedcosts";
+  showPage("fixedcosts");
+}
+
+// 固定費タブでの確認完了（新しい月を開始フローの終了）
+function finishNewMonthFlow() {
+  newMonthFlowStep = null;
+  showPage("home");
+  showToast("新しい月度の準備が完了しました");
 }
 
 // ---- お金の動きイベント（Shortcutsが書き出したinboxファイルの取り込み） ----
@@ -2324,8 +2142,7 @@ function receiveFromUrl() {
   saveTx(txs);
   adjustBalance(-amount);
 
-  viewYear  = new Date(date).getFullYear();
-  viewMonth = new Date(date).getMonth();
+  if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
 
   showToast(
     matched
@@ -2341,7 +2158,6 @@ function init() {
   // バージョン表示
   document.getElementById("versionText").textContent = APP_VERSION;
 
-  initSample();
   receiveFromUrl();
 
   const today = new Date().toISOString().slice(0,10);
