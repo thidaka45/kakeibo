@@ -373,17 +373,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
       <!-- 積立月額（逆算・読み取り専用） -->
       <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">積立月額（逆算）：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">積立月額（参考）：</span>
         <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 122px;font-size:16px;background:var(--surface);color:var(--text);">
       </div>
       <div id="savingsCalcDetail" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
     </div>
 
-    <!-- 自分で決める積立額（手動入力） -->
+    <!-- 積立月額（手動入力） -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--blue);pointer-events:none;z-index:1;">積立額（自分で決める）：</span>
-        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 168px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--blue);pointer-events:none;z-index:1;">積立月額：</span>
+        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
     </div>
 
@@ -392,6 +392,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
     </div>
+    <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
   </div>
 </div>
 </div>
@@ -625,7 +626,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.35"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.36"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1390,7 +1391,6 @@ function renderSavings() {
             <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
           </div>
         </div>
-        <button onclick="event.stopPropagation();deleteSavingsPlan('${p.id}')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 0 0 4px;flex-shrink:0;">×</button>
       </div>
     </div>`;
   }).join("");
@@ -1443,6 +1443,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
+      document.getElementById("savingsDeleteBtn").style.display = "block";
     }
   } else {
     selectedSavingsCat = SAVINGS_CATS[0].id;
@@ -1453,6 +1454,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsMonthlyManual").value = "";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
+    document.getElementById("savingsDeleteBtn").style.display = "none";
   }
 
   // 入力変化で逆算
@@ -1522,8 +1524,11 @@ function saveSavingsPlan() {
 }
 
 function deleteSavingsPlan(id) {
+  if (!id) return;
+  if (!confirm("この積立プランを削除しますか？")) return;
   const plans = loadSavingsPlans().filter(p => p.id !== id);
   saveSavingsPlans(plans);
+  closeSavingsForm();
   renderSavings();
   renderHome();
   showToast("削除しました");
