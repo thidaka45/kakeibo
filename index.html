@@ -361,9 +361,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
         <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
       </div>
-      <input class="field-input" id="savingsAmount" type="number" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
+      <input class="field-input" id="savingsAmount" type="text" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
 
-      <input class="field-input" id="savingsBalance" type="number" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;margin-top:6px;" inputmode="numeric">
+      <input class="field-input" id="savingsBalance" type="text" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;margin-top:6px;" inputmode="numeric" oninput="formatYenInput(this)">
 
       <!-- 逆算結果 -->
       <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-top:6px;display:none;">
@@ -681,7 +681,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.32"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.33"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -788,6 +788,18 @@ function updatePeriodNavButtons() {
 }
 
 function fmt(n) { return "¥" + n.toLocaleString("ja-JP"); }
+
+// 数値入力欄に¥マーク＋カンマ区切りをリアルタイム表示する（type=text用）
+function formatYenInput(el) {
+  const raw = el.value.replace(/[^\d]/g, "");
+  el.value = raw ? "¥" + parseInt(raw, 10).toLocaleString("ja-JP") : "";
+  if (typeof updateSavingsCalc === "function") updateSavingsCalc();
+}
+// 保存時などに¥・カンマを除いた純粋な数値を取り出す
+function parseYenInput(id) {
+  const raw = document.getElementById(id).value.replace(/[^\d]/g, "");
+  return raw ? parseInt(raw, 10) : 0;
+}
 
 // ============================================================
 // ホーム描画
@@ -1679,8 +1691,8 @@ function openSavingsForm(id) {
       selectedSavingsCat = p.cat;
       document.getElementById("savingsIcon").value    = p.cat;
       document.getElementById("savingsName").value    = p.name;
-      document.getElementById("savingsAmount").value  = p.amount;
-      document.getElementById("savingsBalance").value = p.balance || 0;
+      document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
+      document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
@@ -1705,8 +1717,8 @@ function openSavingsForm(id) {
 }
 
 function updateSavingsCalc() {
-  const amount  = parseInt(document.getElementById("savingsAmount").value  || 0);
-  const balance = parseInt(document.getElementById("savingsBalance").value || 0);
+  const amount  = parseYenInput("savingsAmount");
+  const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const calcEl  = document.getElementById("savingsCalc");
@@ -1735,8 +1747,8 @@ function closeSavingsForm() {
 function saveSavingsPlan() {
   const catId   = document.getElementById("savingsIcon").value;
   const name    = document.getElementById("savingsName").value.trim();
-  const amount  = parseInt(document.getElementById("savingsAmount").value || 0);
-  const balance = parseInt(document.getElementById("savingsBalance").value || 0);
+  const amount  = parseYenInput("savingsAmount");
+  const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
 
