@@ -609,7 +609,9 @@ const CATS_INCOME = [
   {id:"carryover",emoji:"🔄", label:"繰越"},
 ];
 
-// カテゴリ別の月予算（円）。金額はあくまで初期値なので、実情に合わせて調整してください。
+// 【非推奨・未使用】旧POC版で使っていた固定カテゴリ予算。
+// 現在、ホーム画面の予算総額は「その月度に入力された収入合計」で計算しており、この値は使用していない。
+// FIXED_LIKE_CATSのカテゴリキー一覧としての役割のみ残存。
 const BUDGET_CATS = {
   food:40000, dining:15000, daily:10000, transport:10000,
   comm:8000, housing:95000, medical:5000, social:27000, savings:18000, other:22000
@@ -618,15 +620,11 @@ const BUDGET_CATS = {
 // 資金繰り評価（日次の生活費ペース算出）で除外するカテゴリ。
 // 固定費（住居・通信）や貯蓄は「普段の生活費」ではなく別枠で管理するため対象外とする。
 const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
-const BUDGET = {
-  ...BUDGET_CATS,
-  total: Object.values(BUDGET_CATS).reduce((s,v)=>s+v, 0)
-};
 
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.40"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.43"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -732,7 +730,7 @@ function updatePeriodNavButtons() {
   document.querySelectorAll('.month-nav[data-dir="1"]').forEach(b  => { b.disabled = atLast;  b.style.opacity = atLast  ? .3 : 1; });
 }
 
-function fmt(n) { return "¥" + n.toLocaleString("ja-JP"); }
+function fmt(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "¥" + n.toLocaleString("ja-JP"); }
 
 // 数値入力欄に¥マーク＋カンマ区切りをリアルタイム表示する（type=text用）
 function formatYenInput(el) {
@@ -776,24 +774,38 @@ function renderHome() {
 
   const txs = periodTxs(viewPeriodIndex);
   const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
-  const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const expenseTx = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+
+  // 積立合計・固定合計（残高カード右側／支出・予算の両方に反映）
+  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.monthly||0),0);
+  const fixedTotal = ensureCycle().fixed_costs.reduce((s,i)=>s+(i.amount||0),0);
+  document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
+  document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
+
+  // 総支出＝取引の支出合計＋今月の積立合計＋今月の固定費合計
+  const expense = expenseTx + savingsTotal + fixedTotal;
   const balance = income - expense;
+
+  // 予算総額＝この月度に入力された収入の合計
+  const budgetTotal = income;
 
   document.getElementById("monthTitle").textContent = periodLabel(viewPeriodIndex);
   document.getElementById("balanceAmount").textContent = fmt(balance);
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
 
-  // 積立合計・固定合計（残高カード右側）
-  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.monthly||0),0);
-  const fixedTotal = ensureCycle().fixed_costs.reduce((s,i)=>s+(i.amount||0),0);
-  document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
-  document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
-
   // 予算バー
-  const pct = Math.min(Math.round(expense / BUDGET.total * 100), 100);
+  // 収入未入力（予算総額0）でも支出（積立・固定費など）が発生している場合は、
+  // 「予算オーバー」であることが一目で分かるよう100%超過として扱う
+  let pct;
+  if (budgetTotal > 0) {
+    pct = Math.round(expense / budgetTotal * 100);
+  } else {
+    pct = expense > 0 ? 999 : 0; // 収入0円で支出ありは大幅超過扱い
+  }
+  const barWidthPct = Math.min(pct, 100);
   const bar = document.getElementById("budgetBar");
-  bar.style.width = pct + "%";
+  bar.style.width = barWidthPct + "%";
 
   // 対象期間（開始日の翌月同日の前日まで）から理想消化率を計算する
   const { start } = periodRange(viewPeriodIndex);
@@ -804,14 +816,17 @@ function renderHome() {
   const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
   const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
   const idealPct = Math.round(elapsedDays / totalDays * 100);
-  const remaining = BUDGET.total - expense;
+  const remaining = budgetTotal - expense;
   const remainDays = isLatestPeriod ? Math.max(totalDays - elapsedDays, 0) : 0;
 
   // 消化ペース判定（実際の消化率 vs 理想消化率）
   const diff = pct - idealPct;
   let statusIcon, statusText, statusColor, barClass;
 
-  if (!isLatestPeriod) {
+  if (budgetTotal <= 0 && expense > 0) {
+    // 収入がまだ入力されておらず、積立・固定費などの支出だけが先行している状態
+    statusIcon="🚨"; statusText="収入が未入力です（支出が先行しています）"; statusColor="var(--red)"; barClass="bar-over";
+  } else if (!isLatestPeriod) {
     // 過去の月度
     if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
     else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
@@ -831,13 +846,16 @@ function renderHome() {
   bar.className = "bar-fill " + barClass;
   bar.style.background = statusColor;
 
-  document.getElementById("budgetLabel").textContent = `予算消化率  ${pct}%`;
-  document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(BUDGET.total)}`;
+  document.getElementById("budgetLabel").textContent =
+    budgetTotal <= 0 && expense > 0 ? `予算消化率  収入未入力` : `予算消化率  ${pct}%`;
+  document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(budgetTotal)}`;
   document.getElementById("budgetStatusIcon").textContent = statusIcon;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
   document.getElementById("budgetStatusSub").textContent  =
-    isLatestPeriod
+    budgetTotal <= 0 && expense > 0
+      ? `不足額 ¥${expense.toLocaleString()}（収入を入力すると解消されます）`
+      : isLatestPeriod
       ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
       : `(理想:${idealPct}% / 実績:${pct}%)`;
 
@@ -1247,8 +1265,8 @@ function exportExcel(range) {
     { "項目": "収入合計",   "金額": income },
     { "項目": "支出合計",   "金額": expense },
     { "項目": "収支",       "金額": income - expense },
-    { "項目": "予算",       "金額": BUDGET.total },
-    { "項目": "予算消化率", "金額": Math.round(expense / BUDGET.total * 100) + "%" },
+    { "項目": "予算（収入合計）", "金額": income },
+    { "項目": "予算消化率", "金額": income > 0 ? Math.round(expense / income * 100) + "%" : "-" },
   ];
 
   // Workbookを作成
