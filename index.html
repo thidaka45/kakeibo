@@ -345,15 +345,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeSavingsForm()" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 0 0 10px;">×</button>
     </div>
 
-    <!-- カテゴリ選択（非表示：項目名のプルダウンで兼用） -->
-    <div style="display:none;">
-      <div id="savingsCatGrid"></div>
-    </div>
-
-    <!-- 目的名（カテゴリから選択） -->
+    <!-- アイコン＋項目名 -->
     <div style="margin-bottom:8px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">項目名</div>
-      <select class="field-select" id="savingsName" style="width:100%;padding:8px 10px;font-size:16px;" onchange="onSavingsNameSelect()"></select>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
+      <div style="display:grid;grid-template-columns:84px 1fr;gap:6px;">
+        <select class="field-select" id="savingsIcon" style="padding:8px 4px;font-size:16px;text-align:center;" onchange="onSavingsIconSelect()"></select>
+        <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
+      </div>
     </div>
 
     <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
@@ -691,7 +689,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.29"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.30"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1676,18 +1674,9 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // カテゴリグリッド（非表示エリア内・値としては保持）
-  document.getElementById("savingsCatGrid").innerHTML = SAVINGS_CATS.map(c =>
-    `<button class="cat-btn ${c.id===selectedSavingsCat?"selected":""}"
-      onclick="selectSavingsCat('${c.id}')"
-      style="padding:5px 2px;border-radius:8px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;">
-      <span style="font-size:16px;">${c.emoji}</span>${c.label}
-    </button>`
-  ).join("");
-
-  // 項目名プルダウン（カテゴリ一覧から選択）
-  document.getElementById("savingsName").innerHTML = SAVINGS_CATS.map(c =>
-    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
+  // アイコン選択プルダウン
+  document.getElementById("savingsIcon").innerHTML = SAVINGS_CATS.map(c =>
+    `<option value="${c.id}">${c.emoji}</option>`
   ).join("");
 
   // 既存データ編集の場合
@@ -1696,7 +1685,8 @@ function openSavingsForm(id) {
     const p = plans.find(x => x.id === id);
     if (p) {
       selectedSavingsCat = p.cat;
-      document.getElementById("savingsName").value    = p.cat;
+      document.getElementById("savingsIcon").value    = p.cat;
+      document.getElementById("savingsName").value    = p.name;
       document.getElementById("savingsAmount").value  = p.amount;
       document.getElementById("savingsBalance").value = p.balance || 0;
       document.getElementById("savingsYear").value    = p.targetYear;
@@ -1707,7 +1697,8 @@ function openSavingsForm(id) {
     }
   } else {
     selectedSavingsCat = SAVINGS_CATS[0].id;
-    document.getElementById("savingsName").value    = SAVINGS_CATS[0].id;
+    document.getElementById("savingsIcon").value    = SAVINGS_CATS[0].id;
+    document.getElementById("savingsName").value    = "";
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
     document.getElementById("savingsMonthlyManual").value = "";
@@ -1749,14 +1740,8 @@ function updateSavingsCalc() {
   }
 }
 
-function selectSavingsCat(id) {
-  selectedSavingsCat = id;
-  document.querySelectorAll("#savingsCatGrid .cat-btn").forEach(b => b.classList.remove("selected"));
-  event.target.closest("button").classList.add("selected");
-}
-
-function onSavingsNameSelect() {
-  selectedSavingsCat = document.getElementById("savingsName").value;
+function onSavingsIconSelect() {
+  selectedSavingsCat = document.getElementById("savingsIcon").value;
 }
 
 function closeSavingsForm() {
@@ -1766,15 +1751,15 @@ function closeSavingsForm() {
 }
 
 function saveSavingsPlan() {
-  const catId   = document.getElementById("savingsName").value;
-  const catObj  = SAVINGS_CATS.find(c => c.id === catId) || SAVINGS_CATS[0];
-  const name    = catObj.label;
+  const catId   = document.getElementById("savingsIcon").value;
+  const name    = document.getElementById("savingsName").value.trim();
   const amount  = parseInt(document.getElementById("savingsAmount").value || 0);
   const balance = parseInt(document.getElementById("savingsBalance").value || 0);
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const manualInput = document.getElementById("savingsMonthlyManual").value;
 
+  if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
   const { monthly: autoMonthly } = calcMonthly(amount, balance, year, month);
