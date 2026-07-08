@@ -626,7 +626,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.36"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.37"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1387,7 +1387,7 @@ function renderSavings() {
             <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            <span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:44px;">${status}</span>
+            <span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:88px;">${status}・残<span style="display:inline-block;width:16px;text-align:right;">${months}</span>ヶ月</span>
             <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
           </div>
         </div>
