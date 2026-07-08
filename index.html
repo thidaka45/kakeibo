@@ -362,7 +362,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
       </div>
       <input class="field-input" id="savingsAmount" type="number" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
-      <div id="savingsAmountPreview" style="font-size:12px;color:var(--green-d);margin-top:3px;min-height:16px;"></div>
 
       <input class="field-input" id="savingsBalance" type="number" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;margin-top:6px;" inputmode="numeric">
 
@@ -372,13 +371,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <div style="font-size:20px;font-weight:700;color:var(--green-d);" id="savingsCalcAmt">¥0</div>
         <div style="font-size:11px;color:var(--green-d);margin-top:2px;" id="savingsCalcDetail"></div>
       </div>
-    </div>
-
-    <!-- 実際に積み立てる月々額（手動入力） -->
-    <div style="margin-bottom:10px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">実際に積み立てる月々額（上記を参考にご自身で設定）</div>
-      <input class="field-input" id="savingsMonthlyManual" type="number" placeholder="月々の積立額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
-      <div id="savingsMonthlyManualPreview" style="font-size:12px;color:var(--green-d);margin-top:3px;min-height:16px;"></div>
     </div>
 
     <!-- ボタン -->
@@ -689,7 +681,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.31"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.32"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1691,7 +1683,6 @@ function openSavingsForm(id) {
       document.getElementById("savingsBalance").value = p.balance || 0;
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
-      document.getElementById("savingsMonthlyManual").value = p.monthly || "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
     }
@@ -1701,13 +1692,12 @@ function openSavingsForm(id) {
     document.getElementById("savingsName").value    = "";
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
-    document.getElementById("savingsMonthlyManual").value = "";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
   }
 
-  // 入力変化で逆算・¥プレビュー更新
-  ["savingsAmount","savingsBalance","savingsYear","savingsMonth","savingsMonthlyManual"].forEach(fid => {
+  // 入力変化で逆算
+  ["savingsAmount","savingsBalance","savingsYear","savingsMonth"].forEach(fid => {
     document.getElementById(fid).addEventListener("input", updateSavingsCalc);
     document.getElementById(fid).addEventListener("change", updateSavingsCalc);
   });
@@ -1717,14 +1707,9 @@ function openSavingsForm(id) {
 function updateSavingsCalc() {
   const amount  = parseInt(document.getElementById("savingsAmount").value  || 0);
   const balance = parseInt(document.getElementById("savingsBalance").value || 0);
-  const manual  = document.getElementById("savingsMonthlyManual").value;
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const calcEl  = document.getElementById("savingsCalc");
-
-  // ¥マーク付きプレビュー
-  document.getElementById("savingsAmountPreview").textContent  = amount  > 0 ? fmt(amount)  : "";
-  document.getElementById("savingsMonthlyManualPreview").textContent = manual ? fmt(parseInt(manual || 0)) : "";
 
   if (amount > 0 && year && month) {
     const { monthly, months, remaining } = calcMonthly(amount, balance, year, month);
@@ -1732,11 +1717,8 @@ function updateSavingsCalc() {
     document.getElementById("savingsCalcAmt").textContent = fmt(monthly);
     document.getElementById("savingsCalcDetail").textContent =
       `残り${months}ヶ月 / 不足額${fmt(remaining)}`;
-    // 手動欄が未入力なら自動逆算値をプレースホルダーとして提案
-    document.getElementById("savingsMonthlyManual").placeholder = `目安：${fmt(monthly)}`;
   } else {
     calcEl.style.display = "none";
-    document.getElementById("savingsMonthlyManual").placeholder = "月々の積立額（円）";
   }
 }
 
@@ -1757,13 +1739,11 @@ function saveSavingsPlan() {
   const balance = parseInt(document.getElementById("savingsBalance").value || 0);
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
-  const manualInput = document.getElementById("savingsMonthlyManual").value;
 
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
-  const { monthly: autoMonthly } = calcMonthly(amount, balance, year, month);
-  const monthly = manualInput !== "" ? parseInt(manualInput || 0) : autoMonthly;
+  const { monthly } = calcMonthly(amount, balance, year, month);
   const plans = loadSavingsPlans();
 
   if (editingSavingsId) {
