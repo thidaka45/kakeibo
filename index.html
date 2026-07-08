@@ -328,7 +328,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
       <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">積立プラン</span>
-      <span id="savingsWarnNote" style="font-size:11px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+      <span id="savingsWarnNote" style="font-size:11px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
     </div>
     <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
@@ -626,7 +626,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.39"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.40"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1361,7 +1361,7 @@ function renderSavings() {
     let status, statusColor, barColor, bgColor, order;
     if (isAchieved)      { status = "達成"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
     else if (onTrack)    { status = "順調"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
-    else                 { status = "注意"; statusColor = "var(--amber)"; barColor = "var(--amber)"; bgColor = "var(--amber-l)"; order = 0; }
+    else                 { status = "注意"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
     return { p, pct, months, status, statusColor, barColor, bgColor, order };
   });
 
