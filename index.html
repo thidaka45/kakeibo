@@ -357,29 +357,24 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
     </div>
 
-    <!-- 目標金額枠：年月＋金額 -->
-    <div style="margin-bottom:4px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">目標年月・目標金額</div>
+    <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">目標年月・目標金額・月額（自動計算）</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
         <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
         <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
       </div>
       <input class="field-input" id="savingsAmount" type="number" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
       <div id="savingsAmountPreview" style="font-size:12px;color:var(--green-d);margin-top:3px;min-height:16px;"></div>
-    </div>
 
-    <!-- 保有金額 -->
-    <div style="margin-bottom:10px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">保有金額</div>
-      <input class="field-input" id="savingsBalance" type="number" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
-      <div id="savingsBalancePreview" style="font-size:12px;color:var(--green-d);margin-top:3px;min-height:16px;"></div>
-    </div>
+      <input class="field-input" id="savingsBalance" type="number" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;margin-top:6px;" inputmode="numeric">
 
-    <!-- 逆算結果 -->
-    <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:none;">
-      <div style="font-size:11px;color:var(--green-d);margin-bottom:2px;">目標達成に必要な月々の積立額（自動逆算）</div>
-      <div style="font-size:20px;font-weight:700;color:var(--green-d);" id="savingsCalcAmt">¥0</div>
-      <div style="font-size:11px;color:var(--green-d);margin-top:2px;" id="savingsCalcDetail"></div>
+      <!-- 逆算結果 -->
+      <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-top:6px;display:none;">
+        <div style="font-size:11px;color:var(--green-d);margin-bottom:2px;">目標達成に必要な月々の積立額（自動逆算）</div>
+        <div style="font-size:20px;font-weight:700;color:var(--green-d);" id="savingsCalcAmt">¥0</div>
+        <div style="font-size:11px;color:var(--green-d);margin-top:2px;" id="savingsCalcDetail"></div>
+      </div>
     </div>
 
     <!-- 実際に積み立てる月々額（手動入力） -->
@@ -697,7 +692,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.27"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.28"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1733,7 +1728,6 @@ function updateSavingsCalc() {
 
   // ¥マーク付きプレビュー
   document.getElementById("savingsAmountPreview").textContent  = amount  > 0 ? fmt(amount)  : "";
-  document.getElementById("savingsBalancePreview").textContent = balance > 0 ? fmt(balance) : "";
   document.getElementById("savingsMonthlyManualPreview").textContent = manual ? fmt(parseInt(manual || 0)) : "";
 
   if (amount > 0 && year && month) {
