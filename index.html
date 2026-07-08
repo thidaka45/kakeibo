@@ -371,11 +371,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
-      <!-- 逆算結果 -->
-      <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-top:6px;display:none;">
-        <div style="font-size:11px;color:var(--green-d);margin-bottom:2px;">目標達成に必要な月々の積立額（自動逆算）</div>
-        <div style="font-size:20px;font-weight:700;color:var(--green-d);" id="savingsCalcAmt">¥0</div>
-        <div style="font-size:11px;color:var(--green-d);margin-top:2px;" id="savingsCalcDetail"></div>
+      <!-- 積立月額（逆算・読み取り専用） -->
+      <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">積立月額（逆算）：</span>
+        <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 122px;font-size:16px;background:var(--surface);color:var(--text);">
+      </div>
+      <div id="savingsCalcDetail" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
+    </div>
+
+    <!-- 自分で決める積立額（手動入力） -->
+    <div style="margin-bottom:10px;">
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--blue);pointer-events:none;z-index:1;">積立額（自分で決める）：</span>
+        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 168px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
     </div>
 
@@ -383,76 +391,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
-    </div>
-  </div>
-  <!-- デバッグパネル -->
-  <div style="margin-top:12px;">
-    <button onclick="toggleDebug()" style="width:100%;padding:8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;">
-      🔧 デバッグパネル
-    </button>
-    <div id="debugPanel" style="display:none;background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:12px;margin-top:6px;font-size:11px;color:var(--sub);">
-      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;">積立データ診断</div>
-
-      <!-- ストレージ確認 -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">💾 ストレージ状態</div>
-        <div id="debugStorage"></div>
-      </div>
-
-      <!-- 計算確認 -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">🧮 計算チェック</div>
-        <div id="debugCalc"></div>
-      </div>
-
-      <!-- 警告チェック -->
-      <div style="margin-bottom:8px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">⚠️ 警告チェック</div>
-        <div id="debugAlert"></div>
-      </div>
-
-      <!-- 操作ボタン -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
-        <button onclick="debugAddSample()" style="padding:7px;border-radius:6px;border:0.5px solid var(--border);background:transparent;font-size:11px;cursor:pointer;font-family:inherit;color:var(--sub);">サンプルデータ追加</button>
-        <button onclick="debugClearAll()" style="padding:7px;border-radius:6px;border:0.5px solid var(--red);background:var(--red-l);font-size:11px;cursor:pointer;font-family:inherit;color:var(--red);">全データ削除</button>
-      </div>
-
-      <!-- RAWデータ -->
-      <div style="margin-top:10px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:4px;">📄 RAWデータ</div>
-        <pre id="debugRaw" style="font-size:10px;color:var(--muted);white-space:pre-wrap;word-break:break-all;background:var(--bg);border-radius:6px;padding:8px;max-height:150px;overflow-y:auto;font-family:monospace;"></pre>
-      </div>
-
-      <!-- 旧方式レシート読み取り（直接Gemini API呼び出し。日髙個人の無料枠を消費するためデバッグ用途限定） -->
-      <div style="margin-top:14px;border-top:0.5px solid var(--border);padding-top:10px;">
-        <div style="color:var(--text);font-weight:600;margin-bottom:6px;">🧾 旧方式レシート読み取り（デバッグ用）</div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-          通常のレシート記録はホーム画面の「📷 レシートを記録」（Shortcuts経由）をご利用ください。
-          こちらは開発時の動作確認用で、日髙個人のAPI無料枠を直接消費します。
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-          <label class="receipt-upload" for="receiptCamera" style="padding:8px 6px;">
-            <div class="receipt-icon" style="font-size:20px;margin-bottom:2px;">📷</div>
-            <div class="receipt-upload-text" style="font-size:11px;">カメラで撮影</div>
-          </label>
-          <input type="file" id="receiptCamera" accept="image/*" capture="environment" onchange="handleReceiptCamera(this)">
-
-          <label class="receipt-upload" for="receiptGallery" style="padding:8px 6px;">
-            <div class="receipt-icon" style="font-size:20px;margin-bottom:2px;">🖼️</div>
-            <div class="receipt-upload-text" style="font-size:11px;">画像を選択</div>
-          </label>
-          <input type="file" id="receiptGallery" accept="image/*" onchange="handleReceipt(this)">
-        </div>
-
-        <div class="ocr-loading" id="ocrLoading">🤖 AIが画像を読み取り中...</div>
-
-        <div class="ocr-result" id="ocrResult">
-          <div class="ocr-title">読み取り結果</div>
-          <div class="ocr-items" id="ocrItems"></div>
-          <div class="ocr-total" id="ocrTotal"></div>
-          <button class="ocr-btn" onclick="registerFromOcr()">この内容で支出を記録</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -687,7 +625,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.34"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.35"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1190,205 +1128,6 @@ function renderCatSummary(idx) {
 }
 
 // ============================================================
-// レシートOCR（Gemini Flash API・完全無料）
-// ============================================================
-// 【設定済み】
-// APIキー: thidaka45@gmail.com のGemini APIキー
-// 許可URL: https://thidaka45.github.io/kakeibo/ のみ
-const GEMINI_API_KEY = "AIzaSy_PASTE_YOUR_KEY_HERE"; // ← iPhoneでコピーしたキーに書き換えてください
-
-// 許可URL（このサイト以外からの利用を防止）
-const ALLOWED_ORIGIN = "https://thidaka45.github.io";
-
-// 1日の撮影上限（無料枠保護・悪用防止）
-const DAILY_OCR_LIMIT = 10;
-
-function checkOcrLimit() {
-  const today = new Date().toISOString().slice(0, 10);
-  const key   = `ocr_count_${today}`;
-  const count = parseInt(localStorage.getItem(key) || "0");
-  if (count >= DAILY_OCR_LIMIT) return false;
-  localStorage.setItem(key, count + 1);
-  return true;
-}
-
-function getOcrCount() {
-  const today = new Date().toISOString().slice(0, 10);
-  return parseInt(localStorage.getItem(`ocr_count_${today}`) || "0");
-}
-
-let ocrData = null;
-
-// カメラ撮影専用（JPEG変換してから処理）
-async function handleReceiptCamera(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // Canvasを使ってJPEG形式に変換
-  const img = new Image();
-  const url = URL.createObjectURL(file);
-  img.onload = async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width  = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    URL.revokeObjectURL(url);
-
-    // JPEG形式のBlobに変換
-    canvas.toBlob(async blob => {
-      const convertedFile = new File([blob], "receipt.jpg", { type: "image/jpeg" });
-      const fakeInput = { files: [convertedFile] };
-      await handleReceipt(fakeInput);
-    }, "image/jpeg", 0.9);
-  };
-  img.src = url;
-}
-
-async function handleReceipt(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  // 許可URLチェック
-  if (!window.location.origin.startsWith(ALLOWED_ORIGIN)) {
-    showToast("このサイトからのみご利用いただけます");
-    return;
-  }
-
-  // 1日の上限チェック
-  if (!checkOcrLimit()) {
-    showToast(`本日の読み取り上限（${DAILY_OCR_LIMIT}枚）に達しました`);
-    input.value = "";
-    return;
-  }
-
-  document.getElementById("ocrLoading").classList.add("show");
-  document.getElementById("ocrLoading").textContent =
-    `🤖 AIがレシートを読み取り中... (本日${getOcrCount()}/${DAILY_OCR_LIMIT}枚)`;
-  document.getElementById("ocrResult").classList.remove("show");
-
-  try {
-    const base64 = await fileToBase64(file);
-
-    // Gemini Flash API呼び出し
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                inline_data: {
-                  mime_type: file.type,
-                  data: base64
-                }
-              },
-              {
-                text: `この画像（紙のレシート・電子決済スクショ・クレカ明細・PayPay・楽天Pay・Apple Pay・メール明細など）を読み取り、以下のJSON形式のみで返してください。説明文不要。
-{
-  "store": "店名またはサービス名",
-  "date": "YYYY-MM-DD",
-  "items": [{"name": "品名またはカテゴリ", "price": 金額(数値)}],
-  "total": 合計金額(数値)
-}
-ルール:
-- 日付が読み取れない場合は今日の日付を使用
-- 金額は税込み合計を使用
-- 電子決済の場合は決済金額をtotalに設定
-- 品目が不明な場合は「お買い物」など一般的な名称を使用
-- PayPayなどQR決済は決済先の店名をstoreに設定`
-              }
-            ]
-          }],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 500
-          }
-        })
-      }
-    );
-
-    const data  = await res.json();
-
-    // APIエラーチェック
-    if (data.error) {
-      throw new Error(`API Error ${data.error.code}: ${data.error.message}`);
-    }
-
-    const text  = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!text) throw new Error("AIからの応答が空です: " + JSON.stringify(data).slice(0,100));
-
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("JSON形式ではありません: " + text.slice(0,100));
-    ocrData = JSON.parse(match[0]);
-    showOcrResult(ocrData);
-
-  } catch(e) {
-    // エラー内容を画面に表示してデバッグしやすくする
-    console.warn("Gemini API error:", e.message);
-
-    // エラー内容をそのままトーストで表示（デバッグ用）
-    const errMsg = e.message.slice(0, 80);
-    showToast(errMsg);
-    console.error("OCR Error:", e.message);
-
-    // デモデータを表示
-    ocrData = {
-      store: "⚠️ デモデータ（" + e.message.slice(0,20) + "）",
-      date:  new Date().toISOString().slice(0, 10),
-      items: [
-        { name: "牛乳",      price: 198 },
-        { name: "食パン",    price: 168 },
-        { name: "卵（10個）",price: 238 },
-        { name: "きゅうり", price:  98 },
-      ],
-      total: 702
-    };
-    showOcrResult(ocrData);
-  } finally {
-    document.getElementById("ocrLoading").classList.remove("show");
-    input.value = "";
-  }
-}
-
-function showOcrResult(d) {
-  document.getElementById("ocrItems").innerHTML =
-    d.items.map(i => `<div class="ocr-item"><span>${i.name}</span><span>${fmt(i.price)}</span></div>`).join("");
-  document.getElementById("ocrTotal").innerHTML =
-    `<span>合計（${d.store}）</span><span>${fmt(d.total)}</span>`;
-  document.getElementById("ocrResult").classList.add("show");
-}
-
-function registerFromOcr() {
-  if (!ocrData) return;
-  const txs = loadTx();
-  txs.push({
-    id: Date.now(),
-    type: "expense",
-    cat: "food",
-    amount: ocrData.total,
-    memo: ocrData.store,
-    date: ocrData.date || new Date().toISOString().slice(0,10),
-  });
-  saveTx(txs);
-  adjustBalance(-ocrData.total);
-  document.getElementById("ocrResult").classList.remove("show");
-  showToast("レシートを記録しました");
-  renderHome();
-}
-
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(",")[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-// ============================================================
 // ページ切替
 // ============================================================
 function showPage(name) {
@@ -1701,6 +1440,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
+      document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
     }
@@ -1710,6 +1450,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsName").value    = "";
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
+    document.getElementById("savingsMonthlyManual").value = "";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
   }
@@ -1727,16 +1468,16 @@ function updateSavingsCalc() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
-  const calcEl  = document.getElementById("savingsCalc");
+  const displayEl = document.getElementById("savingsCalcDisplay");
+  const detailEl  = document.getElementById("savingsCalcDetail");
 
   if (amount > 0 && year && month) {
     const { monthly, months, remaining } = calcMonthly(amount, balance, year, month);
-    calcEl.style.display = "block";
-    document.getElementById("savingsCalcAmt").textContent = fmt(monthly);
-    document.getElementById("savingsCalcDetail").textContent =
-      `残り${months}ヶ月 / 不足額${fmt(remaining)}`;
+    displayEl.value = fmt(monthly);
+    detailEl.textContent = `残り${months}ヶ月 / 不足額${fmt(remaining)}`;
   } else {
-    calcEl.style.display = "none";
+    displayEl.value = "";
+    detailEl.textContent = "";
   }
 }
 
@@ -1757,11 +1498,13 @@ function saveSavingsPlan() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
+  const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
 
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
-  const { monthly } = calcMonthly(amount, balance, year, month);
+  const { monthly: autoMonthly } = calcMonthly(amount, balance, year, month);
+  const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
   const plans = loadSavingsPlans();
 
   if (editingSavingsId) {
@@ -1784,97 +1527,6 @@ function deleteSavingsPlan(id) {
   renderSavings();
   renderHome();
   showToast("削除しました");
-}
-
-// ============================================================
-// 積立デバッグ機能
-// ============================================================
-function toggleDebug() {
-  const panel = document.getElementById("debugPanel");
-  const isOpen = panel.style.display !== "none";
-  panel.style.display = isOpen ? "none" : "block";
-  if (!isOpen) updateDebugPanel();
-}
-
-function updateDebugPanel() {
-  const plans = loadSavingsPlans();
-  const now   = new Date();
-
-  // ストレージ状態
-  const rawData = localStorage.getItem("savings_plans") || "[]";
-  const byteSize = new Blob([rawData]).size;
-  document.getElementById("debugStorage").innerHTML = [
-    `件数: <b>${plans.length}件</b>`,
-    `データサイズ: <b>${byteSize} bytes</b>`,
-    `localStorage使用量: <b>${JSON.stringify(localStorage).length} bytes</b>`,
-    `最終更新: <b>${now.toLocaleString("ja-JP")}</b>`,
-  ].map(s => `<div style="padding:2px 0;">${s}</div>`).join("");
-
-  // 計算チェック
-  if (plans.length === 0) {
-    document.getElementById("debugCalc").innerHTML = '<div style="color:var(--muted);">プランなし</div>';
-  } else {
-    document.getElementById("debugCalc").innerHTML = plans.map(p => {
-      const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
-      const remaining = Math.max((p.amount||0) - (p.balance||0), 0);
-      const monthly = Math.ceil(remaining / months);
-      const stored  = p.monthly || 0;
-      const match   = monthly === stored ? "✅" : "⚠️ 不一致";
-      return `<div style="padding:3px 0;border-bottom:0.5px solid var(--border);">
-        <b>${p.name}</b><br>
-        残り${months}ヶ月 / 不足額${fmt(remaining)} / 月々${fmt(monthly)} ${match}
-        ${monthly !== stored ? `（保存値: ${fmt(stored)}）` : ""}
-      </div>`;
-    }).join("");
-  }
-
-  // 警告チェック
-  const warnPlans = plans.filter(p => {
-    const months = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const pct    = p.amount > 0 ? (p.balance||0) / p.amount : 1;
-    return months <= 2 && pct < 0.8;
-  });
-  document.getElementById("debugAlert").innerHTML = warnPlans.length === 0
-    ? '<div style="color:var(--green);">✅ 警告なし</div>'
-    : warnPlans.map(p => `<div style="color:var(--red);">⚠️ ${p.name}（残り${calcRemainingMonths(p.targetYear,p.targetMonth)}ヶ月）</div>`).join("");
-
-  // RAWデータ
-  document.getElementById("debugRaw").textContent =
-    JSON.stringify(plans, null, 2);
-}
-
-function debugAddSample() {
-  const plans = loadSavingsPlans();
-  const now   = new Date();
-  const samples = [
-    { id: "s1", name:"車検費用",     cat:"car",     amount:100000, balance:60000, targetYear:now.getFullYear(),   targetMonth:now.getMonth()+3,  monthly:0 },
-    { id: "s2", name:"旅行費用",     cat:"travel",  amount:80000,  balance:20000, targetYear:now.getFullYear()+1, targetMonth:3,                 monthly:0 },
-    { id: "s3", name:"固定資産税",   cat:"tax",     amount:50000,  balance:10000, targetYear:now.getFullYear()+1, targetMonth:4,                 monthly:0 },
-  ];
-  samples.forEach(s => {
-    const m = s.targetMonth > 12 ? s.targetMonth - 12 : s.targetMonth;
-    const y = s.targetMonth > 12 ? s.targetYear + 1 : s.targetYear;
-    const { monthly } = calcMonthly(s.amount, s.balance, y, m);
-    s.monthly = monthly;
-    s.targetYear  = y;
-    s.targetMonth = m;
-    s.id = Date.now().toString() + Math.random();
-    if (!plans.find(p => p.name === s.name)) plans.push(s);
-  });
-  saveSavingsPlans(plans);
-  renderSavings();
-  renderHome();
-  updateDebugPanel();
-  showToast("サンプルデータを追加しました");
-}
-
-function debugClearAll() {
-  if (!confirm("全ての積立データを削除しますか？")) return;
-  localStorage.removeItem("savings_plans");
-  renderSavings();
-  renderHome();
-  updateDebugPanel();
-  showToast("全データを削除しました");
 }
 
 // ============================================================
