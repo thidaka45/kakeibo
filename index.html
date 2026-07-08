@@ -361,9 +361,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
         <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
       </div>
-      <input class="field-input" id="savingsAmount" type="text" placeholder="必要金額（円）" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
+        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
 
-      <input class="field-input" id="savingsBalance" type="text" placeholder="現在の積立残高（円・任意）" style="width:100%;padding:8px 10px;font-size:16px;margin-top:6px;" inputmode="numeric" oninput="formatYenInput(this)">
+      <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
+        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
 
       <!-- 逆算結果 -->
       <div id="savingsCalc" style="background:var(--green-l);border-radius:8px;padding:10px 12px;margin-top:6px;display:none;">
@@ -681,7 +687,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.33"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.34"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
