@@ -345,16 +345,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeSavingsForm()" style="background:none;border:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 0 0 10px;">×</button>
     </div>
 
-    <!-- カテゴリ選択 -->
-    <div style="margin-bottom:10px;">
-      <div style="font-size:12px;color:var(--sub);margin-bottom:6px;">カテゴリ</div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;" id="savingsCatGrid"></div>
+    <!-- カテゴリ選択（非表示：項目名のプルダウンで兼用） -->
+    <div style="display:none;">
+      <div id="savingsCatGrid"></div>
     </div>
 
-    <!-- 目的名 -->
+    <!-- 目的名（カテゴリから選択） -->
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">項目名</div>
-      <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
+      <select class="field-select" id="savingsName" style="width:100%;padding:8px 10px;font-size:16px;" onchange="onSavingsNameSelect()"></select>
     </div>
 
     <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
@@ -692,7 +691,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.28"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.29"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1677,7 +1676,7 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // カテゴリグリッド
+  // カテゴリグリッド（非表示エリア内・値としては保持）
   document.getElementById("savingsCatGrid").innerHTML = SAVINGS_CATS.map(c =>
     `<button class="cat-btn ${c.id===selectedSavingsCat?"selected":""}"
       onclick="selectSavingsCat('${c.id}')"
@@ -1686,23 +1685,29 @@ function openSavingsForm(id) {
     </button>`
   ).join("");
 
+  // 項目名プルダウン（カテゴリ一覧から選択）
+  document.getElementById("savingsName").innerHTML = SAVINGS_CATS.map(c =>
+    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
+  ).join("");
+
   // 既存データ編集の場合
   if (id) {
     const plans = loadSavingsPlans();
     const p = plans.find(x => x.id === id);
     if (p) {
-      document.getElementById("savingsName").value    = p.name;
+      selectedSavingsCat = p.cat;
+      document.getElementById("savingsName").value    = p.cat;
       document.getElementById("savingsAmount").value  = p.amount;
       document.getElementById("savingsBalance").value = p.balance || 0;
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
       document.getElementById("savingsMonthlyManual").value = p.monthly || "";
-      selectedSavingsCat = p.cat;
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
     }
   } else {
-    document.getElementById("savingsName").value    = "";
+    selectedSavingsCat = SAVINGS_CATS[0].id;
+    document.getElementById("savingsName").value    = SAVINGS_CATS[0].id;
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
     document.getElementById("savingsMonthlyManual").value = "";
@@ -1750,6 +1755,10 @@ function selectSavingsCat(id) {
   event.target.closest("button").classList.add("selected");
 }
 
+function onSavingsNameSelect() {
+  selectedSavingsCat = document.getElementById("savingsName").value;
+}
+
 function closeSavingsForm() {
   document.getElementById("savingsForm").style.display = "none";
   document.getElementById("savingsList").style.display = "block";
@@ -1757,14 +1766,15 @@ function closeSavingsForm() {
 }
 
 function saveSavingsPlan() {
-  const name    = document.getElementById("savingsName").value.trim();
+  const catId   = document.getElementById("savingsName").value;
+  const catObj  = SAVINGS_CATS.find(c => c.id === catId) || SAVINGS_CATS[0];
+  const name    = catObj.label;
   const amount  = parseInt(document.getElementById("savingsAmount").value || 0);
   const balance = parseInt(document.getElementById("savingsBalance").value || 0);
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const manualInput = document.getElementById("savingsMonthlyManual").value;
 
-  if (!name)   { showToast("目的名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
   const { monthly: autoMonthly } = calcMonthly(amount, balance, year, month);
@@ -1773,9 +1783,9 @@ function saveSavingsPlan() {
 
   if (editingSavingsId) {
     const idx = plans.findIndex(p => p.id === editingSavingsId);
-    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cat:selectedSavingsCat, monthly };
+    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly };
   } else {
-    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cat:selectedSavingsCat, monthly });
+    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly });
   }
 
   saveSavingsPlans(plans);
