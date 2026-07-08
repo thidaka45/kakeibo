@@ -626,7 +626,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.38"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.39"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1505,8 +1505,21 @@ function saveSavingsPlan() {
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
 
-  const { monthly: autoMonthly } = calcMonthly(amount, balance, year, month);
+  const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month);
   const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
+
+  // この月々積立額のペースを続けた場合、期限までに目標金額へ到達できるか確認
+  const projected = balance + monthly * months;
+  if (amount > 0 && projected < amount) {
+    const shortage = amount - projected;
+    const ok = confirm(
+      `この積立月額（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
+      `不足見込み額：${fmt(shortage)}\n\n` +
+      `このまま保存してよろしいですか？`
+    );
+    if (!ok) return;
+  }
+
   const plans = loadSavingsPlans();
 
   if (editingSavingsId) {
