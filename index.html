@@ -348,8 +348,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン＋項目名 -->
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
-      <div style="display:grid;grid-template-columns:84px 1fr;gap:6px;">
-        <select class="field-select" id="savingsIcon" style="padding:8px 4px;font-size:16px;text-align:center;" onchange="onSavingsIconSelect()"></select>
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:6px;">
+        <select class="field-select" id="savingsIcon" style="padding:8px 6px;font-size:14px;" onchange="onSavingsIconSelect()"></select>
         <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
       </div>
     </div>
@@ -689,7 +689,7 @@ const BUDGET = {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.30"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.31"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1676,7 +1676,7 @@ function openSavingsForm(id) {
 
   // アイコン選択プルダウン
   document.getElementById("savingsIcon").innerHTML = SAVINGS_CATS.map(c =>
-    `<option value="${c.id}">${c.emoji}</option>`
+    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
   ).join("");
 
   // 既存データ編集の場合
