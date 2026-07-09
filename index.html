@@ -204,14 +204,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card">
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
-      <span class="budget-nums" id="budgetNums"></span>
+      <span style="display:flex;align-items:center;gap:4px;">
+        <span id="budgetStatusIcon" style="font-size:14px;"></span>
+        <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
+      </span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況 -->
-    <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-      <span id="budgetStatusIcon" style="font-size:16px;"></span>
-      <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
-      <span id="budgetStatusSub" style="font-size:11px;color:var(--sub);margin-left:auto;"></span>
+    <div id="budgetStatus" style="display:flex;align-items:center;margin-top:6px;">
+      <span id="budgetStatusSub" style="font-size:11px;color:var(--sub);"></span>
     </div>
   </div>
 
@@ -622,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.52"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.53"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -758,7 +759,6 @@ function renderHome() {
     document.getElementById("homeFixedTotal").textContent   = fmt(0);
     document.getElementById("budgetBar").style.width = "0%";
     document.getElementById("budgetLabel").textContent = "予算消化率  0%";
-    document.getElementById("budgetNums").textContent  = "";
     document.getElementById("budgetStatusIcon").textContent = "";
     document.getElementById("budgetStatusText").textContent = "";
     document.getElementById("budgetStatusSub").textContent  = "";
@@ -847,9 +847,11 @@ function renderHome() {
   bar.className = "bar-fill " + barClass;
   bar.style.background = statusColor;
 
+  // 1日あたりの利用可能額＝残り予算 ÷ 残り日数
+  const perDay = remainDays > 0 ? Math.floor(remaining / remainDays) : remaining;
+
   document.getElementById("budgetLabel").textContent =
     budgetTotal <= 0 && expense > 0 ? `予算消化率  収入未入力` : `予算消化率  ${pct}%`;
-  document.getElementById("budgetNums").textContent  = `${fmt(expense)} / ${fmt(budgetTotal)}`;
   document.getElementById("budgetStatusIcon").textContent = statusIcon;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
@@ -857,7 +859,7 @@ function renderHome() {
     budgetTotal <= 0 && expense > 0
       ? `不足額 ¥${expense.toLocaleString()}（収入を入力すると解消されます）`
       : isLatestPeriod
-      ? `残り${remainDays}日 / ¥${remaining.toLocaleString()}残`
+      ? `残り${remainDays}日　${fmt(perDay)}／日`
       : `(理想:${idealPct}% / 実績:${pct}%)`;
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
