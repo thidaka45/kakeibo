@@ -624,7 +624,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.44"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.45"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1903,45 +1903,30 @@ function startNewMonth() {
 
   const confirmMsg = isFirstTime
     ? "家計簿をこの日から開始します。まず収入（給与など）の入力から始めましょう。よろしいですか？"
-    : "新しい月度を開始します。まず収入（給与など）を入力してください。よろしいですか？";
+    : "新しい月度を開始します。積立・固定費は前月の内容を引き継ぎます。まず収入（給与など）を入力してください。よろしいですか？";
   if (!confirm(confirmMsg)) return;
 
   const today = new Date().toISOString().slice(0, 10);
 
   if (!isFirstTime) {
-    const txs = loadTx();
-    let fixedTotal = 0, savingsTotal = 0;
-
-    // 積立: 前月の各プランに今月分を加算し、「月初確保」の支出として記録する
+    // 積立: 前月の各プランの積立残高に、月々の積立額を加算する（引き継ぎ）。
+    // 取引履歴への記録は行わない（ホーム画面はリアルタイムに積立タブの設定を参照するため）。
     const plans = loadSavingsPlans();
+    let savingsTotal = 0;
     plans.forEach(p => {
       if (p.monthly > 0) {
-        txs.push({
-          id: Date.now() + Math.random(), type: "expense", cat: "savings",
-          amount: p.monthly, memo: `${p.name}（積立・月初確保）`,
-          date: today, source: "cycle_savings"
-        });
         p.balance = (p.balance || 0) + p.monthly;
         savingsTotal += p.monthly;
       }
     });
     saveSavingsPlans(plans);
 
-    // 固定費: 前月の項目・金額をそのまま引き継ぎ、「月初確保」の支出として記録する
+    // 固定費: 前月の項目・金額をそのまま引き継ぐ（cycle.fixed_costsは月度を跨ぐ永続データのため、
+    // 何もしなくても項目は残る。ここでは今月分の合計を通知用に集計するのみ）。
     const cycle = ensureCycle();
-    cycle.fixed_costs.forEach(item => {
-      if (item.amount > 0) {
-        txs.push({
-          id: Date.now() + Math.random(), type: "expense", cat: item.cat,
-          amount: item.amount, memo: `${item.item}（固定費・月初確保）`,
-          date: today, source: "cycle_fixed_cost"
-        });
-        fixedTotal += item.amount;
-      }
-    });
+    const fixedTotal = cycle.fixed_costs.reduce((s,i)=>s+(i.amount||0), 0);
 
-    saveTx(txs);
-    showToast(`固定費 ${fmt(fixedTotal)} ／積立 ${fmt(savingsTotal)} を今月度分として確保しました`);
+    showToast(`固定費 ${fmt(fixedTotal)} ／積立 ${fmt(savingsTotal)} を今月度分として引き継ぎました`);
   }
 
   // 新しい月度を開始し、表示もその月度に切り替える
