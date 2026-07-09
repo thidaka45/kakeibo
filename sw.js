@@ -1,10 +1,10 @@
 // ============================================================
 // Service Worker - かんたん家計簿PWA
 // ※ GitHubに更新するたびに CACHE_VERSION を1つ上げてください
-//    例: v2 → v3 → v4 ...
+//    例: v4 → v5 → v6 ...
 //    これによりスマホ側のキャッシュが自動更新されます
 // ============================================================
-const CACHE_VERSION = "kakeibo-v3";
+const CACHE_VERSION = "kakeibo-v52";
 const ASSETS = ["./index.html", "./manifest.json", "./sw.js"];
 
 // インストール時: 新しいキャッシュを作成
@@ -29,9 +29,16 @@ self.addEventListener("activate", e => {
   );
 });
 
-// フェッチ時: キャッシュ優先・なければネットワーク
+// フェッチ時: ネットワーク優先（新しい内容を優先し、オフライン時のみキャッシュを使う）
 self.addEventListener("fetch", e => {
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        // 成功したら最新版をキャッシュにも保存しておく
+        const resClone = res.clone();
+        caches.open(CACHE_VERSION).then(c => c.put(e.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(e.request)) // オフライン時のみキャッシュから
   );
 });
