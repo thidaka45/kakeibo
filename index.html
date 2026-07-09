@@ -184,7 +184,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="balance-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
       <div style="flex:1;min-width:0;">
-        <div class="balance-label">今月度の残高</div>
+        <div class="balance-label">現在の残高</div>
         <div class="balance-amount" id="balanceAmount">¥0</div>
         <div class="balance-sub">
           <div class="balance-sub-item">総収入<span id="totalIncome" style="color:#A7F3D0">¥0</span></div>
@@ -623,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.53"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.54"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1836,7 +1836,7 @@ function saveFixedCostItem() {
 
   saveCycle(cycle);
   closeFixedCostForm();
-  renderCashflow();
+  renderFixedCostsPage();
   renderHome();
   showToast(amount === 0 ? `「${name}」を仮登録しました（金額は後で入力できます）` : `「${name}」を保存しました`);
 }
@@ -1848,7 +1848,7 @@ function deleteFixedCostItem(id) {
   cycle.fixed_costs = cycle.fixed_costs.filter(i => i.id !== id);
   saveCycle(cycle);
   closeFixedCostForm();
-  renderCashflow();
+  renderFixedCostsPage();
   renderHome();
   showToast("削除しました");
 }
