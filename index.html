@@ -664,7 +664,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.49"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.50"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1902,11 +1902,13 @@ function openFixedCostForm(id = null) {
   }
   onFcCycleChange();
 
+  document.getElementById("cfFixedCostList").style.display = "none";
   document.getElementById("fixedCostForm").style.display = "block";
   document.getElementById("fixedCostForm").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 function closeFixedCostForm() {
   document.getElementById("fixedCostForm").style.display = "none";
+  document.getElementById("cfFixedCostList").style.display = "block";
   editingFixedCostId = null;
 }
 
