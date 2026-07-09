@@ -323,7 +323,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="balance-amount" style="font-size:18px;" id="savingsTotalMonthly">¥0</div>
     </div>
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
-      <div class="balance-label">積立残高合計</div>
+      <div class="balance-label">現在の積立合計</div>
       <div class="balance-amount" style="font-size:18px;" id="savingsTotalBalance">¥0</div>
     </div>
   </div>
@@ -332,7 +332,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
       <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">積立プラン</span>
-      <span id="savingsWarnNote" style="font-size:11px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+      <span style="font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        <span style="color:var(--red);">●</span>注意　<span style="color:var(--green);">●</span>順調　<span style="color:var(--blue);">●</span>達成
+      </span>
     </div>
     <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
@@ -623,7 +625,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.55"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.57"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1361,16 +1363,15 @@ function renderSavings() {
 
   // プランリスト
   const listEl = document.getElementById("savingsList");
-  const warnNoteEl = document.getElementById("savingsWarnNote");
   if (plans.length === 0) {
     listEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">積立プランがありません<br>「＋ 追加」から作成してください</div>`;
-    warnNoteEl.textContent = "";
     return;
   }
 
   // 表示用に各種指標を事前計算する
   const enriched = plans.map(p => {
     const pct     = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
+    const achievedPct = p.amount > 0 ? Math.round((p.balance||0) / p.amount * 100) : 0; // 100%超も表示する実際の達成率
     const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
     const balance = p.balance || 0;
     const monthly = p.monthly || 0;
@@ -1383,12 +1384,8 @@ function renderSavings() {
     if (isAchieved)      { status = "達成"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
     else if (onTrack)    { status = "順調"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
     else                 { status = "注意"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
-    return { p, pct, months, status, statusColor, barColor, bgColor, order };
+    return { p, pct, achievedPct, months, status, statusColor, barColor, bgColor, order, isAchieved };
   });
-
-  // 「積立プラン」ラベル右横に注意件数を表示
-  const warnCount = enriched.filter(e => e.order === 0).length;
-  warnNoteEl.textContent = warnCount > 0 ? `⚠️ 注意 ${warnCount}件` : "";
 
   // 表示順：注意 → 達成 → 順調
   enriched.sort((a, b) => {
@@ -1396,8 +1393,10 @@ function renderSavings() {
     return a.months - b.months;
   });
 
-  listEl.innerHTML = enriched.map(({ p, pct, months, status, statusColor, barColor, bgColor }) => {
+  listEl.innerHTML = enriched.map(({ p, pct, achievedPct, months, status, statusColor, barColor, bgColor, isAchieved }) => {
     const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
+    // 全項目、達成率（100%超も含む）を表示する
+    const leftLabel = `<span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:56px;"><span style="display:inline-block;width:24px;text-align:right;">${achievedPct}</span>%</span>`;
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1408,7 +1407,7 @@ function renderSavings() {
             <div style="font-size:14px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            <span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:50px;">残<span style="display:inline-block;width:16px;text-align:right;">${months}</span>ヶ月</span>
+            ${leftLabel}
             <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
           </div>
         </div>
