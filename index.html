@@ -202,18 +202,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 予算バー -->
   <div class="budget-card">
+    <!-- 月度末の予測 -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:2px;">【月度末の予測】</div>
+      <div style="font-size:22px;font-weight:700;color:var(--text);" id="budgetProjection">¥0 残る</div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+        <span id="budgetStatusIcon" style="font-size:13px;"></span>
+        <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
+      </div>
+    </div>
+
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
-      <span style="display:flex;align-items:center;gap:4px;">
-        <span id="budgetStatusIcon" style="font-size:14px;"></span>
-        <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
-      </span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
-    <!-- 健全状況 -->
-    <div id="budgetStatus" style="display:flex;align-items:center;margin-top:6px;">
-      <span id="budgetStatusSub" style="font-size:11px;color:var(--sub);"></span>
-    </div>
   </div>
 
   <!-- 今月度の取引 -->
@@ -625,7 +627,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.58"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.59"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -761,9 +763,9 @@ function renderHome() {
     document.getElementById("homeFixedTotal").textContent   = fmt(0);
     document.getElementById("budgetBar").style.width = "0%";
     document.getElementById("budgetLabel").textContent = "予算消化率  0%";
+    document.getElementById("budgetProjection").textContent = "¥0 残る";
     document.getElementById("budgetStatusIcon").textContent = "";
     document.getElementById("budgetStatusText").textContent = "";
-    document.getElementById("budgetStatusSub").textContent  = "";
     document.getElementById("txList").innerHTML =
       `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;">「その他」タブの<br>「長押しで新しい月を開始」から<br>家計簿をスタートしてください</div>`;
     updatePeriodNavButtons();
@@ -806,7 +808,6 @@ function renderHome() {
   const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
   const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
   const remaining = budgetTotal - expense;
-  const remainDays = isLatestPeriod ? Math.max(totalDays - elapsedDays, 0) : 0;
 
   // 変動費（積立・固定費に相当するカテゴリを除いた、日々のやりくり費用）の実績ペースを算出する。
   // 節約すればするほど、この値は随時（描画のたびに）下がって反映される。
@@ -860,20 +861,23 @@ function renderHome() {
   bar.className = "bar-fill " + barClass;
   bar.style.background = statusColor;
 
-  // 1日あたりの利用可能額＝残り予算 ÷ 残り日数
-  const perDay = remainDays > 0 ? Math.floor(remaining / remainDays) : remaining;
-
   document.getElementById("budgetLabel").textContent =
     budgetTotal <= 0 && expense > 0 ? `予算消化率  収入未入力` : `予算消化率  ${pct}%`;
   document.getElementById("budgetStatusIcon").textContent = statusIcon;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
-  document.getElementById("budgetStatusSub").textContent  =
-    budgetTotal <= 0 && expense > 0
-      ? `不足額 ¥${expense.toLocaleString()}（収入を入力すると解消されます）`
-      : isLatestPeriod
-      ? `月末着地見込み ${fmt(projectedBalance)}（${fmt(perDay)}／日）`
-      : `最終消化率 ${pct}%`;
+
+  const projEl = document.getElementById("budgetProjection");
+  if (budgetTotal <= 0 && expense > 0) {
+    projEl.textContent = `不足額 ${fmt(expense)}`;
+    projEl.style.color = "var(--red)";
+  } else if (!isLatestPeriod) {
+    projEl.textContent = `${fmt(remaining)} 残った`;
+    projEl.style.color = remaining >= 0 ? "var(--text)" : "var(--red)";
+  } else {
+    projEl.textContent = projectedBalance >= 0 ? `${fmt(projectedBalance)} 残る` : `${fmt(Math.abs(projectedBalance))} 不足`;
+    projEl.style.color = projectedBalance >= 0 ? "var(--text)" : "var(--red)";
+  }
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
   const recent = [...txs].sort((a,b)=>b.id-a.id);
