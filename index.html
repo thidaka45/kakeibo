@@ -204,7 +204,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card">
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
-      <span style="font-size:11px;color:var(--sub);white-space:nowrap;">今月度末の予測 <span id="budgetProjection" style="font-size:12px;color:var(--text);"></span></span>
+      <span style="font-size:11px;color:var(--sub);white-space:nowrap;">今月度の予測：<span id="budgetProjection" style="font-size:12px;font-weight:700;color:var(--text);"></span></span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況 -->
@@ -623,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.63"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.64"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -758,7 +758,7 @@ function renderHome() {
     document.getElementById("homeSavingsTotal").textContent = fmt(0);
     document.getElementById("homeFixedTotal").textContent   = fmt(0);
     document.getElementById("budgetBar").style.width = "0%";
-    document.getElementById("budgetLabel").textContent = "予算消化率  0%";
+    document.getElementById("budgetLabel").textContent = "予算消化率：0%";
     document.getElementById("budgetProjection").textContent = "¥0 残る";
     document.getElementById("budgetStatusIcon").textContent = "";
     document.getElementById("budgetStatusText").textContent = "";
@@ -858,7 +858,7 @@ function renderHome() {
   bar.style.background = statusColor;
 
   document.getElementById("budgetLabel").textContent =
-    budgetTotal <= 0 && expense > 0 ? `予算消化率  収入未入力` : `予算消化率  ${pct}%`;
+    budgetTotal <= 0 && expense > 0 ? `予算消化率：収入未入力` : `予算消化率：${pct}%`;
   document.getElementById("budgetStatusIcon").textContent = statusIcon;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
