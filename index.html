@@ -470,7 +470,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--orange);">
       <div class="balance-label">支払い完了状況</div>
-      <div class="balance-amount" style="font-size:18px;" id="fixedPaidStatus">0%（0／0）</div>
+      <div style="display:flex;align-items:baseline;gap:8px;">
+        <div class="balance-amount" style="font-size:18px;" id="fixedPaidStatus">0%</div>
+        <div style="font-size:11px;color:#fff;opacity:.85;white-space:nowrap;" id="fixedPaidRemain">残り：0項目</div>
+      </div>
     </div>
   </div>
 
@@ -619,7 +622,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.75"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.77"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1686,7 +1689,8 @@ function renderFixedCostList(cycle) {
   const paidCount = payItems.filter(i => i.paid).length;
   const paidPct = payItems.length > 0 ? Math.round(paidCount / payItems.length * 100) : 0;
   document.getElementById("fixedTotalMonthly").textContent = fmt(totalMonthly);
-  document.getElementById("fixedPaidStatus").textContent = `${paidPct}%（${paidCount}／${payItems.length}）`;
+  document.getElementById("fixedPaidStatus").textContent = `${paidPct}%`;
+  document.getElementById("fixedPaidRemain").textContent = `残り：${payItems.length - paidCount}項目`;
 
   if (!items.length) {
     el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">固定費が登録されていません<br>「＋ 追加」から作成してください</div>`;
