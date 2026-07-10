@@ -497,8 +497,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン・項目名 -->
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
-      <div style="display:grid;grid-template-columns:84px 1fr;gap:6px;">
-        <select class="field-select" id="fcIcon" style="padding:8px 4px;font-size:16px;text-align:center;"></select>
+      <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
+        <div style="position:relative;">
+          <div id="fcIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);pointer-events:none;">📦</div>
+          <select class="field-select" id="fcIcon" onchange="updateFcIconDisplay()" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;"></select>
+        </div>
         <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;">
       </div>
     </div>
@@ -514,8 +517,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 支払日 -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">支払日：</span>
-        <input class="field-input" id="fcDueDay" type="number" placeholder="日（1-31・任意）" min="1" max="31" style="width:100%;padding:8px 10px 8px 60px;font-size:16px;" inputmode="numeric">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">支払日：　</span>
+        <input class="field-input" id="fcDueDay" type="number" placeholder="（1-31・任意）" min="1" max="31" style="width:100%;padding:8px 28px 8px 72px;font-size:16px;" inputmode="numeric">
+        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">日</span>
       </div>
     </div>
 
@@ -610,7 +614,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.80"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.83"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1743,6 +1747,13 @@ function renderFcIconOptions() {
   ).join("");
 }
 
+// 選択後は絵文字のみを疑似表示レイヤーに反映する（プルダウンを開いた時だけ文字の説明が見える）
+function updateFcIconDisplay() {
+  const val = document.getElementById("fcIcon").value;
+  const cat = FIXED_COST_CATS.find(c => c.id === val) || FIXED_COST_CATS[FIXED_COST_CATS.length - 1];
+  document.getElementById("fcIconDisplay").textContent = cat.emoji;
+}
+
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
   editingFixedCostId = id;
@@ -1768,6 +1779,7 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcSubmitBtn").textContent = "保存";
     document.getElementById("fcDeleteBtn").style.display = "none";
   }
+  updateFcIconDisplay();
 
   document.getElementById("cfFixedCostList").style.display = "none";
   document.getElementById("fixedCostForm").style.display = "block";
