@@ -476,7 +476,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">固定費項目</span>
+    <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">固定費項目<span style="font-size:10px;font-weight:400;color:var(--muted);">（支払いが毎月発生する項目）</span></span>
     <button onclick="openFixedCostForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
 </div>
@@ -533,10 +533,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="saveFixedCostItem()" style="padding:10px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="fcSubmitBtn">保存</button>
     </div>
     <button id="fcDeleteBtn" onclick="deleteFixedCostItem(editingFixedCostId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">この項目を削除</button>
-  </div>
-
-  <div style="font-size:11px;color:var(--muted);line-height:1.7;padding:4px 2px;">
-    ここで登録した固定費は、「資金繰り」ページの評価に自動的に反映されます。
   </div>
 </div>
 </div>
@@ -623,7 +619,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.73"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.74"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
