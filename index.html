@@ -331,7 +331,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
       <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;">積立プラン</span>
       <span style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        <span style="color:var(--red);">●</span>注意　<span style="color:var(--green);">●</span>順調　<span style="color:var(--blue);">●</span>達成
+        （<span style="color:var(--red);">●</span>注意　<span style="color:var(--green);">●</span>順調　<span style="color:var(--blue);">●</span>達成）
       </span>
     </div>
     <button onclick="openSavingsForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
@@ -479,7 +479,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">固定費項目<span style="font-size:10px;font-weight:400;color:var(--muted);">（支払いが毎月発生する項目）</span></span>
+    <span style="font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">固定費項目<span style="font-size:11px;color:var(--muted);">（支払いが毎月発生する項目）</span></span>
     <button onclick="openFixedCostForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
 </div>
@@ -622,7 +622,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.77"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.78"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
