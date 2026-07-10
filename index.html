@@ -204,7 +204,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card">
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
-      <span style="font-size:11px;color:var(--sub);white-space:nowrap;">今月度の予測：<span id="budgetProjection" style="font-size:12px;font-weight:700;color:var(--text);"></span></span>
+      <span style="font-size:11px;color:var(--text);font-weight:700;white-space:nowrap;">今月度の予測：<span id="budgetProjection" style="font-size:12px;font-weight:700;"></span><span id="budgetProjectionSuffix" style="font-size:11px;color:var(--text);font-weight:700;"></span></span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況 -->
@@ -623,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.64"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.65"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -759,7 +759,8 @@ function renderHome() {
     document.getElementById("homeFixedTotal").textContent   = fmt(0);
     document.getElementById("budgetBar").style.width = "0%";
     document.getElementById("budgetLabel").textContent = "予算消化率：0%";
-    document.getElementById("budgetProjection").textContent = "¥0 残る";
+    document.getElementById("budgetProjection").textContent = "¥0";
+    document.getElementById("budgetProjectionSuffix").textContent = " 残る";
     document.getElementById("budgetStatusIcon").textContent = "";
     document.getElementById("budgetStatusText").textContent = "";
     document.getElementById("txList").innerHTML =
@@ -864,15 +865,21 @@ function renderHome() {
   document.getElementById("budgetStatusText").style.color = statusColor;
 
   const projEl = document.getElementById("budgetProjection");
+  const projSuffixEl = document.getElementById("budgetProjectionSuffix");
   if (budgetTotal <= 0 && expense > 0) {
-    projEl.textContent = `${fmt(expense)} 不足`;
+    projEl.textContent = fmt(expense);
     projEl.style.color = statusColor;
+    projSuffixEl.textContent = " 不足";
   } else if (!isLatestPeriod) {
-    projEl.textContent = remaining >= 0 ? `${fmt(remaining)} 残る` : `${fmt(Math.abs(remaining))} 不足`;
+    const isPlus = remaining >= 0;
+    projEl.textContent = fmt(Math.abs(remaining));
     projEl.style.color = statusColor;
+    projSuffixEl.textContent = isPlus ? " 残る" : " 不足";
   } else {
-    projEl.textContent = projectedBalance >= 0 ? `${fmt(projectedBalance)} 残る` : `${fmt(Math.abs(projectedBalance))} 不足`;
+    const isPlus = projectedBalance >= 0;
+    projEl.textContent = fmt(Math.abs(projectedBalance));
     projEl.style.color = statusColor;
+    projSuffixEl.textContent = isPlus ? " 残る" : " 不足";
   }
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
