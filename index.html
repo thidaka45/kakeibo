@@ -127,8 +127,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-summary-name{font-size:12px;color:var(--sub);width:60px;flex-shrink:0;}
 .cat-summary-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .cat-summary-bar-fill{height:100%;border-radius:4px;background:var(--red);transition:width .6s;}
-.savings-bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
-.savings-bar-fill{height:100%;border-radius:3px;transition:width .6s;}
+.savings-bar-track{flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden;}
+.savings-bar-fill{height:100%;border-radius:5px;transition:width .6s;}
 .cat-summary-val{font-size:12px;font-weight:600;color:var(--text);width:60px;text-align:right;}
 
 /* ===== レシート ===== */
@@ -623,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.72"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.73"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1409,7 +1409,7 @@ function renderSavings() {
   listEl.innerHTML = enriched.map(({ p, pct, achievedPct, months, status, statusColor, barColor, bgColor, isAchieved }) => {
     const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
     // 全項目、達成率（100%超も含む）を表示する
-    const leftLabel = `<span style="font-size:10px;color:${statusColor};white-space:nowrap;flex-shrink:0;width:56px;"><span style="display:inline-block;width:24px;text-align:right;">${achievedPct}</span>%</span>`;
+    const leftLabel = `<span style="font-size:13px;font-weight:600;color:${statusColor};white-space:nowrap;flex-shrink:0;width:64px;"><span style="display:inline-block;width:28px;text-align:right;">${achievedPct}</span>%</span>`;
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
