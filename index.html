@@ -204,7 +204,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card">
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
-      <span style="font-size:11px;color:var(--text);font-weight:700;white-space:nowrap;">今月度の予測：<span id="budgetProjection" style="font-size:12px;font-weight:700;"></span><span id="budgetProjectionSuffix" style="font-size:11px;color:var(--text);font-weight:700;"></span></span>
+      <span style="font-size:13px;color:var(--text);white-space:nowrap;">今月度の収支：<span id="budgetProjection" style="font-size:13px;font-weight:700;"></span></span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況 -->
@@ -623,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.65"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.66"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -730,6 +730,8 @@ function updatePeriodNavButtons() {
 }
 
 function fmt(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "¥" + n.toLocaleString("ja-JP"); }
+// 収支表示用：プラスにも+を付けて符号を明示する
+function fmtSigned(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "+¥" + n.toLocaleString("ja-JP"); }
 
 // 数値入力欄に¥マーク＋カンマ区切りをリアルタイム表示する（type=text用）
 function formatYenInput(el) {
@@ -759,8 +761,7 @@ function renderHome() {
     document.getElementById("homeFixedTotal").textContent   = fmt(0);
     document.getElementById("budgetBar").style.width = "0%";
     document.getElementById("budgetLabel").textContent = "予算消化率：0%";
-    document.getElementById("budgetProjection").textContent = "¥0";
-    document.getElementById("budgetProjectionSuffix").textContent = " 残る";
+    document.getElementById("budgetProjection").textContent = "+¥0";
     document.getElementById("budgetStatusIcon").textContent = "";
     document.getElementById("budgetStatusText").textContent = "";
     document.getElementById("txList").innerHTML =
@@ -865,21 +866,15 @@ function renderHome() {
   document.getElementById("budgetStatusText").style.color = statusColor;
 
   const projEl = document.getElementById("budgetProjection");
-  const projSuffixEl = document.getElementById("budgetProjectionSuffix");
   if (budgetTotal <= 0 && expense > 0) {
-    projEl.textContent = fmt(expense);
+    projEl.textContent = fmtSigned(-expense);
     projEl.style.color = statusColor;
-    projSuffixEl.textContent = " 不足";
   } else if (!isLatestPeriod) {
-    const isPlus = remaining >= 0;
-    projEl.textContent = fmt(Math.abs(remaining));
+    projEl.textContent = fmtSigned(remaining);
     projEl.style.color = statusColor;
-    projSuffixEl.textContent = isPlus ? " 残る" : " 不足";
   } else {
-    const isPlus = projectedBalance >= 0;
-    projEl.textContent = fmt(Math.abs(projectedBalance));
+    projEl.textContent = fmtSigned(projectedBalance);
     projEl.style.color = statusColor;
-    projSuffixEl.textContent = isPlus ? " 残る" : " 不足";
   }
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
