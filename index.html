@@ -202,20 +202,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 予算バー -->
   <div class="budget-card">
-    <!-- 月度末の予測 -->
-    <div style="margin-bottom:10px;">
-      <div style="font-size:11px;color:var(--sub);font-weight:600;margin-bottom:2px;">【月度末の予測】</div>
-      <div style="font-size:22px;font-weight:700;color:var(--text);" id="budgetProjection">¥0 残る</div>
-      <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
-        <span id="budgetStatusIcon" style="font-size:13px;"></span>
-        <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
-      </div>
-    </div>
-
     <div class="budget-row">
       <span class="budget-label" id="budgetLabel">予算消化率</span>
+      <span style="font-size:11px;color:var(--sub);white-space:nowrap;">今月度末の予測 <span id="budgetProjection" style="font-size:12px;font-weight:700;color:var(--text);"></span></span>
     </div>
     <div class="bar-track"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
+    <!-- 健全状況 -->
+    <div id="budgetStatus" style="display:flex;align-items:center;gap:4px;margin-top:6px;">
+      <span id="budgetStatusIcon" style="font-size:14px;"></span>
+      <span id="budgetStatusText" style="font-size:12px;font-weight:600;"></span>
+    </div>
   </div>
 
   <!-- 今月度の取引 -->
@@ -627,7 +623,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.59"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.61"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
