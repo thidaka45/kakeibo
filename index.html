@@ -351,9 +351,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン＋項目名 -->
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
-      <div style="display:grid;grid-template-columns:110px 1fr;gap:6px;">
-        <select class="field-select" id="savingsIcon" style="padding:8px 6px;font-size:14px;" onchange="onSavingsIconSelect()"></select>
-        <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;">
+      <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
+        <div id="savingsIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
+        <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onSavingsNameInput()">
       </div>
     </div>
 
@@ -498,11 +498,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
-        <div style="position:relative;">
-          <div id="fcIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);pointer-events:none;">📦</div>
-          <select class="field-select" id="fcIcon" onchange="updateFcIconDisplay()" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;"></select>
-        </div>
-        <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;">
+        <div id="fcIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
+        <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
       </div>
     </div>
 
@@ -614,7 +611,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.83"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.85"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1315,21 +1312,59 @@ function showToast(msg) {
 // ============================================================
 // 計画積立機能
 // ============================================================
-const SAVINGS_CATS = [
-  {id:"car",    emoji:"🚗", label:"車"},
-  {id:"house",  emoji:"🏠", label:"住居"},
-  {id:"travel", emoji:"✈️", label:"旅行"},
-  {id:"medical",emoji:"🏥", label:"医療"},
-  {id:"insure", emoji:"🛡️", label:"保険"},
-  {id:"tax",    emoji:"📋", label:"税金"},
-  {id:"gift",   emoji:"🎁", label:"お祝い"},
-  {id:"edu",    emoji:"📚", label:"教育"},
-  {id:"hobby",  emoji:"🎮", label:"趣味"},
-  {id:"other",  emoji:"📦", label:"その他"},
+// ============================================================
+// 項目名からアイコン（絵文字）を自動推測する共通辞書
+// 積立・固定費どちらのフォームからも使う。カテゴリという概念は持たず、
+// 「キーワードが含まれていたら、対応する絵文字を使う」だけのシンプルな仕組み。
+// 誤マッチを避けるため、1文字キーワードは避け、より具体的な語句を上に配置している。
+// ============================================================
+const ICON_KEYWORD_MAP = [
+  // 住居・暮らし
+  { emoji: "🏠", keywords: ["住居", "家賃", "リフォーム", "修繕", "引越", "賃貸", "持ち家", "マンション", "駐車場"] },
+  { emoji: "💡", keywords: ["水道", "電気", "ガス", "光熱費"] },
+  { emoji: "🪑", keywords: ["家具", "インテリア"] },
+  { emoji: "🧹", keywords: ["掃除", "クリーニング", "ハウスクリーニング"] },
+  // 移動・車
+  { emoji: "🚗", keywords: ["車検", "自動車", "車の", "カーローン", "駐車", "ガソリン"] },
+  { emoji: "🏍️", keywords: ["バイク"] },
+  { emoji: "🚃", keywords: ["電車", "定期券", "交通費"] },
+  // お金・支払い
+  { emoji: "💳", keywords: ["クレカ", "クレジット", "カード返済"] },
+  { emoji: "🏦", keywords: ["ローン", "住宅ローン", "奨学金", "借入", "返済"] },
+  { emoji: "🛡️", keywords: ["保険"] },
+  { emoji: "📋", keywords: ["税金", "固定資産税", "住民税", "確定申告", "納税"] },
+  // 通信・サブスク
+  { emoji: "📱", keywords: ["スマホ", "携帯", "通信費", "格安SIM"] },
+  { emoji: "📺", keywords: ["VOD", "サブスク", "Netflix", "Amazon Prime", "配信", "動画"] },
+  { emoji: "📡", keywords: ["NHK", "受信料"] },
+  { emoji: "💻", keywords: ["パソコン", "PC", "ソフト"] },
+  // 医療・健康
+  { emoji: "🏥", keywords: ["医療", "病院", "通院", "手術", "入院"] },
+  { emoji: "🦷", keywords: ["歯科", "歯医者"] },
+  { emoji: "💊", keywords: ["薬", "処方箋"] },
+  { emoji: "💇", keywords: ["美容", "美容院", "ヘアサロン", "エステ"] },
+  // 家族・イベント
+  { emoji: "🎁", keywords: ["お祝い", "結婚式", "出産", "贈答", "プレゼント"] },
+  { emoji: "👛", keywords: ["お小遣い", "こづかい", "小遣い"] },
+  { emoji: "📚", keywords: ["教育", "学費", "入学", "受験", "塾", "習い事"] },
+  { emoji: "🐾", keywords: ["ペット", "犬", "猫", "動物病院"] },
+  // 旅行・娯楽
+  { emoji: "✈️", keywords: ["旅行", "帰省", "航空券", "ホテル"] },
+  { emoji: "🎮", keywords: ["趣味", "ゲーム", "推し", "コレクション"] },
+  { emoji: "⚽", keywords: ["スポーツ", "ジム", "フィットネス"] },
+  { emoji: "📖", keywords: ["書籍", "本代"] },
 ];
 
+// 項目名からもっともふさわしい絵文字を推測する。該当なしは📦（その他）。
+function guessIconEmoji(name) {
+  if (!name) return "📦";
+  for (const entry of ICON_KEYWORD_MAP) {
+    if (entry.keywords.some(kw => name.includes(kw))) return entry.emoji;
+  }
+  return "📦";
+}
+
 let editingSavingsId = null;
-let selectedSavingsCat = "other";
 
 function loadSavingsPlans() {
   try { return JSON.parse(localStorage.getItem("savings_plans") || "[]"); } catch { return []; }
@@ -1398,13 +1433,13 @@ function renderSavings() {
   });
 
   listEl.innerHTML = enriched.map(({ p, pct, achievedPct, months, status, statusColor, barColor, bgColor, isAchieved }) => {
-    const cat    = SAVINGS_CATS.find(c => c.id === p.cat) || SAVINGS_CATS[9];
+    const icon = p.icon || guessIconEmoji(p.name);
     // 全項目、達成率（100%超も含む）を表示する
     const leftLabel = `<span style="font-size:13px;font-weight:600;color:${statusColor};white-space:nowrap;flex-shrink:0;width:64px;"><span style="display:inline-block;width:28px;text-align:right;">${achievedPct}</span>%</span>`;
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${cat.emoji}</div>
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${icon}</div>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
             <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
@@ -1447,18 +1482,11 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // アイコン選択プルダウン
-  document.getElementById("savingsIcon").innerHTML = SAVINGS_CATS.map(c =>
-    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
-  ).join("");
-
   // 既存データ編集の場合
   if (id) {
     const plans = loadSavingsPlans();
     const p = plans.find(x => x.id === id);
     if (p) {
-      selectedSavingsCat = p.cat;
-      document.getElementById("savingsIcon").value    = p.cat;
       document.getElementById("savingsName").value    = p.name;
       document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
@@ -1468,17 +1496,19 @@ function openSavingsForm(id) {
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
       document.getElementById("savingsDeleteBtn").style.display = "block";
+      document.getElementById("savingsIconDisplay").textContent = p.icon || guessIconEmoji(p.name);
     }
   } else {
-    selectedSavingsCat = SAVINGS_CATS[0].id;
-    document.getElementById("savingsIcon").value    = SAVINGS_CATS[0].id;
     document.getElementById("savingsName").value    = "";
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
     document.getElementById("savingsMonthlyManual").value = "";
+    document.getElementById("savingsYear").value    = now.getFullYear();
+    document.getElementById("savingsMonth").value   = now.getMonth() + 1;
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
+    document.getElementById("savingsIconDisplay").textContent = "📦";
   }
 
   // 入力変化で逆算
@@ -1487,6 +1517,12 @@ function openSavingsForm(id) {
     document.getElementById(fid).addEventListener("change", updateSavingsCalc);
   });
   updateSavingsCalc();
+}
+
+// 項目名の入力に応じて、アイコン表示をリアルタイムに自動更新する
+function onSavingsNameInput() {
+  const name = document.getElementById("savingsName").value;
+  document.getElementById("savingsIconDisplay").textContent = guessIconEmoji(name);
 }
 
 function updateSavingsCalc() {
@@ -1507,10 +1543,6 @@ function updateSavingsCalc() {
   }
 }
 
-function onSavingsIconSelect() {
-  selectedSavingsCat = document.getElementById("savingsIcon").value;
-}
-
 function closeSavingsForm() {
   document.getElementById("savingsForm").style.display = "none";
   document.getElementById("savingsList").style.display = "block";
@@ -1518,13 +1550,13 @@ function closeSavingsForm() {
 }
 
 function saveSavingsPlan() {
-  const catId   = document.getElementById("savingsIcon").value;
   const name    = document.getElementById("savingsName").value.trim();
   const amount  = parseYenInput("savingsAmount");
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
+  const icon    = guessIconEmoji(name);
 
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
@@ -1549,9 +1581,9 @@ function saveSavingsPlan() {
 
   if (editingSavingsId) {
     const idx = plans.findIndex(p => p.id === editingSavingsId);
-    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly };
+    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, icon, monthly };
   } else {
-    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cat:catId, monthly });
+    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, icon, monthly });
   }
 
   saveSavingsPlans(plans);
@@ -1587,20 +1619,6 @@ function loadCycle() {
   try { return JSON.parse(localStorage.getItem("kakeibo_cycle") || "null"); } catch { return null; }
 }
 function saveCycle(c) { localStorage.setItem("kakeibo_cycle", JSON.stringify(c)); }
-
-// 固定費カテゴリ（水道光熱費・クレカ返済・ローン等、よくある項目の目印）
-const FIXED_COST_CATS = [
-  {id:"utility",   emoji:"💡", label:"水道光熱費"},
-  {id:"credit",    emoji:"💳", label:"クレカ返済"},
-  {id:"loan",      emoji:"🏦", label:"ローン"},
-  {id:"phone",     emoji:"📱", label:"スマホ代"},
-  {id:"vod",       emoji:"📺", label:"VOD"},
-  {id:"nhk",       emoji:"📡", label:"NHK受信料"},
-  {id:"medical",   emoji:"🏥", label:"病院代"},
-  {id:"allowance", emoji:"👛", label:"お小遣い"},
-  {id:"insurance", emoji:"🛡️", label:"保険"},
-  {id:"other",     emoji:"📦", label:"その他"},
-];
 
 // 支払い周期の定義。isPayMonth: 今月がこの項目の支払い月かどうかを判定する。
 const FC_CYCLES = {
@@ -1698,7 +1716,7 @@ function renderFixedCostList(cycle) {
   enriched.sort((a,b) => a.order - b.order);
 
   el.innerHTML = enriched.map(({ item, isPayMonth }) => {
-    const cat = FIXED_COST_CATS.find(c => c.id === item.cat) || FIXED_COST_CATS[FIXED_COST_CATS.length - 1];
+    const icon = item.icon || guessIconEmoji(item.item);
     const dueLabel = item.due_day ? `毎月${item.due_day}日` : "支払日未定";
 
     const cardBg = !isPayMonth ? "var(--card)" : (item.paid ? "var(--orange-l)" : "var(--card)");
@@ -1712,7 +1730,7 @@ function renderFixedCostList(cycle) {
 
     return `<div style="cursor:pointer;background:${cardBg};border:0.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:8px;opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${cat.emoji}</div>
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${icon}</div>
         <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;">
           <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}</div>
           <span style="font-size:10px;color:var(--muted);white-space:nowrap;flex-shrink:0;">${dueLabel}</span>
@@ -1740,18 +1758,10 @@ function toggleFixedCostPaid(id) {
 // ---- 固定費の登録・編集フォーム ----
 let editingFixedCostId = null;
 
-// アイコンプルダウン生成
-function renderFcIconOptions() {
-  document.getElementById("fcIcon").innerHTML = FIXED_COST_CATS.map(c =>
-    `<option value="${c.id}">${c.emoji} ${c.label}</option>`
-  ).join("");
-}
-
-// 選択後は絵文字のみを疑似表示レイヤーに反映する（プルダウンを開いた時だけ文字の説明が見える）
-function updateFcIconDisplay() {
-  const val = document.getElementById("fcIcon").value;
-  const cat = FIXED_COST_CATS.find(c => c.id === val) || FIXED_COST_CATS[FIXED_COST_CATS.length - 1];
-  document.getElementById("fcIconDisplay").textContent = cat.emoji;
+// 項目名の入力に応じて、アイコン表示をリアルタイムに自動更新する
+function onFcNameInput() {
+  const name = document.getElementById("fcName").value;
+  document.getElementById("fcIconDisplay").textContent = guessIconEmoji(name);
 }
 
 // 新規登録、または既存項目をタップして編集
@@ -1760,26 +1770,23 @@ function openFixedCostForm(id = null) {
   const cycle = ensureCycle();
   const item = id ? cycle.fixed_costs.find(i => i.id === id) : null;
 
-  renderFcIconOptions();
-
   if (item) {
     document.getElementById("fcFormTitle").textContent = "固定費を編集";
-    document.getElementById("fcIcon").value = item.cat || "other";
     document.getElementById("fcName").value = item.item;
     document.getElementById("fcAmount").value = item.amount ? "¥" + item.amount.toLocaleString("ja-JP") : "";
     document.getElementById("fcDueDay").value = item.due_day || "";
     document.getElementById("fcSubmitBtn").textContent = "更新";
     document.getElementById("fcDeleteBtn").style.display = "block";
+    document.getElementById("fcIconDisplay").textContent = item.icon || guessIconEmoji(item.item);
   } else {
     document.getElementById("fcFormTitle").textContent = "新しい固定費";
-    document.getElementById("fcIcon").value = FIXED_COST_CATS[0].id;
     document.getElementById("fcName").value = "";
     document.getElementById("fcAmount").value = "";
     document.getElementById("fcDueDay").value = "";
     document.getElementById("fcSubmitBtn").textContent = "保存";
     document.getElementById("fcDeleteBtn").style.display = "none";
+    document.getElementById("fcIconDisplay").textContent = "📦";
   }
-  updateFcIconDisplay();
 
   document.getElementById("cfFixedCostList").style.display = "none";
   document.getElementById("fixedCostForm").style.display = "block";
@@ -1799,7 +1806,7 @@ function saveFixedCostItem() {
   const amount = parseYenInput("fcAmount");
   const dueDayRaw = document.getElementById("fcDueDay").value;
   const due_day = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
-  const cat = document.getElementById("fcIcon").value;
+  const icon = guessIconEmoji(name);
   const fcCycle = "monthly"; // 支払い周期選択は廃止し、固定費は毎月発生する項目として統一
 
   const cycle = ensureCycle();
@@ -1811,12 +1818,12 @@ function saveFixedCostItem() {
       const source = amount === 0 ? "pending_registration"
                    : amount === prevAmount ? (cycle.fixed_costs[idx].source || "manual")
                    : "updated";
-      cycle.fixed_costs[idx] = { ...cycle.fixed_costs[idx], item: name, cat, amount, due_day, cycle: fcCycle, source, previous_amount: prevAmount };
+      cycle.fixed_costs[idx] = { ...cycle.fixed_costs[idx], item: name, icon, amount, due_day, cycle: fcCycle, source, previous_amount: prevAmount };
     }
   } else {
     cycle.fixed_costs.push({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      item: name, cat, amount, due_day, cycle: fcCycle, paid: false,
+      item: name, icon, amount, due_day, cycle: fcCycle, paid: false,
       source: amount === 0 ? "pending_registration" : "manual",
       registered_date: new Date().toISOString().slice(0, 10)
     });
