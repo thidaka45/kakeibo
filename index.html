@@ -512,25 +512,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
 
     <!-- 支払日 -->
-    <div style="margin-bottom:8px;">
-      <input class="field-input" id="fcDueDay" type="number" placeholder="支払日（1-31・任意）" min="1" max="31" style="width:100%;padding:8px 10px;font-size:16px;" inputmode="numeric">
-    </div>
-
-    <!-- 支払い周期 -->
     <div style="margin-bottom:10px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">支払い周期</div>
-      <select class="field-select" id="fcCycle" style="width:100%;padding:8px 10px;font-size:16px;" onchange="onFcCycleChange()">
-        <option value="monthly">毎月</option>
-        <option value="bimonthly_odd">隔月（奇数月：1,3,5,7,9,11月）</option>
-        <option value="bimonthly_even">隔月（偶数月：2,4,6,8,10,12月）</option>
-        <option value="quarterly">四半期（3ヶ月毎）</option>
-      </select>
-      <div id="fcCycleNote" style="font-size:11px;color:var(--orange-d);margin-top:4px;"></div>
+      <div style="position:relative;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">支払日：</span>
+        <input class="field-input" id="fcDueDay" type="number" placeholder="日（1-31・任意）" min="1" max="31" style="width:100%;padding:8px 10px 8px 60px;font-size:16px;" inputmode="numeric">
+      </div>
     </div>
 
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
-      金額が分からない場合は空欄のままで登録できます。使えないお金として先に項目だけ確保し、次の期間を始めるタイミングでまとめて入力を促します。
-    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button onclick="closeFixedCostForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveFixedCostItem()" style="padding:10px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="fcSubmitBtn">保存</button>
@@ -622,7 +610,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.78"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.80"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1755,16 +1743,6 @@ function renderFcIconOptions() {
   ).join("");
 }
 
-function onFcCycleChange() {
-  const val = document.getElementById("fcCycle").value;
-  const note = document.getElementById("fcCycleNote");
-  const now = new Date();
-  const willPayThisMonth = fcIsPayMonth(val, now);
-  note.textContent = willPayThisMonth
-    ? "今月は支払い対象月です"
-    : "今月は支払い対象外の月です";
-}
-
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
   editingFixedCostId = id;
@@ -1779,7 +1757,6 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcName").value = item.item;
     document.getElementById("fcAmount").value = item.amount ? "¥" + item.amount.toLocaleString("ja-JP") : "";
     document.getElementById("fcDueDay").value = item.due_day || "";
-    document.getElementById("fcCycle").value = item.cycle || "monthly";
     document.getElementById("fcSubmitBtn").textContent = "更新";
     document.getElementById("fcDeleteBtn").style.display = "block";
   } else {
@@ -1788,11 +1765,9 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcName").value = "";
     document.getElementById("fcAmount").value = "";
     document.getElementById("fcDueDay").value = "";
-    document.getElementById("fcCycle").value = "monthly";
     document.getElementById("fcSubmitBtn").textContent = "保存";
     document.getElementById("fcDeleteBtn").style.display = "none";
   }
-  onFcCycleChange();
 
   document.getElementById("cfFixedCostList").style.display = "none";
   document.getElementById("fixedCostForm").style.display = "block";
@@ -1813,7 +1788,7 @@ function saveFixedCostItem() {
   const dueDayRaw = document.getElementById("fcDueDay").value;
   const due_day = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
   const cat = document.getElementById("fcIcon").value;
-  const fcCycle = document.getElementById("fcCycle").value;
+  const fcCycle = "monthly"; // 支払い周期選択は廃止し、固定費は毎月発生する項目として統一
 
   const cycle = ensureCycle();
 
