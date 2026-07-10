@@ -611,7 +611,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.85"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.86"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1469,15 +1469,15 @@ function openSavingsForm(id) {
   document.getElementById("savingsList").style.display = "none";
   form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-  // 年月セレクトを生成
+  // 年月セレクトを生成（先頭にプレースホルダーを追加し、新規時は未選択状態にできるようにする）
   const now = new Date();
   const yearSel = document.getElementById("savingsYear");
   const monSel  = document.getElementById("savingsMonth");
-  yearSel.innerHTML = "";
+  yearSel.innerHTML = `<option value="" disabled>年</option>`;
   for (let y = now.getFullYear(); y <= now.getFullYear() + 10; y++) {
     yearSel.innerHTML += `<option value="${y}">${y}年</option>`;
   }
-  monSel.innerHTML = "";
+  monSel.innerHTML = `<option value="" disabled>月</option>`;
   for (let m = 1; m <= 12; m++) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
@@ -1503,8 +1503,8 @@ function openSavingsForm(id) {
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
     document.getElementById("savingsMonthlyManual").value = "";
-    document.getElementById("savingsYear").value    = now.getFullYear();
-    document.getElementById("savingsMonth").value   = now.getMonth() + 1;
+    yearSel.value = "";
+    monSel.value  = "";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
@@ -1560,6 +1560,7 @@ function saveSavingsPlan() {
 
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
+  if (!year || !month) { showToast("目標年月を選択してください"); return; }
 
   const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month);
   const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
