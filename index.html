@@ -625,7 +625,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.57"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.58"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -797,6 +797,30 @@ function renderHome() {
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
 
+  // 対象期間（開始日の翌月同日の前日まで）
+  const { start } = periodRange(viewPeriodIndex);
+  const nominalEnd = periodNominalEnd(start);
+  const isLatestPeriod = viewPeriodIndex === periods.length - 1;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const totalDays = daysBetween(start, nominalEnd) + 1;
+  const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
+  const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
+  const remaining = budgetTotal - expense;
+  const remainDays = isLatestPeriod ? Math.max(totalDays - elapsedDays, 0) : 0;
+
+  // 変動費（積立・固定費に相当するカテゴリを除いた、日々のやりくり費用）の実績ペースを算出する。
+  // 節約すればするほど、この値は随時（描画のたびに）下がって反映される。
+  const variableTx = txs.filter(t => t.type === "expense" && !FIXED_LIKE_CATS.includes(t.cat));
+  const variableSpent = variableTx.reduce((s,t)=>s+t.amount, 0);
+  const dailyPace = elapsedDays > 0 ? variableSpent / elapsedDays : 0;
+
+  // 今のペースのまま月末まで過ごした場合の、変動費の着地予測
+  const projectedVariable = Math.round(dailyPace * totalDays);
+  // 総支出の月末着地予測＝積立＋固定費（確定額）＋変動費（予測額）
+  const projectedExpense = savingsTotal + fixedTotal + projectedVariable;
+  // 月末に残る見込み額（プラスなら余裕、マイナスなら不足の見込み）
+  const projectedBalance = budgetTotal - projectedExpense;
+
   // 予算バー
   // 収入未入力（予算総額0）でも支出（積立・固定費など）が発生している場合は、
   // 「予算オーバー」であることが一目で分かるよう100%超過として扱う
@@ -810,40 +834,27 @@ function renderHome() {
   const bar = document.getElementById("budgetBar");
   bar.style.width = barWidthPct + "%";
 
-  // 対象期間（開始日の翌月同日の前日まで）から理想消化率を計算する
-  const { start } = periodRange(viewPeriodIndex);
-  const nominalEnd = periodNominalEnd(start);
-  const isLatestPeriod = viewPeriodIndex === periods.length - 1;
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const totalDays = daysBetween(start, nominalEnd) + 1;
-  const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
-  const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
-  const idealPct = Math.round(elapsedDays / totalDays * 100);
-  const remaining = budgetTotal - expense;
-  const remainDays = isLatestPeriod ? Math.max(totalDays - elapsedDays, 0) : 0;
-
-  // 消化ペース判定（実際の消化率 vs 理想消化率）
-  const diff = pct - idealPct;
+  // 着地予測ベースの評価（このままのペースで月末を迎えたらどうなるか）
   let statusIcon, statusText, statusColor, barClass;
 
   if (budgetTotal <= 0 && expense > 0) {
     // 収入がまだ入力されておらず、積立・固定費などの支出だけが先行している状態
     statusIcon="🚨"; statusText="収入が未入力です（支出が先行しています）"; statusColor="var(--red)"; barClass="bar-over";
   } else if (!isLatestPeriod) {
-    // 過去の月度
+    // 過去の月度（着地予測ではなく、実際の最終消化率で評価）
     if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
     else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
     else                 { statusIcon="🚨"; statusText="予算を超過しました"; statusColor="var(--red)"; barClass="bar-over"; }
   } else if (pct >= 100) {
     statusIcon="🚨"; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
-  } else if (diff >= 15) {
-    statusIcon="🚨"; statusText="消化ペースが速すぎます"; statusColor="var(--red)"; barClass="bar-over";
-  } else if (diff >= 5) {
-    statusIcon="⚠️"; statusText="やや使いすぎています"; statusColor="var(--amber)"; barClass="bar-warn";
-  } else if (diff >= -10) {
-    statusIcon="✅"; statusText="順調なペースです"; statusColor="var(--green)"; barClass="bar-ok";
+  } else if (projectedBalance < 0) {
+    statusIcon="🚨"; statusText="このペースだと月末に不足する見込みです"; statusColor="var(--red)"; barClass="bar-over";
+  } else if (projectedBalance < budgetTotal * 0.05) {
+    statusIcon="⚠️"; statusText="このペースだとギリギリ乗り切れる見込みです"; statusColor="var(--amber)"; barClass="bar-warn";
+  } else if (projectedBalance < budgetTotal * 0.2) {
+    statusIcon="✅"; statusText="このペースなら順調に乗り切れる見込みです"; statusColor="var(--green)"; barClass="bar-ok";
   } else {
-    statusIcon="💚"; statusText="節約ペースです！"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon="💚"; statusText="このペースなら余裕を持って乗り切れる見込みです"; statusColor="var(--green)"; barClass="bar-ok";
   }
 
   bar.className = "bar-fill " + barClass;
@@ -861,8 +872,8 @@ function renderHome() {
     budgetTotal <= 0 && expense > 0
       ? `不足額 ¥${expense.toLocaleString()}（収入を入力すると解消されます）`
       : isLatestPeriod
-      ? `残り${remainDays}日　${fmt(perDay)}／日`
-      : `(理想:${idealPct}% / 実績:${pct}%)`;
+      ? `月末着地見込み ${fmt(projectedBalance)}（${fmt(perDay)}／日）`
+      : `最終消化率 ${pct}%`;
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
   const recent = [...txs].sort((a,b)=>b.id-a.id);
