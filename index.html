@@ -611,7 +611,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.90"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.91"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2045,7 +2045,9 @@ function receiveFromUrl() {
   );
 
   // レシート記録直後は「1回タップで小窓化」の待機状態にする
+  // （videoの再生だけ先に済ませておき、タップ時は同期的にPinPを要求する）
   pinpPendingAfterSave = true;
+  preparePinPVideo();
 }
 
 // ============================================================
@@ -2108,19 +2110,35 @@ function drawBalanceCanvas() {
   ctx.fillText(balanceText, w / 2, h / 2 + 30);
 }
 
-// PinP開始を試みる（ユーザー操作なしでは失敗する可能性あり）
-async function requestBalancePinP() {
+// 動画の再生だけを事前に済ませておく（これ自体はmuted+passive操作で許可される）
+async function preparePinPVideo() {
   try {
-    if (!document.pictureInPictureEnabled) return;
+    if (!document.pictureInPictureEnabled) return null;
     const video = ensurePinPVideo();
     drawBalanceCanvas();
-    await video.play();
-    if (document.pictureInPictureElement) return; // 既にPinP中
-    await video.requestPictureInPicture();
+    if (video.paused) await video.play();
+    return video;
   } catch (err) {
-    // 自動開始できない場合はそのまま通常表示にとどまる（無音で失敗させる）
-    console.log("PinP自動開始できませんでした:", err);
+    console.log("PinP用videoの準備に失敗:", err);
+    return null;
   }
+}
+
+// タップされたその場（同期的）でPinPを要求する
+// ※ awaitを挟むとユーザー操作の文脈が切れてiOSに拒否されるため、
+//   video.play()は事前に済ませておき、ここではrequestPictureInPictureだけを呼ぶ
+function requestBalancePinPSync(video) {
+  if (!video || document.pictureInPictureElement) return;
+  drawBalanceCanvas();
+  video.requestPictureInPicture().catch(err => {
+    console.log("PinP開始できませんでした:", err);
+  });
+}
+
+// 15秒無操作後などの再開時（こちらはタップ起点ではないので同様に失敗しうる）
+async function requestBalancePinP() {
+  const video = await preparePinPVideo();
+  requestBalancePinPSync(video);
 }
 
 // 通常表示に戻ってからの無操作タイマー（15秒後に再度PinP化）
@@ -2135,13 +2153,13 @@ function resetPinPInactivityTimer() {
   }, PINP_INACTIVITY_MS);
 }
 
-// ページ内のタップで、保存直後の待機中なら初回PinPを開始する
-document.addEventListener("pointerdown", () => {
+// ページ内のタップで、保存直後の待機中なら初回PinPを同期的に開始する
+document.addEventListener("click", () => {
   if (pinpPendingAfterSave && !document.pictureInPictureElement) {
     pinpPendingAfterSave = false;
-    requestBalancePinP();
+    requestBalancePinPSync(pinpVideo);
   }
-}, { passive: true });
+});
 
 // ページ内の操作（タップ・スクロールなど）があるたびに、通常表示中は無操作タイマーをリセット
 ["pointerdown", "scroll", "keydown"].forEach(evt => {
