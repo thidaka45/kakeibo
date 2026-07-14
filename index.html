@@ -611,7 +611,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.89"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.88"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2043,103 +2043,7 @@ function receiveFromUrl() {
       ? `${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
-
-  // レシート記録直後は、残高だけを示すPinP（ピクチャ・イン・ピクチャ）を試みる
-  requestBalancePinP();
 }
-
-// ============================================================
-// PinP（残高だけを小窓表示）
-// ============================================================
-let pinpVideo = null;
-let pinpCanvas = null;
-let pinpInactivityTimer = null;
-const PINP_INACTIVITY_MS = 15000; // 15秒操作がなければ再度PinP化
-
-// 残高だけを描いたCanvas→動画ストリームを用意する（初回のみ）
-function ensurePinPVideo() {
-  if (pinpVideo) return pinpVideo;
-
-  pinpCanvas = document.createElement("canvas");
-  pinpCanvas.width = 480;
-  pinpCanvas.height = 270;
-
-  drawBalanceCanvas();
-
-  const stream = pinpCanvas.captureStream(2); // 2fps で十分（静止画に近い）
-  pinpVideo = document.createElement("video");
-  pinpVideo.muted = true;
-  pinpVideo.playsInline = true;
-  pinpVideo.srcObject = stream;
-  pinpVideo.style.position = "fixed";
-  pinpVideo.style.width = "1px";
-  pinpVideo.style.height = "1px";
-  pinpVideo.style.opacity = "0";
-  pinpVideo.style.pointerEvents = "none";
-  document.body.appendChild(pinpVideo);
-
-  // 小窓がタップされ、PWAが前面に復帰したタイミングでホーム表示へ戻す
-  pinpVideo.addEventListener("leavepictureinpicture", () => {
-    showPage("home");
-    renderHome();
-    resetPinPInactivityTimer();
-  });
-
-  return pinpVideo;
-}
-
-// 現在の残高をCanvasに描画する
-function drawBalanceCanvas() {
-  if (!pinpCanvas) return;
-  const ctx = pinpCanvas.getContext("2d");
-  const w = pinpCanvas.width, h = pinpCanvas.height;
-
-  ctx.fillStyle = "#1D9E75";
-  ctx.fillRect(0, 0, w, h);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "20px -apple-system, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("現在の残高", w / 2, h / 2 - 40);
-
-  const balanceText = document.getElementById("balanceAmount")?.textContent || "¥0";
-  ctx.font = "bold 56px -apple-system, sans-serif";
-  ctx.fillText(balanceText, w / 2, h / 2 + 30);
-}
-
-// PinP開始を試みる（ユーザー操作なしでは失敗する可能性あり）
-async function requestBalancePinP() {
-  try {
-    if (!document.pictureInPictureEnabled) return;
-    const video = ensurePinPVideo();
-    drawBalanceCanvas();
-    await video.play();
-    if (document.pictureInPictureElement) return; // 既にPinP中
-    await video.requestPictureInPicture();
-  } catch (err) {
-    // 自動開始できない場合はそのまま通常表示にとどまる（無音で失敗させる）
-    console.log("PinP自動開始できませんでした:", err);
-  }
-}
-
-// 通常表示に戻ってからの無操作タイマー（15秒後に再度PinP化）
-function resetPinPInactivityTimer() {
-  clearTimeout(pinpInactivityTimer);
-  if (!document.pictureInPictureEnabled) return;
-  pinpInactivityTimer = setTimeout(() => {
-    // PinP中でなければ再度小窓化を試みる
-    if (!document.pictureInPictureElement) {
-      requestBalancePinP();
-    }
-  }, PINP_INACTIVITY_MS);
-}
-
-// ページ内の操作（タップ・スクロールなど）があるたびにタイマーをリセット
-["pointerdown", "scroll", "keydown"].forEach(evt => {
-  document.addEventListener(evt, () => {
-    if (!document.pictureInPictureElement) resetPinPInactivityTimer();
-  }, { passive: true });
-});
 
 // ============================================================
 // 初期化
