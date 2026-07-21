@@ -25,6 +25,7 @@
   --orange:  #D9730D;
   --orange-l:#FDF1E6;
   --orange-d:#A85A0A;
+  --purple:  #6D4AAE;
   --bg:      #F0FAF4;
   --card:    #FFFFFF;
   --text:    #1A1A1A;
@@ -47,6 +48,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .page{display:none;padding:10px 14px calc(20px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
 #page-savings.active,#page-fixedcosts.active{display:flex;}
+#page-home.active{display:flex;flex-direction:column;}
 
 /* ===== ホーム ===== */
 .month-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
@@ -260,12 +262,22 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <!-- 取引履歴・レシート記録ボタンは非表示（JS互換のため要素のみ残す） -->
+  <!-- レシート取込みボタン（残りスペースいっぱいに配置） -->
+  <button id="receiptBtn"
+          style="position:relative;overflow:hidden;flex:1;min-height:64px;width:100%;margin-top:14px;border-radius:var(--radius);border:none;background:var(--purple);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;box-sizing:border-box;-webkit-user-select:none;user-select:none;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"
+          onpointerdown="startHoldReceipt()" onpointerup="cancelHoldReceipt()"
+          onpointerleave="cancelHoldReceipt()" onpointercancel="cancelHoldReceipt()">
+    <span id="receiptBtnFill" style="position:absolute;top:0;left:0;bottom:0;width:0%;background:rgba(255,255,255,.35);pointer-events:none;"></span>
+    <span style="position:relative;font-size:30px;line-height:1;">📷</span>
+    <span style="position:relative;">長押しでレシート・領収書・請求書を記録</span>
+  </button>
+  <div style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.6;text-align:center;">
+    「背面タップ」にこのShortcutを割り当てると、ワンタップで記録できます。
+  </div>
+
+  <!-- 取引履歴は非表示（JS互換のため要素のみ残す） -->
   <div style="display:none;">
     <div class="tx-list" id="txList"></div>
-    <button id="receiptBtn" onpointerdown="startHoldReceipt()" onpointerup="cancelHoldReceipt()" onpointerleave="cancelHoldReceipt()" onpointercancel="cancelHoldReceipt()">
-      <span id="receiptBtnFill"></span>
-    </button>
   </div>
 
 </div>
@@ -620,7 +632,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.95"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.97"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
