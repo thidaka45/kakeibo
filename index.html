@@ -51,18 +51,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ===== ホーム ===== */
 .month-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .month-nav{background:none;border:none;font-size:20px;cursor:pointer;color:var(--sub);padding:4px 8px;}
-.month-title{font-size:14px;font-weight:700;color:var(--text);}
+.month-title{font-size:20px;font-weight:700;color:var(--text);}
 
 /* 残高カード */
 .balance-card{background:var(--green);border-radius:var(--radius);padding:22px 20px 20px;margin-bottom:8px;color:#fff;}
-.balance-label{font-size:14px;opacity:.85;margin-bottom:6px;}
+.balance-label{font-size:17px;font-weight:600;opacity:.9;margin-bottom:6px;}
 .balance-amount{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1;}
 .balance-sub{display:flex;gap:16px;margin-top:6px;}
 .balance-sub-item{font-size:11px;opacity:.85;}
 .balance-sub-item span{display:block;font-size:13px;font-weight:600;margin-top:1px;}
 
 /* 予算バー */
-.budget-card{background:var(--card);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 8px rgba(0,0,0,.05);}
+.budget-card{background:var(--card);border-radius:var(--radius);padding:16px 14px;margin-bottom:8px;box-shadow:0 1px 8px rgba(0,0,0,.05);}
 .budget-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
 .budget-label{font-size:13px;font-weight:600;color:var(--text);}
 .budget-nums{font-size:12px;color:var(--sub);}
@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .icon-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;font-family:inherit;padding:0;}
 .icon-btn .icon-square{width:76px;height:76px;border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgba(0,0,0,.08);}
 .icon-btn .icon-square svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.icon-btn .icon-label{font-size:14px;font-weight:700;color:var(--text);}
+.icon-btn .icon-label{font-size:15px;font-weight:700;color:var(--text);}
 .icon-btn:active .icon-square{opacity:.75;}
 
 /* 各画面共通・ホームへ戻るFABボタン */
@@ -215,8 +215,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="bar-track" style="display:none;"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況（評価行） -->
     <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;">
-      <span id="budgetStatusIcon" style="font-size:18px;"></span>
-      <span id="budgetStatusText" style="font-size:13px;font-weight:600;"></span>
+      <span id="budgetStatusIcon" style="font-size:26px;"></span>
+      <span id="budgetStatusText" style="font-size:17px;font-weight:700;line-height:1.4;"></span>
     </div>
   </div>
 
@@ -226,7 +226,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--blue);">
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </div>
-      <span class="icon-label">履歴</span>
+      <span class="icon-label">収支履歴</span>
     </button>
     <button class="icon-btn" onclick="showPage('input'); setType('income');">
       <div class="icon-square" style="background:var(--green);">
@@ -244,13 +244,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--orange);">
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
       </div>
-      <span class="icon-label">固定</span>
+      <span class="icon-label">固定費</span>
     </button>
     <button class="icon-btn" onclick="showPage('savings')">
       <div class="icon-square" style="background:var(--amber);">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg>
       </div>
-      <span class="icon-label">積立</span>
+      <span class="icon-label">積立計画</span>
     </button>
     <button class="icon-btn" onclick="showPage('utility')">
       <div class="icon-square" style="background:var(--sub);">
@@ -620,7 +620,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.94"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.95"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
