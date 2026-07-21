@@ -216,9 +216,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <div class="bar-track" style="display:none;"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況（評価行） -->
-    <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;">
-      <span id="budgetStatusIcon" style="font-size:26px;"></span>
-      <span id="budgetStatusText" style="font-size:17px;font-weight:700;line-height:1.4;"></span>
+    <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;min-width:0;">
+      <span id="budgetStatusIcon" style="font-size:26px;flex-shrink:0;"></span>
+      <span id="budgetStatusText" style="font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;"></span>
     </div>
   </div>
 
@@ -273,9 +273,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </span>
     <span class="icon-label" style="position:relative;flex-shrink:0;text-align:center;padding:0 20px;line-height:1.5;">長押しでレシート・領収書・請求書を記録</span>
   </button>
-  <div style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.6;text-align:center;">
-    「背面タップ」にこのShortcutを割り当てると、ワンタップで記録できます。
-  </div>
 
   <!-- 取引履歴は非表示（JS互換のため要素のみ残す） -->
   <div style="display:none;">
@@ -634,7 +631,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.1.02"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.1.04"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -849,22 +846,22 @@ function renderHome() {
 
   if (budgetTotal <= 0 && expense > 0) {
     // 収入がまだ入力されておらず、積立・固定費などの支出だけが先行している状態
-    statusIcon="🚨"; statusText="収入が未入力です（支出が先行しています）"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon="🚨"; statusText="収入未入力（支出が先行）"; statusColor="var(--red)"; barClass="bar-over";
   } else if (!isLatestPeriod) {
     // 過去の月度（着地予測ではなく、実際の最終消化率で評価）
-    if (pct <= 80)       { statusIcon="✅"; statusText="予算内で収まりました"; statusColor="var(--green)"; barClass="bar-ok"; }
-    else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過しました"; statusColor="var(--amber)"; barClass="bar-warn"; }
-    else                 { statusIcon="🚨"; statusText="予算を超過しました"; statusColor="var(--red)"; barClass="bar-over"; }
+    if (pct <= 80)       { statusIcon="✅"; statusText="予算内で達成"; statusColor="var(--green)"; barClass="bar-ok"; }
+    else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過"; statusColor="var(--amber)"; barClass="bar-warn"; }
+    else                 { statusIcon="🚨"; statusText="予算を超過"; statusColor="var(--red)"; barClass="bar-over"; }
   } else if (pct >= 100) {
     statusIcon="🚨"; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < 0) {
-    statusIcon="🚨"; statusText="このペースだと月末に不足する見込みです"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon="🚨"; statusText="月末に不足の見込み"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < budgetTotal * 0.05) {
-    statusIcon="⚠️"; statusText="このペースだとギリギリ乗り切れる見込みです"; statusColor="var(--amber)"; barClass="bar-warn";
+    statusIcon="⚠️"; statusText="ギリギリ乗り切れる見込み"; statusColor="var(--amber)"; barClass="bar-warn";
   } else if (projectedBalance < budgetTotal * 0.2) {
-    statusIcon="✅"; statusText="このペースなら順調に乗り切れる見込みです"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon="✅"; statusText="順調に乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   } else {
-    statusIcon="💚"; statusText="このペースなら余裕を持って乗り切れる見込みです"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon="💚"; statusText="余裕を持って乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   }
 
   bar.className = "bar-fill " + barClass;
