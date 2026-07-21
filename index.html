@@ -93,13 +93,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
 .tx-list{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);}
 #txList{max-height:270px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.tx-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);}
+.tx-item{display:flex;align-items:center;gap:10px;padding:13px 12px;border-bottom:1px solid var(--border);}
 .tx-item:last-child{border-bottom:none;}
-.tx-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .tx-info{flex:1;}
-.tx-name{font-size:13px;font-weight:500;color:var(--text);}
-.tx-date{font-size:10px;color:var(--muted);}
-.tx-amount{font-size:12px;font-weight:700;}
+.tx-name{font-size:16px;font-weight:600;color:var(--text);}
+.tx-date{font-size:13px;color:var(--sub);margin-top:2px;}
+.tx-amount{font-size:17px;font-weight:700;}
 .tx-amount.income{color:var(--green);}
 .tx-amount.expense{color:var(--red);}
 
@@ -342,26 +342,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
   <!-- 収入・支出の履歴（タップで編集・削除） -->
-  <div class="graph-card">
-    <div class="graph-title">収入・支出の履歴</div>
-    <div style="font-size:11px;color:var(--muted);margin:-8px 0 8px;">タップして内容の更新・削除ができます</div>
+  <div class="graph-card" style="padding:14px 12px;">
+    <div class="graph-title" style="font-size:17px;">収入・支出の履歴</div>
+    <div style="font-size:13px;color:var(--sub);margin:-6px 0 10px;">タップして内容の更新・削除ができます</div>
     <div class="tx-list" id="historyTxList" style="box-shadow:none;"></div>
   </div>
-  <!-- 月次棒グラフ -->
-  <div class="graph-card">
-    <div class="graph-title">月別収支（直近6ヶ月）</div>
-    <!-- 棒グラフ＋月ラベルを一体化 -->
-    <div id="barChart" style="display:flex;align-items:flex-end;gap:6px;height:170px;margin-bottom:0;overflow:hidden;"></div>
-    <div class="legend" style="margin-top:6px;">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>支出</div>
-      <div class="legend-item"><div class="legend-dot" style="background:var(--green);opacity:.6"></div>収入</div>
-    </div>
-    <!-- 選択月の収支詳細 -->
-    <div id="monthDetail" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);"></div>
-  </div>
-  <!-- カテゴリ別 -->
-  <div class="graph-card">
-    <div class="graph-title">カテゴリ別支出</div>
+  <!-- 月次棒グラフ・カテゴリ別支出は非表示（JS互換のため要素のみ残す） -->
+  <div style="display:none;">
+    <div id="barChart"></div>
+    <div id="monthDetail"></div>
     <div class="cat-summary" id="catSummary"></div>
   </div>
 </div>
@@ -645,7 +634,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.2.00"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.2.01"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
