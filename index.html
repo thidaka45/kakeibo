@@ -634,7 +634,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.2.01"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.2.02"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2138,6 +2138,18 @@ function finishNewMonthFlow() {
 // 期待するURL形式:
 //   https://thidaka45.github.io/kakeibo/?data=YYYY%2FMM%2FDD%2C店名%2C金額%2Cカテゴリ
 // dataパラメータの中身（デコード後）: "2026/07/02,〇〇スーパー,1280,食費"
+// レシート等から受け取った日付文字列を "YYYY-MM-DD"（ゼロ埋め）に正規化する。
+// 期間（月度）の判定は日付の文字列比較で行っているため、ゼロ埋めされていない
+// 日付（例: "2026/7/22"）が混じると比較がずれ、取引がどの月度にも
+// 属さない扱いになってしまう不具合があったための対策。
+function normalizeDateStr(raw) {
+  if (!raw) return null;
+  const m = String(raw).trim().match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
 function receiveFromUrl() {
   const params = new URLSearchParams(location.search);
   const raw = params.get("data");
@@ -2153,7 +2165,7 @@ function receiveFromUrl() {
   }
   const [rawDate, store, rawAmount, rawCat] = parts;
 
-  const date = rawDate.replace(/\//g, "-");
+  const date = normalizeDateStr(rawDate);
   const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(amount)) {
     showToast("受け取ったデータの形式が正しくありませんでした");
@@ -2188,10 +2200,25 @@ function receiveFromUrl() {
 // ============================================================
 // 初期化
 // ============================================================
+// 過去に不正な形式（ゼロ埋めなし等）で保存されてしまった取引の日付を修復する。
+// 起動のたびに軽くチェックし、直すべきものがあれば正規化して保存し直す。
+function migrateTxDates() {
+  const txs = loadTx();
+  let changed = false;
+  txs.forEach(t => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date || "")) {
+      const fixed = normalizeDateStr(t.date);
+      if (fixed) { t.date = fixed; changed = true; }
+    }
+  });
+  if (changed) saveTx(txs);
+}
+
 function init() {
   // バージョン表示
   document.getElementById("versionText").textContent = APP_VERSION;
 
+  migrateTxDates();
   receiveFromUrl();
 
   const today = new Date().toISOString().slice(0,10);
