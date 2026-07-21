@@ -54,9 +54,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .month-title{font-size:14px;font-weight:700;color:var(--text);}
 
 /* 残高カード */
-.balance-card{background:var(--green);border-radius:var(--radius);padding:12px 16px 10px;margin-bottom:8px;color:#fff;}
-.balance-label{font-size:12px;opacity:.8;margin-bottom:4px;}
-.balance-amount{font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1;}
+.balance-card{background:var(--green);border-radius:var(--radius);padding:22px 20px 20px;margin-bottom:8px;color:#fff;}
+.balance-label{font-size:14px;opacity:.85;margin-bottom:6px;}
+.balance-amount{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1;}
 .balance-sub{display:flex;gap:16px;margin-top:6px;}
 .balance-sub-item{font-size:11px;opacity:.85;}
 .balance-sub-item span{display:block;font-size:13px;font-weight:600;margin-top:1px;}
@@ -77,11 +77,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-val{font-size:10px;font-weight:600;color:var(--text);}
 
 /* ダッシュボード（新TOP）画面遷移アイコン */
-.icon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;margin-top:14px;}
-.icon-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-family:inherit;padding:0;}
-.icon-btn .icon-square{width:56px;height:56px;border-radius:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgba(0,0,0,.08);}
-.icon-btn .icon-square svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.icon-btn .icon-label{font-size:11px;font-weight:600;color:var(--text);}
+.icon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 10px;margin-top:16px;}
+.icon-btn{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;cursor:pointer;font-family:inherit;padding:0;}
+.icon-btn .icon-square{width:76px;height:76px;border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 6px rgba(0,0,0,.08);}
+.icon-btn .icon-square svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.icon-btn .icon-label{font-size:14px;font-weight:700;color:var(--text);}
 .icon-btn:active .icon-square{opacity:.75;}
 
 /* 各画面共通・ホームへ戻るFABボタン */
@@ -620,7 +620,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.93"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.0.94"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
