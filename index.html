@@ -262,14 +262,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <!-- レシート取込みボタン（残りスペースいっぱいに配置） -->
+  <!-- レシート取込みボタン（アイコンと同じ見た目・残りスペースいっぱいに配置） -->
   <button id="receiptBtn"
-          style="position:relative;overflow:hidden;flex:1;min-height:64px;width:100%;margin-top:14px;border-radius:var(--radius);border:none;background:var(--purple);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;box-sizing:border-box;-webkit-user-select:none;user-select:none;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"
+          style="position:relative;overflow:hidden;flex:1;min-height:64px;width:100%;padding:0;margin-top:14px;border-radius:var(--radius);border:none;background:none;box-shadow:none;cursor:pointer;font-family:inherit;box-sizing:border-box;-webkit-user-select:none;user-select:none;touch-action:manipulation;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;"
           onpointerdown="startHoldReceipt()" onpointerup="cancelHoldReceipt()"
           onpointerleave="cancelHoldReceipt()" onpointercancel="cancelHoldReceipt()">
-    <span id="receiptBtnFill" style="position:absolute;top:0;left:0;bottom:0;width:0%;background:rgba(255,255,255,.35);pointer-events:none;"></span>
-    <span style="position:relative;font-size:30px;line-height:1;">📷</span>
-    <span style="position:relative;">長押しでレシート・領収書・請求書を記録</span>
+    <span id="receiptBtnFill" style="position:absolute;top:0;left:0;bottom:0;width:0%;background:rgba(109,74,174,.18);pointer-events:none;"></span>
+    <span style="position:relative;flex:1;width:100%;background:var(--purple);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 24 24" style="width:72px;height:72px;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    </span>
+    <span class="icon-label" style="position:relative;flex-shrink:0;text-align:center;padding:0 20px;line-height:1.5;">長押しでレシート・領収書・請求書を記録</span>
   </button>
   <div style="font-size:11px;color:var(--muted);margin:8px 0 0;line-height:1.6;text-align:center;">
     「背面タップ」にこのShortcutを割り当てると、ワンタップで記録できます。
@@ -632,7 +634,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.0.97"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.1.01"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
