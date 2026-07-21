@@ -230,13 +230,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
       <span class="icon-label">収支履歴</span>
     </button>
-    <button class="icon-btn" onclick="showPage('input'); setType('income');">
+    <button class="icon-btn" onclick="newTxEntry('income')">
       <div class="icon-square" style="background:var(--green);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
       </div>
       <span class="icon-label">収入入力</span>
     </button>
-    <button class="icon-btn" onclick="showPage('input'); setType('expense');">
+    <button class="icon-btn" onclick="newTxEntry('expense')">
       <div class="icon-square" style="background:var(--red);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
       </div>
@@ -283,6 +283,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 入力 ===== -->
 <div class="page" id="page-input">
+  <!-- 編集モード時のバナー -->
+  <div id="editTxBanner" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:8px 12px;margin-bottom:6px;font-size:12px;color:var(--blue);font-weight:600;display:flex;align-items:center;justify-content:space-between;">
+    <span>この取引を編集しています</span>
+    <button onclick="cancelTxEdit()" style="border:none;background:none;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">キャンセル</button>
+  </div>
+
   <!-- 支出・収入トグル -->
   <div class="type-toggle" style="margin-bottom:6px;">
     <button class="type-btn active-expense" id="typeExpense" onclick="setType('expense')">支出</button>
@@ -305,6 +311,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
+    <!-- 削除ボタン（編集モードのみ表示） -->
+    <button id="deleteTxBtn" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
   </div>
 
   <!-- テンキー -->
@@ -332,6 +340,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="graphMonthTitle"></span>
     <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
+  </div>
+  <!-- 収入・支出の履歴（タップで編集・削除） -->
+  <div class="graph-card">
+    <div class="graph-title">収入・支出の履歴</div>
+    <div style="font-size:11px;color:var(--muted);margin:-8px 0 8px;">タップして内容の更新・削除ができます</div>
+    <div class="tx-list" id="historyTxList" style="box-shadow:none;"></div>
   </div>
   <!-- 月次棒グラフ -->
   <div class="graph-card">
@@ -587,7 +601,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 ">v<span id="versionText"></span></div>
 
 <!-- ===== ホームへ戻るボタン（下部ナビの代わり） ===== -->
-<button id="homeFab" onclick="showPage('home')" aria-label="ホームへ戻る">🏠</button>
+<button id="homeFab" onclick="resetEditMode(); showPage('home')" aria-label="ホームへ戻る">🏠</button>
 
 <script>
 // ============================================================
@@ -631,7 +645,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.1.04"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.2.00"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -913,6 +927,7 @@ function renderHome() {
 let inputType = "expense";
 let inputAmt  = "";
 let selectedCat = "";
+let editingTxId = null; // 編集中の取引ID（nullなら新規入力）
 
 function setType(type) {
   inputType = type;
@@ -1023,22 +1038,41 @@ function submitTx() {
   if (!amt) { showToast("金額を入力してください"); return; }
   if (!selectedCat) { showToast("カテゴリを選択してください"); return; }
 
+  const date = document.getElementById("dateInput").value || new Date().toISOString().slice(0,10);
+  const memo = document.getElementById("memoInput").value || "";
   const txs = loadTx();
-  txs.push({
-    id: Date.now(),
-    type: inputType,
-    cat: selectedCat,
-    amount: amt,
-    memo: document.getElementById("memoInput").value || "",
-    date: document.getElementById("dateInput").value || new Date().toISOString().slice(0,10),
-  });
-  saveTx(txs);
-  adjustBalance(inputType === "expense" ? -amt : amt);
+
+  if (editingTxId !== null) {
+    // 編集モード：既存の取引を更新する
+    const idx = txs.findIndex(t => t.id === editingTxId);
+    if (idx === -1) { showToast("対象の取引が見つかりませんでした"); resetEditMode(); return; }
+    const old = txs[idx];
+    // 残高補正：旧内容の影響を取り消してから、新内容の影響を反映する
+    adjustBalance(old.type === "expense" ? old.amount : -old.amount);
+    txs[idx] = { ...old, type: inputType, cat: selectedCat, amount: amt, memo, date };
+    saveTx(txs);
+    adjustBalance(inputType === "expense" ? -amt : amt);
+    showToast("取引を更新しました");
+    resetEditMode();
+  } else {
+    // 新規入力
+    txs.push({
+      id: Date.now(),
+      type: inputType,
+      cat: selectedCat,
+      amount: amt,
+      memo,
+      date,
+      source: "manual",
+    });
+    saveTx(txs);
+    adjustBalance(inputType === "expense" ? -amt : amt);
+    showToast(inputType==="expense" ? "支出を記録しました" : "収入を記録しました");
+  }
 
   inputAmt = "";
   document.getElementById("amountDisplay").textContent = "¥0";
   document.getElementById("memoInput").value = "";
-  showToast(inputType==="expense" ? "支出を記録しました" : "収入を記録しました");
   renderHome();
 
   // 「新しい月を開始」フロー中に収入を記録した場合、続けて積立の確認に案内する
@@ -1047,6 +1081,69 @@ function submitTx() {
     showPage("savings");
     showToast("収入を記録しました。続けて積立プランを確認してください");
   }
+}
+
+// 履歴画面から取引をタップして編集を開始する
+function openTxEdit(id) {
+  const tx = loadTx().find(t => t.id === id);
+  if (!tx) return;
+  editingTxId = id;
+
+  showPage("input");
+  setType(tx.type);
+  selectedCat = tx.cat;
+  renderCatGrid();
+
+  inputAmt = String(tx.amount);
+  document.getElementById("amountDisplay").textContent = "¥" + tx.amount.toLocaleString("ja-JP");
+  document.getElementById("dateInput").value = tx.date;
+  document.getElementById("memoInput").value = tx.memo || "";
+
+  document.getElementById("editTxBanner").style.display = "flex";
+  document.getElementById("deleteTxBtn").style.display = "block";
+  document.getElementById("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
+}
+
+// 編集をキャンセルして通常の新規入力状態に戻す
+function cancelTxEdit() {
+  resetEditMode();
+  showPage("home");
+}
+
+// 編集中の取引を削除する
+function deleteTxEdit() {
+  if (editingTxId === null) return;
+  if (!confirm("この取引を削除します。よろしいですか？")) return;
+  const txs = loadTx();
+  const idx = txs.findIndex(t => t.id === editingTxId);
+  if (idx !== -1) {
+    const old = txs[idx];
+    adjustBalance(old.type === "expense" ? old.amount : -old.amount);
+    txs.splice(idx, 1);
+    saveTx(txs);
+  }
+  showToast("取引を削除しました");
+  resetEditMode();
+  renderHome();
+  showPage("graph");
+}
+
+// 編集モードの状態・表示をリセットする（新規入力状態に戻す）
+function resetEditMode() {
+  editingTxId = null;
+  const banner = document.getElementById("editTxBanner");
+  const delBtn = document.getElementById("deleteTxBtn");
+  if (banner) banner.style.display = "none";
+  if (delBtn) delBtn.style.display = "none";
+  document.getElementById("submitBtn").textContent =
+    inputType === "expense" ? "支出を記録" : "収入を記録";
+}
+
+// ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
+function newTxEntry(type) {
+  resetEditMode();
+  showPage("input");
+  setType(type);
 }
 
 // ============================================================
@@ -1063,6 +1160,7 @@ function renderGraph() {
       `<div style="width:100%;text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">「その他」タブから新しい月を開始してください</div>`;
     document.getElementById("monthDetail").innerHTML = "";
     document.getElementById("catSummary").innerHTML = "";
+    document.getElementById("historyTxList").innerHTML = "";
     updatePeriodNavButtons();
     return;
   }
@@ -1123,6 +1221,9 @@ function renderGraph() {
   // カテゴリ別（選択した月度）
   renderCatSummary(selectedGraphPeriodIdx);
 
+  // 収入・支出の履歴（選択した月度）
+  renderHistoryTxList(selectedGraphPeriodIdx);
+
   updatePeriodNavButtons();
 }
 
@@ -1170,6 +1271,34 @@ function renderCatSummary(idx) {
           <div class="cat-summary-val" style="color:${c.total>0?'var(--text)':'var(--muted)'};">${c.total>0?fmt(c.total):'—'}</div>
         </div>`
       ).join("");
+}
+
+// 収入・支出の履歴リスト（タップで編集・削除、レシート取込分は📷バッジ表示）
+function renderHistoryTxList(idx) {
+  const el = document.getElementById("historyTxList");
+  if (!el) return;
+  const periods = ensurePeriods();
+  if (!periods.length || idx === null || !periods[idx]) { el.innerHTML = ""; return; }
+
+  const txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
+  const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
+
+  el.innerHTML = txs.length === 0
+    ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">この月度の取引はありません</div>`
+    : txs.map(t => {
+        const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
+        const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
+        const d = new Date(t.date);
+        const receiptBadge = t.source === "receipt" ? `<span title="レシート取込" style="font-size:11px;margin-left:4px;">📷</span>` : "";
+        return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
+          <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
+          <div class="tx-info">
+            <div class="tx-name">${t.memo || c.label}${receiptBadge}</div>
+            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}  ${c.label}</div>
+          </div>
+          <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
+        </div>`;
+      }).join("");
 }
 
 // ============================================================
@@ -2052,7 +2181,8 @@ function receiveFromUrl() {
     cat,
     amount,
     memo: store || "",
-    date
+    date,
+    source: "receipt"
   });
   saveTx(txs);
   adjustBalance(-amount);
