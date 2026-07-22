@@ -682,7 +682,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.4.01"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.00"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1325,11 +1325,21 @@ function renderCatSummary(idx) {
 }
 
 // 収入・支出の履歴リスト（タップで編集・削除、レシート取込分は📷バッジ表示）
+// レシート画像を表示するためのShortcut名（Shortcutsアプリ側で同名のショートカットを
+// 作成し、テキスト入力（識別子）を受け取ってFilesアプリ内の該当画像を検索・表示するようにする）
+const RECEIPT_VIEW_SHORTCUT_NAME = "レシート表示";
+
 // レシート取込みバッジをタップしたときの処理。
-// 現状、このアプリは画像そのものは保存していない（Shortcuts経由でテキスト化された
-// 情報のみを受け取る仕組みのため）。タップ時は取込み元の情報を案内する。
+// 画像そのものはアプリに保存せず、スマホ内（Filesアプリ等）に置いたままにしている。
+// 識別子（ファイル名など）をもとに、Shortcuts側の表示用ショートカットを呼び出す。
 function showReceiptInfo(id) {
-  showToast("この取引はレシート撮影から取り込まれました（画像データは保存されていません）");
+  const tx = loadTx().find(t => t.id === id);
+  if (!tx || !tx.receiptRef) {
+    showToast("この取引に紐づく画像の識別子がありません（画像はスマホ内に保存する運用です）");
+    return;
+  }
+  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}`;
+  location.href = url;
 }
 
 function renderHistoryTxList(idx) {
@@ -2244,7 +2254,8 @@ function receiveFromUrl() {
     showToast("受け取ったデータの形式が正しくありませんでした");
     return;
   }
-  const [rawDate, store, rawAmount, rawCat] = parts;
+  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（Filesアプリ内のファイル名など）
+  const [rawDate, store, rawAmount, rawCat, rawRef] = parts;
 
   const date = normalizeDateStr(rawDate);
   const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
@@ -2264,7 +2275,8 @@ function receiveFromUrl() {
     amount,
     memo: store || "",
     date,
-    source: "receipt"
+    source: "receipt",
+    receiptRef: rawRef || null // 画像本体は保存せず、スマホ内の画像を後から呼び出すための識別子のみ保持する
   });
   saveTx(txs);
   adjustBalance(-amount);
