@@ -121,6 +121,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-label{font-size:12px;color:var(--sub);}
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:16px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 #catGrid_expense option,#catGrid_income option{font-size:17px;font-weight:600;font-family:inherit;}
+#catGrid_expense.cat-select-empty,#catGrid_income.cat-select-empty{color:var(--muted);font-weight:400;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
@@ -681,7 +682,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.17"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.18"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1001,9 +1002,11 @@ function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
   const optStyle = 'style="font-size:17px;font-weight:600;"';
+  const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
   sel.innerHTML =
-    `<option ${optStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
+    `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
     cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
+  sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
 }
 
@@ -1138,7 +1141,7 @@ function openTxEdit(id) {
 
   F("deleteTxBtn").style.display = "block";
   F("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
-  document.getElementById("pageName_" + tx.type).textContent = tx.type === "expense" ? "支出更新" : "収入更新";
+  document.getElementById("pageName_" + tx.type).textContent = tx.type === "expense" ? "支出履歴更新" : "収入履歴更新";
 }
 
 // 編集をキャンセルして通常の新規入力状態に戻す
