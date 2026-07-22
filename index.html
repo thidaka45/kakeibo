@@ -301,7 +301,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- メモ -->
     <div style="margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
-        style="padding:6px 10px;font-size:16px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn_expense" onclick="submitTx()" style="padding:10px;">支出を記録</button>
@@ -343,7 +343,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- メモ -->
     <div style="margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
-        style="padding:6px 10px;font-size:16px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn income" id="submitBtn_income" onclick="submitTx()" style="padding:10px;">収入を記録</button>
@@ -674,7 +674,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.08"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.09"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -973,9 +973,9 @@ function setType(type) {
 
   renderCatGrid();
 
-  // メモ欄の高さは支出・収入とも3行程度に統一
+  // メモ欄の高さは支出・収入とも2行程度に統一
   requestAnimationFrame(() => {
-    F("memoInput").style.height = "84px";
+    F("memoInput").style.height = "58px";
   });
 }
 
