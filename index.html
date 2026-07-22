@@ -94,7 +94,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   font-size:15px;font-weight:700;color:var(--text);
   cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .home-btn:active{background:var(--bg);}
-.page-toolbar .page-name{flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--text);}
+.page-toolbar .page-name{font-size:22px;font-weight:700;color:var(--text);margin-left:1em;}
 
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
@@ -242,19 +242,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--green);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
       </div>
-      <span class="icon-label">収入入力</span>
+      <span class="icon-label">収入登録</span>
     </button>
     <button class="icon-btn" onclick="newTxEntry('expense')">
       <div class="icon-square" style="background:var(--red);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
       </div>
-      <span class="icon-label">支出入力</span>
+      <span class="icon-label">支出登録</span>
     </button>
     <button class="icon-btn" onclick="showPage('fixedcosts')">
       <div class="icon-square" style="background:var(--orange);">
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
       </div>
-      <span class="icon-label">固定費</span>
+      <span class="icon-label">固定費用</span>
     </button>
     <button class="icon-btn" onclick="showPage('savings')">
       <div class="icon-square" style="background:var(--amber);">
@@ -266,7 +266,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--sub);">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
       </div>
-      <span class="icon-label">その他</span>
+      <span class="icon-label">補助機能</span>
     </button>
   </div>
 
@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 支出入力 ===== -->
 <div class="page" id="page-expense">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name">支出入力</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_expense">支出登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 収入入力 ===== -->
 <div class="page" id="page-income">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name">収入入力</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_income">収入登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -519,7 +519,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== ユーティリティ ===== -->
 <div class="page" id="page-utility">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">その他</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">補助機能</span></div>
   <div class="section-title" style="margin-top:4px">データのバックアップ</div>
   <div class="export-section">
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
@@ -553,7 +553,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 固定費 ===== -->
 <div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">固定費</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">固定費用</span></div>
   <div class="section-title" style="margin-top:4px">固定費管理</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -681,7 +681,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.15"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.16"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1138,6 +1138,7 @@ function openTxEdit(id) {
 
   F("deleteTxBtn").style.display = "block";
   F("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
+  document.getElementById("pageName_" + tx.type).textContent = tx.type === "expense" ? "支出更新" : "収入更新";
 }
 
 // 編集をキャンセルして通常の新規入力状態に戻す
@@ -1173,6 +1174,8 @@ function resetEditMode() {
   if (delBtn) delBtn.style.display = "none";
   const btn = F("submitBtn");
   if (btn) btn.textContent = inputType === "expense" ? "支出を登録" : "収入を登録";
+  const nameEl = document.getElementById("pageName_" + inputType);
+  if (nameEl) nameEl.textContent = inputType === "expense" ? "支出登録" : "収入登録";
 }
 
 // ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
