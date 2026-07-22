@@ -94,7 +94,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   font-size:15px;font-weight:700;color:var(--text);
   cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .home-btn:active{background:var(--bg);}
-.page-toolbar .page-name{font-size:22px;font-weight:700;color:var(--text);margin-left:1em;}
+.page-toolbar .page-name{flex:1;text-align:center;font-size:22px;font-weight:700;color:var(--text);}
 
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
@@ -236,7 +236,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--blue);">
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </div>
-      <span class="icon-label">収支履歴</span>
+      <span class="icon-label">取引履歴</span>
     </button>
     <button class="icon-btn" onclick="newTxEntry('income')">
       <div class="icon-square" style="background:var(--green);">
@@ -379,7 +379,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">収支履歴</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引履歴</span></div>
   <div class="month-header">
     <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="graphMonthTitle"></span>
@@ -681,7 +681,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.14"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.15"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
