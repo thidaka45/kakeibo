@@ -88,11 +88,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 /* 各画面共通・ホームへ戻るFABボタン */
 /* 各画面共通・ホームへ戻るボタン（ページ内に自然に配置し、他要素と重ならないようにする） */
-.page-toolbar{display:flex;margin-bottom:8px;}
+.page-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .home-btn{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);
   border-radius:999px;padding:8px 16px 8px 12px;font-size:16px;font-weight:700;color:var(--text);
   cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .home-btn:active{background:var(--bg);}
+.page-toolbar .page-name{font-size:17px;font-weight:700;color:var(--text);}
 
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
@@ -288,7 +289,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 支出入力 ===== -->
 <div class="page" id="page-expense">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name">支出入力</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -304,7 +305,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
-    <button class="submit-btn expense" id="submitBtn_expense" onclick="submitTx()" style="padding:10px;">支出を記録</button>
+    <button class="submit-btn expense" id="submitBtn_expense" onclick="submitTx()" style="padding:10px;">支出を登録</button>
     <!-- 削除ボタン（編集モードのみ表示） -->
     <button id="deleteTxBtn_expense" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
   </div>
@@ -330,7 +331,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 収入入力 ===== -->
 <div class="page" id="page-income">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name">収入入力</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -346,7 +347,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
-    <button class="submit-btn income" id="submitBtn_income" onclick="submitTx()" style="padding:10px;">収入を記録</button>
+    <button class="submit-btn income" id="submitBtn_income" onclick="submitTx()" style="padding:10px;">収入を登録</button>
     <!-- 削除ボタン（編集モードのみ表示） -->
     <button id="deleteTxBtn_income" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
   </div>
@@ -372,7 +373,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">収支履歴</span></div>
   <div class="month-header">
     <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="graphMonthTitle"></span>
@@ -395,7 +396,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 積立 ===== -->
 <div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">積立計画</span></div>
   <div class="section-title" style="margin-top:4px">計画積立</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -492,7 +493,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 資金繰り ===== -->
 <div class="page" id="page-cashflow">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">資金繰り</span></div>
   <div class="section-title" style="margin-top:4px">残高の答え合わせ</div>
 
   <!-- 現在の総残高 -->
@@ -512,7 +513,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== ユーティリティ ===== -->
 <div class="page" id="page-utility">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">その他</span></div>
   <div class="section-title" style="margin-top:4px">データのバックアップ</div>
   <div class="export-section">
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
@@ -546,7 +547,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 固定費 ===== -->
 <div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">固定費</span></div>
   <div class="section-title" style="margin-top:4px">固定費管理</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -674,7 +675,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.10"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.11"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1083,7 +1084,7 @@ function submitTx() {
     });
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
-    showToast(inputType==="expense" ? "支出を記録しました" : "収入を記録しました");
+    showToast(inputType==="expense" ? "支出を登録しました" : "収入を登録しました");
   }
 
   inputAmt = "";
@@ -1095,7 +1096,7 @@ function submitTx() {
   if (newMonthFlowStep === "income" && inputType === "income") {
     newMonthFlowStep = "savings";
     showPage("savings");
-    showToast("収入を記録しました。続けて積立プランを確認してください");
+    showToast("収入を登録しました。続けて積立プランを確認してください");
   }
 }
 
@@ -1151,7 +1152,7 @@ function resetEditMode() {
   if (banner) banner.style.display = "none";
   if (delBtn) delBtn.style.display = "none";
   const btn = F("submitBtn");
-  if (btn) btn.textContent = inputType === "expense" ? "支出を記録" : "収入を記録";
+  if (btn) btn.textContent = inputType === "expense" ? "支出を登録" : "収入を登録";
 }
 
 // ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
