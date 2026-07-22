@@ -663,7 +663,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.05"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.06"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1143,9 +1143,17 @@ function resetEditMode() {
 }
 
 // ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
+// ホーム画面のアイコンから新規入力を開始する（編集状態・入力内容を確実にリセット）
 function newTxEntry(type) {
   resetEditMode();
   setType(type);
+
+  // 前回編集していた取引の内容が残らないよう、入力欄を新規状態にクリアする
+  inputAmt = "";
+  F("amountDisplay").textContent = "¥0";
+  F("dateInput").value = new Date().toISOString().slice(0,10);
+  F("memoInput").value = "";
+
   showPage(type); // 'expense' または 'income'
 }
 
