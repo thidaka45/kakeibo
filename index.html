@@ -294,7 +294,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput_expense" type="date" style="padding:8px 10px;font-size:22px;font-weight:700;width:100%;cursor:pointer;">
+      <input class="field-input" id="dateInput_expense" type="date" style="padding:8px 8px;font-size:19px;font-weight:700;width:100%;max-width:100%;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_expense" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
@@ -336,7 +336,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput_income" type="date" style="padding:8px 10px;font-size:22px;font-weight:700;width:100%;cursor:pointer;">
+      <input class="field-input" id="dateInput_income" type="date" style="padding:8px 8px;font-size:19px;font-weight:700;width:100%;max-width:100%;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_income" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
@@ -674,7 +674,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.09"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.10"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -968,8 +968,7 @@ function F(base) { return document.getElementById(base + "_" + inputType); }
 
 function setType(type) {
   inputType = type;
-  const cats = type === "expense" ? CATS_EXPENSE : CATS_INCOME;
-  selectedCat = cats[0].id;
+  selectedCat = ""; // 未選択の状態からスタートする（自動で選ばれた状態にしない）
 
   renderCatGrid();
 
@@ -982,7 +981,9 @@ function setType(type) {
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
-  sel.innerHTML = cats.map(c => `<option value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
+  sel.innerHTML =
+    `<option value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
+    cats.map(c => `<option value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
   sel.value = selectedCat;
 }
 
