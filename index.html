@@ -254,13 +254,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--orange);">
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
       </div>
-      <span class="icon-label">固定費用</span>
+      <span class="icon-label">固定費登録</span>
     </button>
     <button class="icon-btn" onclick="showPage('savings')">
       <div class="icon-square" style="background:var(--amber);">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg>
       </div>
-      <span class="icon-label">積立計画</span>
+      <span class="icon-label">積立費登録</span>
     </button>
     <button class="icon-btn" onclick="showPage('utility')">
       <div class="icon-square" style="background:var(--sub);">
@@ -402,7 +402,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 積立 ===== -->
 <div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">積立計画</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">積立費登録</span></div>
   <div class="section-title" style="margin-top:4px">計画積立</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -553,7 +553,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 固定費 ===== -->
 <div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">固定費用</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">固定費登録</span></div>
   <div class="section-title" style="margin-top:4px">固定費管理</div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
@@ -681,7 +681,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.16"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.17"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
