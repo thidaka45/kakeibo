@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 14px calc(20px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
-#page-savings.active,#page-fixedcosts.active{display:flex;}
+#page-savings.active,#page-fixedcosts.active,#page-graph.active{display:flex;}
 #page-home.active{display:flex;flex-direction:column;}
 
 /* ===== ホーム ===== */
@@ -379,17 +379,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 <!-- ===== グラフ ===== -->
-<div class="page" id="page-graph">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引履歴</span></div>
-  <div class="month-header">
-    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
-    <span class="month-title" id="graphMonthTitle"></span>
-    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
+<div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;">
+  <div style="flex-shrink:0;padding:10px 14px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+    <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引履歴</span></div>
+    <div class="month-header">
+      <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
+      <span class="month-title" id="graphMonthTitle"></span>
+      <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
+    </div>
+    <!-- 収入・支出の履歴（タップで編集・削除） -->
+    <div class="graph-title" style="font-size:22px;margin-top:4px;">収入・支出の履歴</div>
   </div>
-  <!-- 収入・支出の履歴（タップで編集・削除） -->
-  <div class="graph-card" style="padding:14px 12px;">
-    <div class="graph-title" style="font-size:17px;">収入・支出の履歴</div>
-    <div style="font-size:13px;color:var(--sub);margin:-6px 0 10px;">タップして内容の更新・削除ができます</div>
+  <!-- 履歴リストのみが独立してスクロールする領域（縦スクロールバー表示） -->
+  <div style="flex:1;overflow-y:scroll;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="tx-list" id="historyTxList" style="box-shadow:none;"></div>
   </div>
   <!-- 月次棒グラフ・カテゴリ別支出は非表示（JS互換のため要素のみ残す） -->
@@ -682,7 +684,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.18"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.4.00"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1333,6 +1335,7 @@ function renderHistoryTxList(idx) {
 
   const txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
   const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
+  const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
   el.innerHTML = txs.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">この月度の取引はありません</div>`
@@ -1345,7 +1348,7 @@ function renderHistoryTxList(idx) {
           <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
           <div class="tx-info">
             <div class="tx-name">${t.memo || c.label}${receiptBadge}</div>
-            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}  ${c.label}</div>
+            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${c.label}</div>
           </div>
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
