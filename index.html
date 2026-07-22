@@ -90,7 +90,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* 各画面共通・ホームへ戻るボタン（ページ内に自然に配置し、他要素と重ならないようにする） */
 .page-toolbar{display:flex;margin-bottom:8px;}
 .home-btn{display:flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);
-  border-radius:999px;padding:7px 15px 7px 11px;font-size:13px;font-weight:700;color:var(--text);
+  border-radius:999px;padding:8px 16px 8px 12px;font-size:16px;font-weight:700;color:var(--text);
   cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .home-btn:active{background:var(--bg);}
 
@@ -294,7 +294,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput_expense" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
+      <input class="field-input" id="dateInput_expense" type="date" style="padding:8px 10px;font-size:22px;font-weight:700;width:100%;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_expense" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
@@ -336,7 +336,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput_income" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
+      <input class="field-input" id="dateInput_income" type="date" style="padding:8px 10px;font-size:22px;font-weight:700;width:100%;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_income" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
@@ -674,7 +674,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.3.07"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.08"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
