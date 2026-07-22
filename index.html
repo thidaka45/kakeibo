@@ -387,8 +387,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="month-title" id="graphMonthTitle"></span>
       <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
     </div>
-    <!-- 収入・支出の履歴（タップで編集・削除） -->
-    <div class="graph-title" style="font-size:22px;margin-top:4px;">収入・支出の履歴</div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（縦スクロールバー表示） -->
   <div style="flex:1;overflow-y:scroll;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -684,7 +682,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.4.00"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.4.01"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1327,6 +1325,13 @@ function renderCatSummary(idx) {
 }
 
 // 収入・支出の履歴リスト（タップで編集・削除、レシート取込分は📷バッジ表示）
+// レシート取込みバッジをタップしたときの処理。
+// 現状、このアプリは画像そのものは保存していない（Shortcuts経由でテキスト化された
+// 情報のみを受け取る仕組みのため）。タップ時は取込み元の情報を案内する。
+function showReceiptInfo(id) {
+  showToast("この取引はレシート撮影から取り込まれました（画像データは保存されていません）");
+}
+
 function renderHistoryTxList(idx) {
   const el = document.getElementById("historyTxList");
   if (!el) return;
@@ -1343,7 +1348,17 @@ function renderHistoryTxList(idx) {
         const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
         const d = new Date(t.date);
-        const receiptBadge = t.source === "receipt" ? `<span title="レシート取込" style="font-size:11px;margin-left:4px;">📷</span>` : "";
+        const receiptBadge = t.source === "receipt"
+          ? `<button onclick="event.stopPropagation(); showReceiptInfo(${t.id})" title="レシート取込"
+               style="border:none;background:var(--blue-l);border-radius:8px;padding:3px;margin-left:6px;display:inline-flex;vertical-align:middle;cursor:pointer;">
+               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
+                 <line x1="9" y1="8" x2="15" y2="8"/>
+                 <line x1="9" y1="12" x2="15" y2="12"/>
+                 <line x1="9" y1="16" x2="12" y2="16"/>
+               </svg>
+             </button>`
+          : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
           <div class="tx-info">
