@@ -115,6 +115,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:16px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
+/* 収入・支出入力画面のカテゴリは横1行スクロール・トグルボタン式にする */
+#catGrid_expense,#catGrid_income{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:8px;padding-bottom:4px;}
+#catGrid_expense .cat-btn,#catGrid_income .cat-btn{
+  flex:0 0 auto;flex-direction:row;align-items:center;gap:4px;
+  padding:9px 14px;border-radius:999px;border:1.5px solid var(--border);
+  background:var(--card);white-space:nowrap;font-weight:600;
+}
+#catGrid_expense .cat-btn .cat-emoji,#catGrid_income .cat-btn .cat-emoji{font-size:15px;}
+#catGrid_expense .cat-btn.selected{background:var(--red);border-color:var(--red);color:#fff;}
+#catGrid_income .cat-btn.selected{background:var(--green);border-color:var(--green);color:#fff;}
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
 .cat-btn .cat-emoji{font-size:16px;}
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
@@ -281,38 +291,67 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 </div>
 
-<!-- ===== 入力 ===== -->
-<div class="page" id="page-input">
-  <!-- 編集モード時のバナー -->
-  <div id="editTxBanner" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:8px 12px;margin-bottom:6px;font-size:12px;color:var(--blue);font-weight:600;display:flex;align-items:center;justify-content:space-between;">
-    <span>この取引を編集しています</span>
-    <button onclick="cancelTxEdit()" style="border:none;background:none;color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">キャンセル</button>
-  </div>
-
-  <!-- 支出・収入トグル -->
-  <div class="type-toggle" style="margin-bottom:6px;">
-    <button class="type-btn active-expense" id="typeExpense" onclick="setType('expense')">支出</button>
-    <button class="type-btn" id="typeIncome" onclick="setType('income')">収入</button>
-  </div>
-
+<!-- ===== 支出入力 ===== -->
+<div class="page" id="page-expense">
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
-    <div class="amount-display" id="amountDisplay" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
+    <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
     <!-- 日付（カレンダー選択） -->
     <div style="margin-bottom:6px;">
-      <input class="field-input" id="dateInput" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
+      <input class="field-input" id="dateInput_expense" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
     </div>
-    <!-- カテゴリ（固定高さで収入・支出の位置を揃える） -->
-    <div class="cat-grid" id="catGrid" style="margin-bottom:6px;"></div>
-    <!-- メモ（支出は1行・収入は3行。高さはsetType()内で切替） -->
+    <!-- カテゴリ -->
+    <div class="cat-grid" id="catGrid_expense" style="margin-bottom:6px;"></div>
+    <!-- メモ -->
     <div style="margin-bottom:6px;">
-      <textarea class="field-input" id="memoInput" placeholder="メモ（任意）"
+      <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
         style="padding:6px 10px;font-size:16px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
     </div>
     <!-- 記録ボタン -->
-    <button class="submit-btn expense" id="submitBtn" onclick="submitTx()" style="padding:10px;">支出を記録</button>
+    <button class="submit-btn expense" id="submitBtn_expense" onclick="submitTx()" style="padding:10px;">支出を記録</button>
     <!-- 削除ボタン（編集モードのみ表示） -->
-    <button id="deleteTxBtn" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
+    <button id="deleteTxBtn_expense" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
+  </div>
+
+  <!-- テンキー -->
+  <div class="input-card" style="padding:8px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('1')">1</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('2')">2</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('3')">3</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('4')">4</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('5')">5</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('6')">6</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('7')">7</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('8')">8</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('9')">9</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;padding:10px;" onclick="inputNum('000')">000</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:18px;font-weight:500;padding:10px;" onclick="inputNum('0')">0</button>
+      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:18px;color:var(--red);padding:10px;" onclick="inputNum('del')">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 収入入力 ===== -->
+<div class="page" id="page-income">
+  <!-- 金額表示 -->
+  <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
+    <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
+    <!-- 日付（カレンダー選択） -->
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="dateInput_income" type="date" style="padding:6px 10px;font-size:17px;font-weight:700;width:100%;cursor:pointer;">
+    </div>
+    <!-- カテゴリ -->
+    <div class="cat-grid" id="catGrid_income" style="margin-bottom:6px;"></div>
+    <!-- メモ -->
+    <div style="margin-bottom:6px;">
+      <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
+        style="padding:6px 10px;font-size:16px;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+    </div>
+    <!-- 記録ボタン -->
+    <button class="submit-btn income" id="submitBtn_income" onclick="submitTx()" style="padding:10px;">収入を記録</button>
+    <!-- 削除ボタン（編集モードのみ表示） -->
+    <button id="deleteTxBtn_income" onclick="deleteTxEdit()" style="display:none;width:100%;padding:10px;margin-top:8px;border-radius:var(--radius-s);border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">この取引を削除</button>
   </div>
 
   <!-- テンキー -->
@@ -634,7 +673,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.2.03"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.3.03"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -862,13 +901,13 @@ function renderHome() {
   } else if (pct >= 100) {
     statusIcon="🚨"; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < 0) {
-    statusIcon="🚨"; statusText="月末に不足の見込み"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon="🚨"; statusText="今のペースだと月末に不足の見込み"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < budgetTotal * 0.05) {
-    statusIcon="⚠️"; statusText="ギリギリ乗り切れる見込み"; statusColor="var(--amber)"; barClass="bar-warn";
+    statusIcon="⚠️"; statusText="今のペースだとギリ乗り切れる見込み"; statusColor="var(--amber)"; barClass="bar-warn";
   } else if (projectedBalance < budgetTotal * 0.2) {
-    statusIcon="✅"; statusText="順調に乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon="✅"; statusText="今のペースだと順調に乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   } else {
-    statusIcon="💚"; statusText="余裕を持って乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon="💚"; statusText="今のペースだと余裕で乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   }
 
   bar.className = "bar-fill " + barClass;
@@ -922,20 +961,14 @@ let inputAmt  = "";
 let selectedCat = "";
 let editingTxId = null; // 編集中の取引ID（nullなら新規入力）
 
+// 支出／収入は別画面（page-expense / page-income）だが要素IDの末尾で区別しているため、
+// 現在のinputTypeに応じた要素を取得するヘルパー
+function F(base) { return document.getElementById(base + "_" + inputType); }
+
 function setType(type) {
   inputType = type;
   const cats = type === "expense" ? CATS_EXPENSE : CATS_INCOME;
   selectedCat = cats[0].id;
-
-  document.getElementById("typeExpense").className =
-    "type-btn" + (type==="expense" ? " active-expense" : "");
-  document.getElementById("typeIncome").className =
-    "type-btn" + (type==="income" ? " active-income" : "");
-
-  document.getElementById("submitBtn").textContent =
-    type === "expense" ? "支出を記録" : "収入を記録";
-  document.getElementById("submitBtn").className =
-    "submit-btn " + type;
 
   renderCatGrid();
 
@@ -943,13 +976,13 @@ function setType(type) {
   // 支出=10カテゴリ(3行)・収入=8カテゴリ(2行)のため、カテゴリ欄の行数が1行分異なる。
   // 収入時はその差分（1行＋gap）をメモ欄に加算し、支出/収入で入力カード全体の高さが揃うようにする。
   requestAnimationFrame(() => {
-    const memoEl = document.getElementById("memoInput");
+    const memoEl = F("memoInput");
     const EXPENSE_MEMO_H = 30; // 支出時のメモ欄高さ（1行分）
     const GRID_GAP = 4;        // .cat-gridのgapと合わせる
     if (type === "expense") {
       memoEl.style.height = EXPENSE_MEMO_H + "px";
     } else {
-      const btn = document.querySelector("#catGrid .cat-btn");
+      const btn = document.querySelector("#" + "catGrid_" + inputType + " .cat-btn");
       const rowH = btn ? btn.offsetHeight : 43; // カテゴリ行1行分の高さ（実測、取得失敗時は推定値）
       memoEl.style.height = (EXPENSE_MEMO_H + rowH + GRID_GAP) + "px";
     }
@@ -958,7 +991,7 @@ function setType(type) {
 
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
-  document.getElementById("catGrid").innerHTML = cats.map(c => {
+  F("catGrid").innerHTML = cats.map(c => {
     // 繰越ボタンは特別処理
     if (c.id === "carryover") {
       return `<button class="cat-btn ${c.id===selectedCat?"selected":""}"
@@ -1000,10 +1033,10 @@ function applyCarryover() {
   // カテゴリを繰越に設定して金額を自動入力
   selectedCat = "carryover";
   inputAmt    = String(balance);
-  document.getElementById("amountDisplay").textContent = "¥" + balance.toLocaleString("ja-JP");
+  F("amountDisplay").textContent = "¥" + balance.toLocaleString("ja-JP");
 
   // メモに前の月度の残高を自動設定
-  document.getElementById("memoInput").value = `${prevLabel}繰越`;
+  F("memoInput").value = `${prevLabel}繰越`;
 
   renderCatGrid();
   showToast(`${prevLabel}の残高 ¥${balance.toLocaleString()} を引き継ぎます`);
@@ -1022,7 +1055,7 @@ function inputNum(v) {
   } else {
     if (inputAmt.length < 8) inputAmt += v;
   }
-  document.getElementById("amountDisplay").textContent =
+  F("amountDisplay").textContent =
     inputAmt ? "¥" + parseInt(inputAmt).toLocaleString("ja-JP") : "¥0";
 }
 
@@ -1031,8 +1064,8 @@ function submitTx() {
   if (!amt) { showToast("金額を入力してください"); return; }
   if (!selectedCat) { showToast("カテゴリを選択してください"); return; }
 
-  const date = document.getElementById("dateInput").value || new Date().toISOString().slice(0,10);
-  const memo = document.getElementById("memoInput").value || "";
+  const date = F("dateInput").value || new Date().toISOString().slice(0,10);
+  const memo = F("memoInput").value || "";
   const txs = loadTx();
 
   if (editingTxId !== null) {
@@ -1064,8 +1097,8 @@ function submitTx() {
   }
 
   inputAmt = "";
-  document.getElementById("amountDisplay").textContent = "¥0";
-  document.getElementById("memoInput").value = "";
+  F("amountDisplay").textContent = "¥0";
+  F("memoInput").value = "";
   renderHome();
 
   // 「新しい月を開始」フロー中に収入を記録した場合、続けて積立の確認に案内する
@@ -1082,19 +1115,18 @@ function openTxEdit(id) {
   if (!tx) return;
   editingTxId = id;
 
-  showPage("input");
+  showPage(tx.type); // 'expense' または 'income'
   setType(tx.type);
   selectedCat = tx.cat;
   renderCatGrid();
 
   inputAmt = String(tx.amount);
-  document.getElementById("amountDisplay").textContent = "¥" + tx.amount.toLocaleString("ja-JP");
-  document.getElementById("dateInput").value = tx.date;
-  document.getElementById("memoInput").value = tx.memo || "";
+  F("amountDisplay").textContent = "¥" + tx.amount.toLocaleString("ja-JP");
+  F("dateInput").value = tx.date;
+  F("memoInput").value = tx.memo || "";
 
-  document.getElementById("editTxBanner").style.display = "flex";
-  document.getElementById("deleteTxBtn").style.display = "block";
-  document.getElementById("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
+  F("deleteTxBtn").style.display = "block";
+  F("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
 }
 
 // 編集をキャンセルして通常の新規入力状態に戻す
@@ -1124,19 +1156,19 @@ function deleteTxEdit() {
 // 編集モードの状態・表示をリセットする（新規入力状態に戻す）
 function resetEditMode() {
   editingTxId = null;
-  const banner = document.getElementById("editTxBanner");
-  const delBtn = document.getElementById("deleteTxBtn");
+  const banner = F("editTxBanner");
+  const delBtn = F("deleteTxBtn");
   if (banner) banner.style.display = "none";
   if (delBtn) delBtn.style.display = "none";
-  document.getElementById("submitBtn").textContent =
-    inputType === "expense" ? "支出を記録" : "収入を記録";
+  const btn = F("submitBtn");
+  if (btn) btn.textContent = inputType === "expense" ? "支出を記録" : "収入を記録";
 }
 
 // ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
 function newTxEntry(type) {
   resetEditMode();
-  showPage("input");
   setType(type);
+  showPage(type); // 'expense' または 'income'
 }
 
 // ============================================================
@@ -1298,7 +1330,7 @@ function renderHistoryTxList(idx) {
 // ページ切替
 // ============================================================
 function showPage(name) {
-  ["home","input","graph","savings","fixedcosts","cashflow","utility"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   const fab = document.getElementById("homeFab");
@@ -2117,8 +2149,8 @@ function startNewMonth() {
 
   // ①収入 → ②積立 → ③固定費 の順に案内する
   newMonthFlowStep = "income";
-  showPage("input");
   setType("income");
+  showPage("income");
   showToast("まず収入を入力してください");
 }
 
@@ -2229,7 +2261,8 @@ function init() {
   receiveFromUrl();
 
   const today = new Date().toISOString().slice(0,10);
-  document.getElementById("dateInput").value = today;
+  document.getElementById("dateInput_expense").value = today;
+  document.getElementById("dateInput_income").value = today;
 
   setType("expense");
   renderHome();
