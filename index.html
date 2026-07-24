@@ -136,7 +136,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
 .submit-btn{width:100%;padding:14px;border-radius:var(--radius-s);border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;color:#fff;}
 .submit-btn.expense{background:var(--red);}
-.submit-btn.income{background:var(--green);}
+.submit-btn.income{background:var(--amber);}
 .submit-btn:active{opacity:.8;}
 
 /* ===== グラフ ===== */
@@ -427,7 +427,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- サマリー -->
   <div style="margin-bottom:10px;">
-    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
+    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--teal);">
       <div class="balance-label">今月の積立費合計</div>
       <div class="balance-amount" style="font-size:32px;" id="savingsTotalMonthly">¥0</div>
     </div>
@@ -685,7 +685,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.19"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.20"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1696,7 +1696,7 @@ function renderSavings() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
             <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
-            <div style="font-size:17px;font-weight:700;color:var(--green-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
+            <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
             ${leftLabel}
