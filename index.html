@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.27"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.28"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1115,7 +1115,7 @@ function inputNum(v) {
 }
 
 // 支出登録時に「固定費から選択」したカテゴリの場合、その入力金額を最新の請求額として
-// 固定費登録の同項目に反映する（次回以降の固定費合計・一覧表示に使われる）
+// 固定費登録の同項目に反映し、支払い済み（□→■）にする
 function updateFixedCostAmountFromTx(type, cat, amt) {
   if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
   const fcId = cat.slice(3);
@@ -1124,6 +1124,7 @@ function updateFixedCostAmountFromTx(type, cat, amt) {
   if (idx === -1) return;
   cycle.fixed_costs[idx].amount = amt;
   cycle.fixed_costs[idx].source = "updated";
+  cycle.fixed_costs[idx].paid = true;
   saveCycle(cycle);
 }
 
@@ -2026,19 +2027,19 @@ function renderFixedCostList(cycle) {
     const opacity = !isPayMonth ? "0.55" : "1";
     const statusColor = !isPayMonth ? "var(--muted)" : (item.paid ? "var(--orange-d)" : "var(--red)");
 
-    // 未払い/支払い済みトグル（今月対象月のみ表示、金額の後ろに固定幅で配置）
+    // 未払い/支払い済みトグル（今月対象月のみ表示、■＝支払い済み／□＝未払い）
     const payToggle = isPayMonth
-      ? `<button onclick="event.stopPropagation();toggleFixedCostPaid('${item.id}')" style="flex-shrink:0;width:64px;padding:3px 0;border-radius:12px;border:0.5px solid ${statusColor};background:none;color:${statusColor};font-size:10px;font-weight:600;line-height:1.4;cursor:pointer;font-family:inherit;white-space:nowrap;text-align:center;">${item.paid ? "✅ 済" : "⬜ 未払い"}</button>`
-      : `<span style="flex-shrink:0;width:64px;font-size:9px;color:var(--muted);white-space:nowrap;text-align:center;">対象外</span>`;
+      ? `<button onclick="event.stopPropagation();toggleFixedCostPaid('${item.id}')" style="flex-shrink:0;width:34px;height:34px;padding:0;border-radius:8px;border:1px solid ${statusColor};background:none;color:${statusColor};font-size:18px;line-height:1;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;">${item.paid ? "■" : "□"}</button>`
+      : `<span style="flex-shrink:0;width:34px;font-size:9px;color:var(--muted);white-space:nowrap;text-align:center;">対象外</span>`;
 
     return `<div style="cursor:pointer;background:${cardBg};border:0.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:8px;opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
-        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;">
-          <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}</div>
-          <span style="font-size:13px;color:var(--sub);white-space:nowrap;flex-shrink:0;">${dueLabel}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:38px;">
+        <span style="font-size:13px;color:var(--sub);white-space:nowrap;">${dueLabel}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <span style="font-size:17px;font-weight:700;color:var(--orange-d);white-space:nowrap;">${fmt(item.amount||0)}</span>
           ${payToggle}
         </div>
