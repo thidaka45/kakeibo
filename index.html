@@ -562,6 +562,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <button onclick="finishNewMonthFlow()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">完了してホームへ →</button>
   </div>
 
+  <!-- 対象年月 -->
+  <div class="month-header">
+    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
+    <span class="month-title" id="fixedCostMonthTitle"></span>
+    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
+  </div>
+
   <!-- サマリー -->
   <div style="margin-bottom:10px;">
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--orange);">
@@ -572,7 +579,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px;">
-    <button onclick="openFixedCostForm()" style="font-size:15px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
+    <button onclick="openFixedCostForm()" style="font-size:15px;font-weight:700;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
 </div>
 
@@ -586,13 +593,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div style="font-size:14px;font-weight:600;color:var(--text);" id="fcFormTitle">新しい固定費</div>
     </div>
 
-    <!-- カテゴリ -->
+    <!-- アイコン・項目名 -->
     <div style="margin-bottom:8px;">
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
-        <div id="fcIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
-        <select class="field-select" id="fcCatSelect" onchange="onFcCatChange(this.value)" style="font-size:17px;font-weight:600;padding:10px 12px;"></select>
+        <select id="fcIconSelect" onchange="onFcIconSelectChange()" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);"></select>
+        <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
       </div>
-      <input type="hidden" id="fcName">
     </div>
 
     <!-- 金額 -->
@@ -673,7 +679,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.09"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.10"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -808,6 +814,7 @@ function renderHome() {
   // 月度が1件も無い（サービス未開始）場合は空状態を表示する
   if (!periods.length) {
     document.getElementById("monthTitle").textContent = "未開始";
+    document.getElementById("fixedCostMonthTitle").textContent = "未開始";
     document.getElementById("balanceAmount").textContent = fmt(0);
     document.getElementById("totalIncome").textContent   = fmt(0);
     document.getElementById("totalExpense").textContent  = fmt(0);
@@ -847,6 +854,7 @@ function renderHome() {
   const budgetTotal = income;
 
   document.getElementById("monthTitle").textContent = periodLabel(viewPeriodIndex);
+  document.getElementById("fixedCostMonthTitle").textContent = periodLabel(viewPeriodIndex);
   document.getElementById("balanceAmount").textContent = fmt(balance);
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
@@ -1995,33 +2003,30 @@ function toggleFixedCostPaid(id) {
 // ---- 固定費の登録・編集フォーム ----
 let editingFixedCostId = null;
 
-// 固定費のカテゴリ一覧（支出登録の選択式に合わせたプルダウン用）
-const CATS_FIXED = [
-  "住居・家賃", "水道・光熱費", "通信費", "保険",
-  "ローン返済", "税金", "サブスク・会費", "車両関連", "その他"
-];
+// アイコン選択の候補一覧
+const ICONS_FIXED = ["📦","🏠","💡","📱","🛡️","🏦","📋","📺","🚗","🏍️","🚲","🚃","🚕","💳","⚖️","🧾","🧹","🌱","🅿️","🪑","💻","📡"];
 
-// カテゴリのプルダウンを描画する（selectedLabelが一覧にない場合は、既存データ保護のため選択肢として追加する）
-function renderFcCatSelect(selectedLabel) {
-  const sel = document.getElementById("fcCatSelect");
-  const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
-  const optStyle = 'style="font-size:17px;font-weight:600;"';
-  const known = CATS_FIXED.includes(selectedLabel);
-  let options = `<option ${placeholderStyle} value="" disabled ${!selectedLabel ? "selected" : ""}>カテゴリを選択してください</option>`;
-  options += CATS_FIXED.map(label =>
-    `<option ${optStyle} value="${label}" ${selectedLabel === label ? "selected" : ""}>${guessIconEmoji(label)} ${label}</option>`
+// アイコンのプルダウンを描画する（selectedがICONS_FIXEDに無い場合も、既存データ保護のため選択肢として追加する）
+function renderFcIconSelect(selected) {
+  const sel = document.getElementById("fcIconSelect");
+  const known = ICONS_FIXED.includes(selected);
+  let options = ICONS_FIXED.map(e =>
+    `<option value="${e}" ${selected === e ? "selected" : ""}>${e}</option>`
   ).join("");
-  if (selectedLabel && !known) {
-    options += `<option ${optStyle} value="${selectedLabel}" selected>${guessIconEmoji(selectedLabel)} ${selectedLabel}</option>`;
+  if (selected && !known) {
+    options += `<option value="${selected}" selected>${selected}</option>`;
   }
   sel.innerHTML = options;
 }
 
-// プルダウンでカテゴリが選択されたときの処理
-function onFcCatChange(label) {
-  document.getElementById("fcName").value = label;
-  document.getElementById("fcIconDisplay").textContent = guessIconEmoji(label);
+// 項目名の入力に応じて、アイコンの選択候補をリアルタイムに自動更新する（手動で選び直すことも可能）
+function onFcNameInput() {
+  const name = document.getElementById("fcName").value;
+  renderFcIconSelect(guessIconEmoji(name));
 }
+
+// アイコンを手動で選び直したときの処理（現状は選択値をそのまま保存時に使用するため、ここでは何もしない）
+function onFcIconSelectChange() {}
 
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
@@ -2036,8 +2041,7 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcDueDay").value = item.due_day || "";
     document.getElementById("fcSubmitBtn").textContent = "更新";
     document.getElementById("fcDeleteBtn").style.display = "block";
-    document.getElementById("fcIconDisplay").textContent = item.icon || guessIconEmoji(item.item);
-    renderFcCatSelect(item.item);
+    renderFcIconSelect(item.icon || guessIconEmoji(item.item));
   } else {
     document.getElementById("fcFormTitle").textContent = "新しい固定費";
     document.getElementById("fcName").value = "";
@@ -2045,8 +2049,7 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcDueDay").value = "";
     document.getElementById("fcSubmitBtn").textContent = "登録";
     document.getElementById("fcDeleteBtn").style.display = "none";
-    document.getElementById("fcIconDisplay").textContent = "📦";
-    renderFcCatSelect("");
+    renderFcIconSelect("📦");
   }
 
   document.getElementById("cfFixedCostList").style.display = "none";
@@ -2062,7 +2065,12 @@ function closeFixedCostForm() {
 // 保存（新規/編集どちらも兼ねる）。金額未入力なら「pending_registration」として仮登録する。
 function saveFixedCostItem() {
   const name = document.getElementById("fcName").value.trim();
-  if (!name) { showToast("カテゴリを選択してください"); return; }
+  if (!name) { showToast("項目名を入力してください"); return; }
+
+  const amount = parseYenInput("fcAmount");
+  const dueDayRaw = document.getElementById("fcDueDay").value;
+  const due_day = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
+  const icon = document.getElementById("fcIconSelect").value || guessIconEmoji(name);
   const fcCycle = "monthly"; // 支払い周期選択は廃止し、固定費は毎月発生する項目として統一
 
   const cycle = ensureCycle();
