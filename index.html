@@ -128,7 +128,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-label{font-size:12px;color:var(--sub);}
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:16px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
 #catGrid_expense option,#catGrid_income option{font-size:23px;font-weight:800;font-family:inherit;}
-#catGrid_expense optgroup,#catGrid_income optgroup{font-size:22px;font-weight:800;font-family:inherit;font-style:normal;}
+#catGrid_expense optgroup,#catGrid_income optgroup{font-size:25px;font-weight:800;font-family:inherit;font-style:normal;}
 #catGrid_expense.cat-select-empty,#catGrid_income.cat-select-empty{color:var(--muted);font-weight:400;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.35"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.36"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1026,18 +1026,19 @@ function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
   const optStyle = 'style="font-size:23px;font-weight:800;"';
-  const groupStyle = 'style="font-size:22px;font-weight:800;"';
+  const optStylePaid = 'style="font-size:23px;font-weight:800;color:var(--muted);"';
+  const groupStyle = 'style="font-size:25px;font-weight:800;"';
   let html = "";
   const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
   if (fcOpts.length > 0) {
-    html += `<optgroup label="【固定費】" ${groupStyle}>` +
+    html += `<optgroup label="ーー　固定費　ーー" ${groupStyle}>` +
       fcOpts.map(c => c.paid
-        ? `<option ${optStyle} value="${c.id}" disabled style="font-size:23px;font-weight:800;color:var(--muted);">${c.emoji} ${c.label}（済）</option>`
+        ? `<option ${optStylePaid} value="${c.id}" disabled>${c.emoji} ${c.label}（済）</option>`
         : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
       ).join("") +
       `</optgroup>`;
   }
-  html += `<optgroup label="【他】" ${groupStyle}>` +
+  html += `<optgroup label="ーー　その他　ーー" ${groupStyle}>` +
     cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
     `</optgroup>`;
   sel.innerHTML = html;
