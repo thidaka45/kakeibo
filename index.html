@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.24"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.25"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1089,7 +1089,7 @@ function selectCat(id) {
   selectedCat = id;
   if (typeof id === "string" && id.startsWith("fc_")) {
     const fcOpt = getFixedCostCatOptions().find(c => c.id === id);
-    if (fcOpt) F("memoInput").value = `固定費（${fcOpt.label}）`;
+    if (fcOpt) F("memoInput").value = `固定（${fcOpt.label}）`;
   }
   renderCatGrid();
 }
@@ -1104,6 +1104,19 @@ function inputNum(v) {
   }
   F("amountDisplay").textContent =
     inputAmt ? "¥" + parseInt(inputAmt).toLocaleString("ja-JP") : "¥0";
+}
+
+// 支出登録時に「固定費から選択」したカテゴリの場合、その入力金額を最新の請求額として
+// 固定費登録の同項目に反映する（次回以降の固定費合計・一覧表示に使われる）
+function updateFixedCostAmountFromTx(type, cat, amt) {
+  if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
+  const fcId = cat.slice(3);
+  const cycle = ensureCycle();
+  const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
+  if (idx === -1) return;
+  cycle.fixed_costs[idx].amount = amt;
+  cycle.fixed_costs[idx].source = "updated";
+  saveCycle(cycle);
 }
 
 function submitTx() {
@@ -1125,6 +1138,7 @@ function submitTx() {
     txs[idx] = { ...old, type: inputType, cat: selectedCat, amount: amt, memo, date };
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
+    updateFixedCostAmountFromTx(inputType, selectedCat, amt);
     showToast("取引を更新しました");
     resetEditMode();
   } else {
@@ -1140,6 +1154,7 @@ function submitTx() {
     });
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
+    updateFixedCostAmountFromTx(inputType, selectedCat, amt);
     showToast(inputType==="expense" ? "支出を登録しました" : "収入を登録しました");
   }
 
