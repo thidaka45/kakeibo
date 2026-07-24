@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.36"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.37"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1028,7 +1028,7 @@ function renderCatGrid() {
   const optStyle = 'style="font-size:23px;font-weight:800;"';
   const optStylePaid = 'style="font-size:23px;font-weight:800;color:var(--muted);"';
   const groupStyle = 'style="font-size:25px;font-weight:800;"';
-  let html = "";
+  let html = `<option value="" disabled hidden ${selectedCat===""?"selected":""}></option>`;
   const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
   if (fcOpts.length > 0) {
     html += `<optgroup label="ーー　固定費　ーー" ${groupStyle}>` +
@@ -1043,10 +1043,6 @@ function renderCatGrid() {
     `</optgroup>`;
   sel.innerHTML = html;
 
-  if (!selectedCat) {
-    const firstSelectable = fcOpts.find(c => !c.paid) || cats[0];
-    if (firstSelectable) selectedCat = firstSelectable.id;
-  }
   sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
 }
