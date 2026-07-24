@@ -582,13 +582,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 固定費 登録・編集フォーム -->
   <div id="fixedCostForm" style="display:none;background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-bottom:14px;">
-    <div style="margin-bottom:12px;">
+    <div style="margin-bottom:0;display:none;">
       <div style="font-size:14px;font-weight:600;color:var(--text);" id="fcFormTitle">新しい固定費</div>
     </div>
 
     <!-- アイコン・項目名 -->
     <div style="margin-bottom:8px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
         <div id="fcIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
         <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
@@ -598,7 +597,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 金額 -->
     <div style="margin-bottom:8px;">
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">金額：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">金額：</span>
         <input class="field-input" id="fcAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 60px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
     </div>
@@ -606,7 +605,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 支払日 -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">支払日：　</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">支払日：　</span>
         <input class="field-input" id="fcDueDay" type="number" placeholder="（1-31・任意）" min="1" max="31" style="width:100%;padding:8px 28px 8px 72px;font-size:16px;" inputmode="numeric">
         <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">日</span>
       </div>
@@ -673,7 +672,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.07"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.08"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
