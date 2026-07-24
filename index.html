@@ -419,14 +419,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   </div>
 
   <!-- サマリー -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+  <div style="margin-bottom:10px;">
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
-      <div class="balance-label">今月の積立合計</div>
+      <div class="balance-label">今月の積立費合計</div>
       <div class="balance-amount" style="font-size:32px;" id="savingsTotalMonthly">¥0</div>
-    </div>
-    <div class="balance-card" style="margin-bottom:0;padding:10px 12px;">
-      <div class="balance-label">現在の積立合計</div>
-      <div class="balance-amount" style="font-size:32px;" id="savingsTotalBalance">¥0</div>
     </div>
   </div>
 
@@ -682,7 +678,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.13"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.14"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1647,9 +1643,7 @@ function renderSavings() {
 
   // サマリー
   const totalMonthly  = plans.reduce((s, p) => s + (p.monthly || 0), 0);
-  const totalBalance  = plans.reduce((s, p) => s + (p.balance || 0), 0);
-  document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly) + "／月";
-  document.getElementById("savingsTotalBalance").textContent = fmt(totalBalance);
+  document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly);
 
 
   // プランリスト
