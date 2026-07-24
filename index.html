@@ -701,7 +701,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.33"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.34"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1011,7 +1011,7 @@ function F(base) { return document.getElementById(base + "_" + inputType); }
 
 function setType(type) {
   inputType = type;
-  selectedCat = ""; // 未選択の状態からスタートする（自動で選ばれた状態にしない）
+  selectedCat = ""; // 未選択にリセットする（renderCatGrid内で先頭項目が自動選択される）
 
   renderCatGrid();
 
@@ -1024,24 +1024,27 @@ function setType(type) {
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
-  const optStyle = 'style="font-size:20px;font-weight:800;"';
-  const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
-  let html = `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>選択してください</option>`;
-  if (inputType === "expense") {
-    const fcOpts = getFixedCostCatOptions();
-    if (fcOpts.length > 0) {
-      html += `<optgroup label="【固定費】">` +
-        fcOpts.map(c => c.paid
-          ? `<option ${optStyle} value="${c.id}" disabled style="font-size:20px;font-weight:800;color:var(--muted);">${c.emoji} ${c.label}（済）</option>`
-          : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
-        ).join("") +
-        `</optgroup>`;
-    }
+  const optStyle = 'style="font-size:23px;font-weight:800;"';
+  const groupStyle = 'style="font-size:19px;font-weight:800;"';
+  let html = "";
+  const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
+  if (fcOpts.length > 0) {
+    html += `<optgroup label="【固定費】" ${groupStyle}>` +
+      fcOpts.map(c => c.paid
+        ? `<option ${optStyle} value="${c.id}" disabled style="font-size:23px;font-weight:800;color:var(--muted);">${c.emoji} ${c.label}（済）</option>`
+        : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
+      ).join("") +
+      `</optgroup>`;
   }
-  html += `<optgroup label="【他】">` +
+  html += `<optgroup label="【他】" ${groupStyle}>` +
     cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
     `</optgroup>`;
   sel.innerHTML = html;
+
+  if (!selectedCat) {
+    const firstSelectable = fcOpts.find(c => !c.paid) || cats[0];
+    if (firstSelectable) selectedCat = firstSelectable.id;
+  }
   sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
 }
