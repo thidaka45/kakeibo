@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.25"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.26"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1090,6 +1090,14 @@ function selectCat(id) {
   if (typeof id === "string" && id.startsWith("fc_")) {
     const fcOpt = getFixedCostCatOptions().find(c => c.id === id);
     if (fcOpt) F("memoInput").value = `固定（${fcOpt.label}）`;
+
+    const fcId = id.slice(3);
+    const cycle = ensureCycle();
+    const item = cycle.fixed_costs.find(i => i.id === fcId);
+    if (item && item.amount) {
+      inputAmt = String(item.amount);
+      F("amountDisplay").textContent = "¥" + item.amount.toLocaleString("ja-JP");
+    }
   }
   renderCatGrid();
 }
