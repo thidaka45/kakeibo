@@ -682,7 +682,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.00"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.03"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1338,7 +1338,9 @@ function showReceiptInfo(id) {
     showToast("この取引に紐づく画像の識別子がありません（画像はスマホ内に保存する運用です）");
     return;
   }
-  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}`;
+  // 実行後に自動でこのアプリへ戻ってくるよう、戻り先URL（x-success）を付与する
+  const returnUrl = location.origin + location.pathname;
+  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}&x-success=${encodeURIComponent(returnUrl)}`;
   location.href = url;
 }
 
