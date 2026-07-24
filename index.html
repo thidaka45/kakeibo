@@ -566,13 +566,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="margin-bottom:10px;">
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--orange);">
       <div class="balance-label">今月の固定費合計</div>
-      <div class="balance-amount" style="font-size:18px;" id="fixedTotalMonthly">¥0</div>
+      <div class="balance-amount" style="font-size:32px;" id="fixedTotalMonthly">¥0</div>
     </div>
   </div>
 
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px;">
-    <button onclick="openFixedCostForm()" style="font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
+    <button onclick="openFixedCostForm()" style="font-size:15px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
 </div>
 
@@ -673,7 +673,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.06"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.07"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1940,7 +1940,7 @@ function renderFixedCostList(cycle) {
   document.getElementById("fixedTotalMonthly").textContent = fmt(totalMonthly);
 
   if (!items.length) {
-    el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px;">固定費が登録されていません<br>「＋ 追加」から作成してください</div>`;
+    el.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted);font-size:17px;">固定費が登録されていません<br>「＋ 追加」から作成してください</div>`;
     return;
   }
 
