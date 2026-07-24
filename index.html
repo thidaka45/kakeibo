@@ -701,7 +701,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.32"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.33"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1026,19 +1026,21 @@ function renderCatGrid() {
   const sel = F("catGrid");
   const optStyle = 'style="font-size:20px;font-weight:800;"';
   const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
-  let html = `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>`;
+  let html = `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>選択してください</option>`;
   if (inputType === "expense") {
     const fcOpts = getFixedCostCatOptions();
     if (fcOpts.length > 0) {
-      html += `<optgroup label="固定費から選択">` +
+      html += `<optgroup label="【固定費】">` +
         fcOpts.map(c => c.paid
-          ? `<option ${optStyle} value="${c.id}" disabled style="font-size:20px;font-weight:800;color:var(--muted);">${c.emoji} ${c.label}（支払い済み）</option>`
+          ? `<option ${optStyle} value="${c.id}" disabled style="font-size:20px;font-weight:800;color:var(--muted);">${c.emoji} ${c.label}（済）</option>`
           : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
         ).join("") +
         `</optgroup>`;
     }
   }
-  html += cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
+  html += `<optgroup label="【他】">` +
+    cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
+    `</optgroup>`;
   sel.innerHTML = html;
   sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
