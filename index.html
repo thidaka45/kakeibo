@@ -22,6 +22,12 @@
   --blue-l:  #EFF6FF;
   --amber:   #B8860B;
   --amber-l: #FFFDE7;
+  --teal:    #0C8599;
+  --teal-l:  #E6F7F8;
+  --teal-d:  #066B7A;
+  --purple:    #7B4FA0;
+  --purple-l:  #F3ECF8;
+  --purple-d:  #5E3A7C;
   --orange:  #D9730D;
   --orange-l:#FDF1E6;
   --orange-d:#A85A0A;
@@ -240,7 +246,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="icon-label">取引履歴</span>
     </button>
     <button class="icon-btn" onclick="newTxEntry('income')">
-      <div class="icon-square" style="background:var(--green);">
+      <div class="icon-square" style="background:var(--amber);">
         <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
       </div>
       <span class="icon-label">収入登録</span>
@@ -258,7 +264,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <span class="icon-label">固定費登録</span>
     </button>
     <button class="icon-btn" onclick="showPage('savings')">
-      <div class="icon-square" style="background:var(--amber);">
+      <div class="icon-square" style="background:var(--teal);">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg>
       </div>
       <span class="icon-label">積立費登録</span>
@@ -678,7 +684,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.15"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.18"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
