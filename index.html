@@ -127,7 +127,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
 .field-label{font-size:12px;color:var(--sub);}
 .field-input,.field-select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-s);font-size:16px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;}
-#catGrid_expense option,#catGrid_income option{font-size:17px;font-weight:600;font-family:inherit;}
+#catGrid_expense option,#catGrid_income option{font-size:20px;font-weight:800;font-family:inherit;}
 #catGrid_expense.cat-select-empty,#catGrid_income.cat-select-empty{color:var(--muted);font-weight:400;}
 .field-input:focus,.field-select:focus{border-color:var(--green);}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;align-content:start;}
@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.22"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.23"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1023,7 +1023,7 @@ function setType(type) {
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
-  const optStyle = 'style="font-size:17px;font-weight:600;"';
+  const optStyle = 'style="font-size:20px;font-weight:800;"';
   const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
   let html =
     `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
