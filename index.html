@@ -595,10 +595,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <!-- アイコン・項目名 -->
     <div style="margin-bottom:8px;">
-      <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
+      <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;align-items:center;margin-bottom:6px;">
         <select id="fcIconSelect" onchange="onFcIconSelectChange()" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);"></select>
-        <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
+        <span id="fcIconDesc" style="font-size:14px;font-weight:600;color:var(--sub);"></span>
       </div>
+      <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
     </div>
 
     <!-- 金額 -->
@@ -679,7 +680,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.10"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.11"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2003,20 +2004,50 @@ function toggleFixedCostPaid(id) {
 // ---- 固定費の登録・編集フォーム ----
 let editingFixedCostId = null;
 
-// アイコン選択の候補一覧
-const ICONS_FIXED = ["📦","🏠","💡","📱","🛡️","🏦","📋","📺","🚗","🏍️","🚲","🚃","🚕","💳","⚖️","🧾","🧹","🌱","🅿️","🪑","💻","📡"];
+// アイコン選択の候補一覧（絵文字＋説明）
+const ICONS_FIXED = [
+  { emoji: "📦", label: "その他" },
+  { emoji: "🏠", label: "住居・家賃" },
+  { emoji: "💡", label: "水道・光熱費" },
+  { emoji: "📱", label: "通信費" },
+  { emoji: "🛡️", label: "保険" },
+  { emoji: "🏦", label: "ローン返済" },
+  { emoji: "📋", label: "税金" },
+  { emoji: "📺", label: "サブスク・会費" },
+  { emoji: "🚗", label: "車両関連" },
+  { emoji: "🏍️", label: "バイク" },
+  { emoji: "🚲", label: "自転車" },
+  { emoji: "🚃", label: "電車・定期" },
+  { emoji: "🚕", label: "タクシー" },
+  { emoji: "💳", label: "カード返済" },
+  { emoji: "⚖️", label: "士業・手数料" },
+  { emoji: "🧾", label: "会費" },
+  { emoji: "🧹", label: "クリーニング" },
+  { emoji: "🌱", label: "庭・園芸" },
+  { emoji: "🅿️", label: "駐車場" },
+  { emoji: "🪑", label: "家具・家電" },
+  { emoji: "💻", label: "PC・ソフト" },
+  { emoji: "📡", label: "受信料" }
+];
 
 // アイコンのプルダウンを描画する（selectedがICONS_FIXEDに無い場合も、既存データ保護のため選択肢として追加する）
 function renderFcIconSelect(selected) {
   const sel = document.getElementById("fcIconSelect");
-  const known = ICONS_FIXED.includes(selected);
-  let options = ICONS_FIXED.map(e =>
-    `<option value="${e}" ${selected === e ? "selected" : ""}>${e}</option>`
+  const known = ICONS_FIXED.find(i => i.emoji === selected);
+  let options = ICONS_FIXED.map(i =>
+    `<option value="${i.emoji}" ${selected === i.emoji ? "selected" : ""}>${i.emoji}</option>`
   ).join("");
   if (selected && !known) {
     options += `<option value="${selected}" selected>${selected}</option>`;
   }
   sel.innerHTML = options;
+  updateFcIconDesc(selected);
+}
+
+// アイコンの横に、選択中のアイコンの説明（支出登録・収入登録のカテゴリ表示と同じ考え方）を表示する
+function updateFcIconDesc(selected) {
+  const known = ICONS_FIXED.find(i => i.emoji === selected);
+  document.getElementById("fcIconDesc").textContent = known ? known.label : "";
 }
 
 // 項目名の入力に応じて、アイコンの選択候補をリアルタイムに自動更新する（手動で選び直すことも可能）
@@ -2025,8 +2056,10 @@ function onFcNameInput() {
   renderFcIconSelect(guessIconEmoji(name));
 }
 
-// アイコンを手動で選び直したときの処理（現状は選択値をそのまま保存時に使用するため、ここでは何もしない）
-function onFcIconSelectChange() {}
+// アイコンを手動で選び直したときの処理：横の説明文を更新する
+function onFcIconSelectChange() {
+  updateFcIconDesc(document.getElementById("fcIconSelect").value);
+}
 
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
