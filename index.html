@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.29"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.31"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2025,19 +2025,15 @@ function renderFixedCostList(cycle) {
 
     const cardBg = !isPayMonth ? "var(--card)" : (item.paid ? "var(--orange-l)" : "var(--card)");
     const opacity = !isPayMonth ? "0.55" : "1";
-    const statusColor = !isPayMonth ? "var(--muted)" : (item.paid ? "var(--orange-d)" : "var(--red)");
-
-    // 未払い/支払い済みトグル（今月対象月のみ表示、■＝支払い済み／□＝未払い）
-    const payToggle = isPayMonth
-      ? `<button onclick="event.stopPropagation();toggleFixedCostPaid('${item.id}')" style="flex-shrink:0;width:34px;height:34px;padding:0;border-radius:8px;border:1px solid ${statusColor};background:none;color:${statusColor};font-size:18px;line-height:1;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;">${item.paid ? "■" : "□"}</button>`
-      : `<span style="flex-shrink:0;width:34px;font-size:9px;color:var(--muted);white-space:nowrap;text-align:center;">対象外</span>`;
+    const textColor = item.paid ? "var(--muted)" : "var(--text)";
+    const dueColor  = item.paid ? "var(--muted)" : "var(--sub)";
+    const amtColor  = item.paid ? "var(--muted)" : "var(--orange-d)";
 
     return `<div style="cursor:pointer;background:${cardBg};border:0.5px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:8px;opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
-        <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}<span style="font-size:13px;font-weight:400;color:var(--sub);">（${dueLabel}）</span></div>
-        <span style="font-size:17px;font-weight:700;color:var(--orange-d);white-space:nowrap;flex-shrink:0;">${fmt(item.amount||0)}</span>
-        ${payToggle}
+        <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}<span style="font-size:13px;font-weight:400;color:${dueColor};">（${dueLabel}）</span></div>
+        <span style="font-size:17px;font-weight:700;color:${amtColor};white-space:nowrap;flex-shrink:0;">${fmt(item.amount||0)}</span>
       </div>
     </div>`;
   }).join("");
