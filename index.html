@@ -497,7 +497,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- ボタン -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
-      <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
+      <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
     </div>
     <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
   </div>
@@ -685,7 +685,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.20"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.21"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
