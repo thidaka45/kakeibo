@@ -682,10 +682,25 @@ const BUDGET_CATS = {
 // 固定費（住居・通信）や貯蓄は「普段の生活費」ではなく別枠で管理するため対象外とする。
 const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 
+// 固定費登録で登録済みの項目を、支出登録のカテゴリ候補として使えるようにする
+function getFixedCostCatOptions() {
+  const cycle = ensureCycle();
+  return (cycle.fixed_costs || []).map(item => ({
+    id: "fc_" + item.id,
+    emoji: item.icon || "📦",
+    label: item.item
+  }));
+}
+
+// カテゴリ名解決（取引履歴・CSV出力など）に使う全カテゴリ一覧（固定費項目を含む）
+function getAllCats() {
+  return [...CATS_EXPENSE, ...CATS_INCOME, ...getFixedCostCatOptions()];
+}
+
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.21"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.22"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -879,7 +894,7 @@ function renderHome() {
 
   // 変動費（積立・固定費に相当するカテゴリを除いた、日々のやりくり費用）の実績ペースを算出する。
   // 節約すればするほど、この値は随時（描画のたびに）下がって反映される。
-  const variableTx = txs.filter(t => t.type === "expense" && !FIXED_LIKE_CATS.includes(t.cat));
+  const variableTx = txs.filter(t => t.type === "expense" && !FIXED_LIKE_CATS.includes(t.cat) && !String(t.cat).startsWith("fc_"));
   const variableSpent = variableTx.reduce((s,t)=>s+t.amount, 0);
   const dailyPace = elapsedDays > 0 ? variableSpent / elapsedDays : 0;
 
@@ -949,7 +964,7 @@ function renderHome() {
 
   // 今月度の取引：レシート等の日付に関係なく、登録した順（新しい順）に表示する
   const recent = [...txs].sort((a,b)=>b.id-a.id);
-  const allCats = [...CATS_EXPENSE,...CATS_INCOME];
+  const allCats = getAllCats();
   document.getElementById("txList").innerHTML = recent.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">取引がありません</div>`
     : recent.map(t => {
@@ -1010,9 +1025,18 @@ function renderCatGrid() {
   const sel = F("catGrid");
   const optStyle = 'style="font-size:17px;font-weight:600;"';
   const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
-  sel.innerHTML =
+  let html =
     `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
     cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
+  if (inputType === "expense") {
+    const fcOpts = getFixedCostCatOptions();
+    if (fcOpts.length > 0) {
+      html += `<optgroup label="固定費から選択">` +
+        fcOpts.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
+        `</optgroup>`;
+    }
+  }
+  sel.innerHTML = html;
   sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
 }
@@ -1356,7 +1380,7 @@ function renderHistoryTxList(idx) {
   if (!periods.length || idx === null || !periods[idx]) { el.innerHTML = ""; return; }
 
   const txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
-  const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
+  const allCats = getAllCats();
   const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
   el.innerHTML = txs.length === 0
@@ -1438,7 +1462,7 @@ function exportData(range) {
 }
 
 function getExportTxs(range) {
-  const allCats = [...CATS_EXPENSE, ...CATS_INCOME];
+  const allCats = getAllCats();
   let txs = loadTx().sort((a,b) => new Date(a.date) - new Date(b.date));
   if (range === "month" && viewPeriodIndex !== null && ensurePeriods().length) {
     txs = periodTxs(viewPeriodIndex).sort((a,b) => new Date(a.date) - new Date(b.date));
