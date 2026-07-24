@@ -682,7 +682,7 @@ const FIXED_LIKE_CATS = ["savings", "housing", "comm"];
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.04"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.05"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1451,12 +1451,13 @@ function exportCSV(range) {
   if (txs.length === 0) { showToast("データがありません"); return; }
 
   const BOM    = "\uFEFF";
-  const header = "日付,種別,カテゴリ,金額,メモ\n";
+  const header = "日付,種別,カテゴリ,金額,メモ,画像ファイル名\n";
   const rows   = txs.map(t => {
     const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
     const type = t.type === "income" ? "収入" : "支出";
     const memo = (t.memo || "").replace(/,/g, "、");
-    return `${t.date},${type},${cat.label},${t.amount},${memo}`;
+    const ref  = (t.receiptRef || "").replace(/,/g, "、");
+    return `${t.date},${type},${cat.label},${t.amount},${memo},${ref}`;
   }).join("\n");
 
   const blob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
