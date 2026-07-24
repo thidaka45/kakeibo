@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.23"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.24"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1025,9 +1025,7 @@ function renderCatGrid() {
   const sel = F("catGrid");
   const optStyle = 'style="font-size:20px;font-weight:800;"';
   const placeholderStyle = 'style="font-size:17px;font-weight:400;color:var(--muted);"';
-  let html =
-    `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>` +
-    cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
+  let html = `<option ${placeholderStyle} value="" disabled ${selectedCat===""?"selected":""}>カテゴリを選択してください</option>`;
   if (inputType === "expense") {
     const fcOpts = getFixedCostCatOptions();
     if (fcOpts.length > 0) {
@@ -1036,6 +1034,7 @@ function renderCatGrid() {
         `</optgroup>`;
     }
   }
+  html += cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("");
   sel.innerHTML = html;
   sel.classList.toggle("cat-select-empty", selectedCat === "");
   sel.value = selectedCat;
@@ -1088,6 +1087,10 @@ function applyCarryover() {
 
 function selectCat(id) {
   selectedCat = id;
+  if (typeof id === "string" && id.startsWith("fc_")) {
+    const fcOpt = getFixedCostCatOptions().find(c => c.id === id);
+    if (fcOpt) F("memoInput").value = `固定費（${fcOpt.label}）`;
+  }
   renderCatGrid();
 }
 
