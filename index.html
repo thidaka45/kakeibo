@@ -390,11 +390,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 14px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引履歴</span></div>
-    <div class="month-header">
-      <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
-      <span class="month-title" id="graphMonthTitle"></span>
-      <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
-    </div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（縦スクロールバー表示） -->
   <div style="flex:1;overflow-y:scroll;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -417,13 +412,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div id="flowNextToFixed" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
     <div style="font-size:12px;color:var(--blue);margin-bottom:6px;">積立プランを確認したら、次は固定費の確認に進みましょう。</div>
     <button onclick="proceedFlowToFixedCosts()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">次へ：固定費の確認 →</button>
-  </div>
-
-  <!-- 対象年月 -->
-  <div class="month-header">
-    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
-    <span class="month-title" id="savingsMonthTitle"></span>
-    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
   </div>
 
   <!-- サマリー -->
@@ -569,13 +557,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <button onclick="finishNewMonthFlow()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">完了してホームへ →</button>
   </div>
 
-  <!-- 対象年月 -->
-  <div class="month-header">
-    <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
-    <span class="month-title" id="fixedCostMonthTitle"></span>
-    <button class="month-nav" data-dir="1" onclick="changePeriod(1)">›</button>
-  </div>
-
   <!-- サマリー -->
   <div style="margin-bottom:10px;">
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--orange);">
@@ -702,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.38"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.39"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -837,8 +818,6 @@ function renderHome() {
   // 月度が1件も無い（サービス未開始）場合は空状態を表示する
   if (!periods.length) {
     document.getElementById("monthTitle").textContent = "未開始";
-    document.getElementById("fixedCostMonthTitle").textContent = "未開始";
-    document.getElementById("savingsMonthTitle").textContent = "未開始";
     document.getElementById("balanceAmount").textContent = fmt(0);
     document.getElementById("totalIncome").textContent   = fmt(0);
     document.getElementById("totalExpense").textContent  = fmt(0);
@@ -878,8 +857,6 @@ function renderHome() {
   const budgetTotal = income;
 
   document.getElementById("monthTitle").textContent = periodLabel(viewPeriodIndex);
-  document.getElementById("fixedCostMonthTitle").textContent = periodLabel(viewPeriodIndex);
-  document.getElementById("savingsMonthTitle").textContent = periodLabel(viewPeriodIndex);
   document.getElementById("balanceAmount").textContent = fmt(balance);
   document.getElementById("totalIncome").textContent   = fmt(income);
   document.getElementById("totalExpense").textContent  = fmt(expense);
@@ -1273,7 +1250,6 @@ function renderGraph() {
   const periods = ensurePeriods();
 
   if (!periods.length) {
-    document.getElementById("graphMonthTitle").textContent = "未開始";
     document.getElementById("barChart").innerHTML =
       `<div style="width:100%;text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">「その他」タブから新しい月を開始してください</div>`;
     document.getElementById("monthDetail").innerHTML = "";
@@ -1284,8 +1260,6 @@ function renderGraph() {
   }
 
   if (viewPeriodIndex === null || viewPeriodIndex > periods.length - 1) viewPeriodIndex = periods.length - 1;
-
-  document.getElementById("graphMonthTitle").textContent = periodLabel(viewPeriodIndex);
 
   // 表示中の月度を最新とみなし、直近最大6件の月度を表示する（作成済みの月度のみ）
   const endIdx = viewPeriodIndex;
