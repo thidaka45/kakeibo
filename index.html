@@ -193,7 +193,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .page.active>*{animation:fadeUp .3s ease both;}
 
 /* トースト */
-.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--text);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:nowrap;}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--text);color:#fff;padding:10px 18px;border-radius:14px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:200;white-space:normal;max-width:calc(100vw - 40px);width:max-content;text-align:center;line-height:1.5;box-sizing:border-box;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
@@ -245,7 +245,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="icon-square" style="background:var(--blue);">
         <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       </div>
-      <span class="icon-label">取引履歴</span>
+      <span class="icon-label">取引実績</span>
     </button>
     <button class="icon-btn" onclick="newTxEntry('income')">
       <div class="icon-square" style="background:var(--amber);">
@@ -291,7 +291,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <span class="icon-label" style="position:relative;flex-shrink:0;text-align:center;padding:0 20px;line-height:1.5;">長押しでレシート・領収書・請求書を記録</span>
   </button>
 
-  <!-- 取引履歴は非表示（JS互換のため要素のみ残す） -->
+  <!-- 取引実績は非表示（JS互換のため要素のみ残す） -->
   <div style="display:none;">
     <div class="tx-list" id="txList"></div>
   </div>
@@ -389,7 +389,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 14px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-    <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引履歴</span></div>
+    <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引実績</span></div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（縦スクロールバー表示） -->
   <div style="flex:1;overflow-y:scroll;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -675,7 +675,7 @@ function getFixedCostCatOptions() {
   }));
 }
 
-// カテゴリ名解決（取引履歴・CSV出力など）に使う全カテゴリ一覧（固定費項目を含む）
+// カテゴリ名解決（取引実績・CSV出力など）に使う全カテゴリ一覧（固定費項目を含む）
 function getAllCats() {
   return [...CATS_EXPENSE, ...CATS_INCOME, ...getFixedCostCatOptions()];
 }
@@ -683,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.41"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.43"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2079,7 +2079,7 @@ function openFixedCostForm(id = null) {
   const item = id ? cycle.fixed_costs.find(i => i.id === id) : null;
 
   if (item && item.paid) {
-    showToast("支払い済みの項目です。取引履歴から削除・修正してから編集してください");
+    showToast("支払い済みの項目です。取引実績から削除・修正してから編集してください");
     return;
   }
 
@@ -2241,7 +2241,7 @@ function startNewMonth() {
 
   if (!isFirstTime) {
     // 積立: 前月の各プランの積立残高に、月々の積立額を加算する（引き継ぎ）。
-    // 取引履歴への記録は行わない（ホーム画面はリアルタイムに積立タブの設定を参照するため）。
+    // 取引実績への記録は行わない（ホーム画面はリアルタイムに積立タブの設定を参照するため）。
     const plans = loadSavingsPlans();
     let savingsTotal = 0;
     plans.forEach(p => {
