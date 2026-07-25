@@ -392,7 +392,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引実績</span></div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（縦スクロールバー表示） -->
-  <div style="flex:1;overflow-y:scroll;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div style="flex:1;overflow-y:scroll;padding:0 14px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="tx-list" id="historyTxList" style="box-shadow:none;"></div>
   </div>
   <!-- 月次棒グラフ・カテゴリ別支出は非表示（JS互換のため要素のみ残す） -->
@@ -683,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.43"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.44"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
