@@ -695,7 +695,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.51"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.52"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1243,6 +1243,7 @@ function deleteTxEdit() {
 // 編集モードの状態・表示をリセットする（新規入力状態に戻す）
 function resetEditMode() {
   editingTxId = null;
+  localStorage.removeItem("kakeibo_pending_return_tx");
   const banner = F("editTxBanner");
   const delBtn = F("deleteTxBtn");
   const receiptBtn = F("receiptAccessBtn");
@@ -1409,6 +1410,8 @@ function showReceiptInfo(id) {
     showToast("この取引に紐づく画像の識別子がありません（画像はスマホ内に保存する運用です）");
     return;
   }
+  // ショートカット（別アプリ）を開いて戻ってきたとき、同じ編集画面に復帰できるよう保存しておく
+  localStorage.setItem("kakeibo_pending_return_tx", JSON.stringify({ id: tx.id, type: tx.type }));
   const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}`;
   location.href = url;
 }
@@ -2404,6 +2407,17 @@ function init() {
   setType("expense");
   renderHome();
   ensureCycle();
+
+  // 画像確認（ショートカット）から戻ってきた場合、元の編集画面に復帰する
+  const pendingReturn = localStorage.getItem("kakeibo_pending_return_tx");
+  if (pendingReturn) {
+    localStorage.removeItem("kakeibo_pending_return_tx");
+    try {
+      const { id, type } = JSON.parse(pendingReturn);
+      showPage(type);
+      openTxEdit(id);
+    } catch (e) { /* 復元に失敗しても通常のホーム画面表示のまま続行 */ }
+  }
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js");
