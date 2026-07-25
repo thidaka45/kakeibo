@@ -683,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.40"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.41"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2075,9 +2075,15 @@ function onFcIconSelectChange() {}
 
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
-  editingFixedCostId = id;
   const cycle = ensureCycle();
   const item = id ? cycle.fixed_costs.find(i => i.id === id) : null;
+
+  if (item && item.paid) {
+    showToast("支払い済みの項目です。取引履歴から削除・修正してから編集してください");
+    return;
+  }
+
+  editingFixedCostId = id;
 
   if (item) {
     document.getElementById("fcFormTitle").textContent = "固定費を編集";
