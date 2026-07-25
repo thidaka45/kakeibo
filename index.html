@@ -683,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.39"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.40"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1112,6 +1112,18 @@ function updateFixedCostAmountFromTx(type, cat, amt) {
   saveCycle(cycle);
 }
 
+// 支出取引が削除された場合、または固定費以外のカテゴリに変更された場合、
+// 元々紐付いていた固定費項目を未払い（□）状態に戻す
+function revertFixedCostPaidFromTx(type, cat) {
+  if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
+  const fcId = cat.slice(3);
+  const cycle = ensureCycle();
+  const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
+  if (idx === -1) return;
+  cycle.fixed_costs[idx].paid = false;
+  saveCycle(cycle);
+}
+
 function submitTx() {
   const amt = parseInt(inputAmt || "0");
   if (!amt) { showToast("金額を入力してください"); return; }
@@ -1131,6 +1143,7 @@ function submitTx() {
     txs[idx] = { ...old, type: inputType, cat: selectedCat, amount: amt, memo, date };
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
+    if (old.cat !== selectedCat) revertFixedCostPaidFromTx(old.type, old.cat);
     updateFixedCostAmountFromTx(inputType, selectedCat, amt);
     showToast("取引を更新しました");
     resetEditMode();
@@ -1205,6 +1218,7 @@ function deleteTxEdit() {
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
     txs.splice(idx, 1);
     saveTx(txs);
+    revertFixedCostPaidFromTx(old.type, old.cat);
   }
   showToast("取引を削除しました");
   resetEditMode();
