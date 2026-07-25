@@ -300,14 +300,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 支出入力 ===== -->
 <div class="page" id="page-expense" style="background:var(--red-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_expense">支出登録</span>
-    <button id="receiptAccessBtn_expense" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
-      style="display:none;margin-left:auto;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--blue);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
-      </svg>画像
-    </button>
-  </div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_expense">支出登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -320,9 +313,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_expense" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
     <!-- メモ -->
-    <div style="margin-bottom:6px;">
+    <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
-        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
+      <button id="receiptAccessBtn_expense" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
+        style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:5px 8px;align-items:center;gap:3px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;color:var(--blue);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+        </svg>画像
+      </button>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn expense" id="submitBtn_expense" onclick="submitTx()" style="padding:10px;">支出を登録</button>
@@ -351,14 +350,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 収入入力 ===== -->
 <div class="page" id="page-income" style="background:var(--amber-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_income">収入登録</span>
-    <button id="receiptAccessBtn_income" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
-      style="display:none;margin-left:auto;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--blue);">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
-      </svg>画像
-    </button>
-  </div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); showPage('home')">🏠 ホーム</button><span class="page-name" id="pageName_income">収入登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -371,9 +363,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- カテゴリ（プルダウン選択） -->
     <select class="field-select" id="catGrid_income" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
     <!-- メモ -->
-    <div style="margin-bottom:6px;">
+    <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
-        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;"></textarea>
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
+      <button id="receiptAccessBtn_income" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
+        style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:5px 8px;align-items:center;gap:3px;cursor:pointer;font-family:inherit;font-size:11px;font-weight:600;color:var(--blue);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+        </svg>画像
+      </button>
     </div>
     <!-- 記録ボタン -->
     <button class="submit-btn income" id="submitBtn_income" onclick="submitTx()" style="padding:10px;">収入を登録</button>
@@ -697,7 +695,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.49"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.50"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1431,10 +1429,19 @@ function renderHistoryTxList(idx) {
         const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
         const d = new Date(t.date);
+        const receiptMark = t.receiptRef
+          ? `<span title="画像あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.7;">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
+                 <line x1="9" y1="8" x2="15" y2="8"/>
+                 <line x1="9" y1="12" x2="15" y2="12"/>
+               </svg>
+             </span>`
+          : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
           <div class="tx-info">
-            <div class="tx-name">${t.memo || c.label}</div>
+            <div class="tx-name">${t.memo || c.label}${receiptMark}</div>
             <div class="tx-date">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${c.label}</div>
           </div>
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
