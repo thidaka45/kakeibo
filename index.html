@@ -107,7 +107,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
 .tx-list{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);}
 #txList{max-height:270px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.tx-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid var(--border);}
+.tx-item{display:flex;align-items:center;gap:10px;padding:12px 12px;border-bottom:1px solid var(--border);}
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .tx-info{flex:1;}
@@ -392,7 +392,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">取引実績</span></div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（9件分の高さに固定し、それ以上はスクロール） -->
-  <div style="flex:none;height:567px;overflow-y:scroll;padding:0 14px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div style="flex:none;height:585px;overflow-y:scroll;padding:0 14px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="tx-list" id="historyTxList" style="box-shadow:none;"></div>
   </div>
   <!-- 月次棒グラフ・カテゴリ別支出は非表示（JS互換のため要素のみ残す） -->
@@ -683,7 +683,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.46"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.47"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
