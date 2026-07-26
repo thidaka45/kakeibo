@@ -473,15 +473,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
-      <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
-        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
-      </div>
-
       <!-- 積立月額（逆算・読み取り専用） -->
       <div style="position:relative;margin-top:6px;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">計算による積立月額：</span>
         <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 178px;font-size:16px;background:var(--surface);color:var(--text);">
+      </div>
+
+      <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
+        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
     </div>
 
@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.63"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.64"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
