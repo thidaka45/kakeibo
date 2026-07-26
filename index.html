@@ -462,25 +462,25 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;margin-bottom:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
         <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
           <select id="savingsYear" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
           <select id="savingsMonth" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
         </div>
       </div>
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
         <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">保有金額：</span>
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <!-- 積立月額（逆算・読み取り専用） -->
       <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">積立月額（参考）：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">積立月額（参考）：</span>
         <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 122px;font-size:16px;background:var(--surface);color:var(--text);">
       </div>
       <div id="savingsCalcDetail" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
@@ -489,15 +489,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 積立月額（手動入力） -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--blue);pointer-events:none;z-index:1;">積立月額：</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--blue);pointer-events:none;z-index:1;">積立月額：</span>
         <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
     </div>
 
     <!-- ボタン -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:13px;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
-      <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
+      <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
+      <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
     </div>
     <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
   </div>
@@ -694,7 +694,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.54"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.55"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
