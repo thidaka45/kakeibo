@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.72"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.73"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1750,13 +1750,13 @@ function renderSavings() {
   enriched.sort((a, b) => a.p.name.localeCompare(b.p.name, "ja"));
 
   listEl.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
-    enriched.map(({ p, status, statusColor }, i) => {
+    enriched.map(({ p, status, statusColor, bgColor }, i) => {
       const icon = p.icon || guessIconEmoji(p.name);
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
 
       return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;padding:12.6px 14px;${borderStyle}">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
           <div style="font-size:13px;font-weight:600;color:${statusColor};margin-top:2px;">${status}</div>
