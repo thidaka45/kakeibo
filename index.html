@@ -507,7 +507,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeSavingsForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveSavingsPlan()" style="padding:10px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;" id="savingsSubmitBtn">保存</button>
     </div>
-    <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
+    <button id="savingsDeleteBtn" onclick="deleteSavingsPlan(editingSavingsId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">このプランを削除</button>
   </div>
 </div>
 </div>
@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.61"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.62"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1929,10 +1929,15 @@ function saveSavingsPlan() {
   }
 
   saveSavingsPlans(plans);
-  closeSavingsForm();
   renderSavings();
   renderHome();
-  showToast(isEditing ? "更新しました" : "積立プランを追加しました");
+  if (isEditing) {
+    // 更新の場合は画面遷移せず、詳細画面に留まる
+    showToast("更新しました");
+  } else {
+    closeSavingsForm();
+    showToast("積立プランを追加しました");
+  }
 }
 
 function deleteSavingsPlan(id) {
