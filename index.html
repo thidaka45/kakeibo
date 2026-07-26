@@ -461,9 +461,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
     <div style="margin-bottom:10px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-        <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
-        <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
+      <div style="position:relative;margin-bottom:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
+        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
+          <select id="savingsYear" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
+          <select id="savingsMonth" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
+        </div>
       </div>
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
@@ -691,7 +694,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.53"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.54"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
