@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.70"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.71"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1746,11 +1746,8 @@ function renderSavings() {
     return { p, pct, achievedPct, months, status, statusColor, barColor, bgColor, order, isAchieved };
   });
 
-  // 表示順：注意 → 達成 → 順調
-  enriched.sort((a, b) => {
-    if (a.order !== b.order) return a.order - b.order;
-    return a.months - b.months;
-  });
+  // 表示順：項目名順（50音・辞書順）
+  enriched.sort((a, b) => a.p.name.localeCompare(b.p.name, "ja"));
 
   listEl.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
     enriched.map(({ p, status, statusColor }, i) => {
