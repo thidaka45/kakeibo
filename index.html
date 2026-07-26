@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.67"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.68"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1435,8 +1435,8 @@ function renderHistoryTxList(idx) {
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
         const d = new Date(t.date);
         const receiptMark = t.receiptRef
-          ? `<span title="画像あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.7;">
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          ? `<span title="画像あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.9;">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                  <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
                  <line x1="9" y1="8" x2="15" y2="8"/>
                  <line x1="9" y1="12" x2="15" y2="12"/>
