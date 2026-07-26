@@ -483,14 +483,22 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">計算による積立月額：</span>
         <input class="field-input" id="savingsCalcDisplay" type="text" readonly disabled style="width:100%;padding:8px 10px 8px 178px;font-size:16px;background:var(--surface);color:var(--text);">
       </div>
-      <div id="savingsCalcDetail" style="font-size:11px;color:var(--muted);margin-top:3px;"></div>
     </div>
 
     <!-- 積立月額（手動入力） -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--blue);pointer-events:none;z-index:1;">積立月額：</span>
-        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this)">
+        <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;background:var(--blue-l);border-color:var(--blue);" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
+      </div>
+      <div id="savingsCalcDetail" style="font-size:12px;color:var(--muted);margin-top:6px;"></div>
+    </div>
+
+    <!-- 達成率・グラフ -->
+    <div id="savingsAchievedWrap" style="margin-bottom:10px;display:none;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span id="savingsAchievedPct" style="font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;width:48px;">0%</span>
+        <div class="savings-bar-track"><div id="savingsAchievedBar" class="savings-bar-fill" style="width:0%;"></div></div>
       </div>
     </div>
 
@@ -694,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.60"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.61"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1749,24 +1757,14 @@ function renderSavings() {
     return a.months - b.months;
   });
 
-  listEl.innerHTML = enriched.map(({ p, pct, achievedPct, months, status, statusColor, barColor, bgColor, isAchieved }) => {
+  listEl.innerHTML = enriched.map(({ p, statusColor }) => {
     const icon = p.icon || guessIconEmoji(p.name);
-    // 全項目、達成率（100%超も含む）を表示する
-    const leftLabel = `<span style="font-size:13px;font-weight:600;color:${statusColor};white-space:nowrap;flex-shrink:0;width:64px;"><span style="display:inline-block;width:28px;text-align:right;">${achievedPct}</span>%</span>`;
 
     return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">
-            <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
-            <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            ${leftLabel}
-            <div class="savings-bar-track"><div class="savings-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
-          </div>
-        </div>
+        <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:${statusColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
+        <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
       </div>
     </div>`;
   }).join("");
@@ -1849,6 +1847,9 @@ function updateSavingsCalc() {
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const displayEl = document.getElementById("savingsCalcDisplay");
   const detailEl  = document.getElementById("savingsCalcDetail");
+  const achievedWrap = document.getElementById("savingsAchievedWrap");
+  const achievedPctEl = document.getElementById("savingsAchievedPct");
+  const achievedBarEl = document.getElementById("savingsAchievedBar");
 
   if (amount > 0 && year && month) {
     const { monthly, months, remaining } = calcMonthly(amount, balance, year, month);
@@ -1857,6 +1858,29 @@ function updateSavingsCalc() {
   } else {
     displayEl.value = "";
     detailEl.textContent = "";
+  }
+
+  // 達成率・グラフ（目標金額が入力されている場合のみ表示）
+  if (amount > 0) {
+    const months = (year && month) ? calcRemainingMonths(year, month) : 0;
+    const manualMonthly = parseYenInput("savingsMonthlyManual");
+    const monthly = manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month).monthly : 0);
+    const isAchieved = balance >= amount;
+    const projected = balance + monthly * months;
+    const onTrack = isAchieved || projected >= amount;
+    const achievedPct = Math.round(balance / amount * 100);
+    const pct = Math.min(achievedPct, 100);
+    let barColor;
+    if (isAchieved)   barColor = "var(--blue)";
+    else if (onTrack) barColor = "var(--green)";
+    else              barColor = "var(--red)";
+    achievedWrap.style.display = "block";
+    achievedPctEl.textContent = achievedPct + "%";
+    achievedPctEl.style.color = barColor;
+    achievedBarEl.style.width = pct + "%";
+    achievedBarEl.style.background = barColor;
+  } else {
+    achievedWrap.style.display = "none";
   }
 }
 
