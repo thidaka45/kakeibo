@@ -482,6 +482,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">積立月額：</span>
         <input class="field-input" id="savingsMonthlyManual" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
       </div>
+      <div id="savingsCalcNote" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
     </div>
 
     <!-- 達成率・グラフ -->
@@ -623,7 +624,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button onclick="closeFixedCostForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
       <button onclick="saveFixedCostItem()" style="padding:10px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;" id="fcSubmitBtn">登録</button>
     </div>
-    <button id="fcDeleteBtn" onclick="deleteFixedCostItem(editingFixedCostId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">この項目を削除</button>
+    <button id="fcDeleteBtn" onclick="deleteFixedCostItem(editingFixedCostId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">この項目を削除</button>
   </div>
 </div>
 </div>
@@ -696,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.65"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.66"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1841,6 +1842,7 @@ function updateSavingsCalc() {
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
   const displayEl = document.getElementById("savingsCalcDisplay");
+  const noteEl    = document.getElementById("savingsCalcNote");
   const detailEl  = document.getElementById("savingsCalcDetail");
   const achievedWrap = document.getElementById("savingsAchievedWrap");
   const achievedPctEl = document.getElementById("savingsAchievedPct");
@@ -1849,8 +1851,10 @@ function updateSavingsCalc() {
   if (amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month);
     displayEl.value = fmt(monthly);
+    noteEl.textContent = `※計算による積立月額：${fmt(monthly)}`;
   } else {
     displayEl.value = "";
+    noteEl.textContent = "";
   }
 
   // 達成率・グラフ（目標金額が入力されている場合のみ表示）
