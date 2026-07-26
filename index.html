@@ -449,13 +449,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <!-- 入力フォーム（モーダル風） -->
   <div id="savingsForm" style="display:none;background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 1px 8px rgba(0,0,0,.05);margin-top:10px;">
-    <div style="margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:600;color:var(--text);" id="savingsFormTitle">新しい積立プラン</div>
-    </div>
+    <div id="savingsFormTitle" style="display:none;"></div>
 
     <!-- アイコン＋項目名 -->
     <div style="margin-bottom:8px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">アイコン・項目名</div>
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
         <div id="savingsIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
         <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onSavingsNameInput()">
@@ -464,7 +461,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <!-- 目標金額枠：年月＋目標金額＋保有金額＋自動計算月額 -->
     <div style="margin-bottom:10px;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">目標年月・目標金額・月額（自動計算）</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
         <select class="field-select" id="savingsYear" style="padding:8px 10px;font-size:16px;"></select>
         <select class="field-select" id="savingsMonth" style="padding:8px 10px;font-size:16px;"></select>
@@ -695,7 +691,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.52"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.53"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
