@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.102"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.103"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1901,7 +1901,8 @@ function onSavingsNameInput() {
 // ○の数＝積立ペース（月数、最大24個）。
 // ・塗りつぶし：現在の貯蓄額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
 // ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
-function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
+// ・遅れている分（本来はもう塗れているはずなのに未達）：中身を薄い色で塗り、縁は濃い色にすることで一目で分かるようにする
+function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color, lightColor) {
   const dotsCount = Math.min(Math.max(cap, 1), 24);
   const filled = Math.min(Math.round(moneyRatio * dotsCount), dotsCount);
   const timeReached = Math.min(Math.round(timeRatio * dotsCount), dotsCount);
@@ -1912,8 +1913,8 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
       // 実際に積み立てられている分：塗りつぶし
       bg = color; borderColor = color;
     } else if (i < timeReached) {
-      // 時間的には積み立てているはずだが、まだ積み立てられていない分：縁取りのみ・中身は白
-      bg = "#fff"; borderColor = color;
+      // 時間的には積み立てているはずだが、まだ積み立てられていない分：薄い色で塗り、縁は濃い色
+      bg = lightColor || color; borderColor = color;
     } else {
       // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
       bg = "var(--bg)"; borderColor = "var(--border)";
@@ -1926,7 +1927,7 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
 }
 
 // 図解ブロックのHTMLを生成する
-function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) {
+function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, lightColor) {
   if (isAchieved) {
     return `
     <div style="width:100%;display:flex;align-items:center;gap:10px;">
@@ -1956,7 +1957,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
   const isOnce = cycle === 0;
   if (isOnce) {
     // 「都度」は周期が無いため、時間の縁取りは付けず金額の塗りつぶしのみで表現する
-    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, 0, color);
+    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, 0, color, lightColor);
     const pct = Math.round(ratio * 100);
     return `
     <div style="width:100%;">
@@ -1967,7 +1968,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
 
   // 積立ペースの中で、現時点が時間的にどこまで来ているか（目標年月から逆算）
   const timeRatio = Math.min(Math.max((cycle - months) / cycle, 0), 1);
-  const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, timeRatio, color);
+  const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, timeRatio, color, lightColor);
   return `
     <div style="width:100%;">
       ${dots}
@@ -2014,15 +2015,15 @@ function updateSavingsCalc() {
     const projected = balance + monthly * contributions;
     // 「都度」はペース判定を行わない（一括入金前提のため、常に未達成表示になるのを避ける）
     const onTrack = isAchieved || (!isOnce && projected >= amount);
-    let color;
-    if (isAchieved)      color = "var(--blue)";
-    else if (isOverdue)  color = "var(--red)";
-    else if (isOnce)     color = "var(--teal)";
-    else if (onTrack)    color = "var(--green)";
-    else                 color = "var(--red)";
+    let color, lightColor;
+    if (isAchieved)      { color = "var(--blue)";  lightColor = "var(--blue-l)"; }
+    else if (isOverdue)  { color = "var(--red)";   lightColor = "var(--red-l)"; }
+    else if (isOnce)     { color = "var(--teal)";  lightColor = "var(--teal-l)"; }
+    else if (onTrack)    { color = "var(--green)"; lightColor = "var(--green-l)"; }
+    else                 { color = "var(--red)";   lightColor = "var(--red-l)"; }
     achievedWrap.style.display = "block";
     const ratio = amount > 0 ? Math.min(balance / amount, 1) : 0;
-    const visualHtml = (year && month) ? renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) : "";
+    const visualHtml = (year && month) ? renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, lightColor) : "";
     monthsVisualEl.innerHTML = visualHtml;
     monthsVisualEl.style.display = visualHtml ? "block" : "none";
   } else {
