@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.106"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.107"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1709,13 +1709,12 @@ function saveSavingsPlans(plans) {
   localStorage.setItem("savings_plans", JSON.stringify(plans));
 }
 
-// この積立プランが「次回の新しい月を開始」操作で積立実行の対象になるかを判定する
-// （周期が毎月＝1の場合は常にtrue。周期0＝都度は自動積立の対象外。それ以外は前回の積立からの経過月数で判定）
+// この積立プランが「次回の新しい月を開始」操作で積立実行の対象になるかを判定する。
+// 「1回の積立額」は毎月積み上げる金額のため、周期0＝都度（手動運用）以外は常に毎月加算する。
+// （積立ペースは積立の頻度ではなく、目標サイクルの長さ＝○の図解の表示単位として使う）
 function isSavingsDueNext(p) {
   const cyc = (typeof p.cycle === "number") ? p.cycle : 1;
-  if (cyc === 0) return false;
-  if (cyc <= 1) return true;
-  return ((p.monthsSinceContribution || 0) + 1) >= cyc;
+  return cyc !== 0;
 }
 
 // 残り月数を計算（今月を基準に目標年月までの差分。0=今月が期限、負数=期限超過）
@@ -1727,18 +1726,16 @@ function calcRemainingMonths(targetYear, targetMonth) {
   return diff;
 }
 
-// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する（周期0＝都度は常に0）
-// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する（周期0＝都度は常に0）。
-// 残り月数はあるのに周期が長すぎて回数が0になる場合でも、期限までにあと1回は積立機会があるとみなす。
+// 残り月数のうち、実際に積立が発生する回数を算出する（周期0＝都度は常に0）。
+// 「1回の積立額」は毎月積み上げる金額のため、積立ペース（周期）の長さに関わらず、
+// 残り月数の分だけ毎月積立が発生するとみなす。
 function calcRemainingContributions(months, cycleMonths) {
   if (!cycleMonths) return 0;
   if (months <= 0) return 0;
-  const cyc = Math.max(cycleMonths, 1);
-  return Math.max(Math.floor(months / cyc), 1);
+  return months;
 }
 
-// 1回あたりの積立額を逆算（積立が発生する残り回数で不足額を割る。
-// 回数が0＝今月中または期限超過、あるいは周期が長く次の積立機会が無い場合は、不足額をそのまま提示する）
+// 毎月の積立額を逆算（残り月数で不足額を割る。今月中または期限超過の場合は、不足額をそのまま提示する）
 function calcMonthly(amount, balance, targetYear, targetMonth, cycleMonths = 1) {
   const remaining = Math.max((amount || 0) - (balance || 0), 0);
   const months    = calcRemainingMonths(targetYear, targetMonth);
