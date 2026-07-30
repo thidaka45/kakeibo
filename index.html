@@ -459,19 +459,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
     </div>
 
-    <!-- 目標年月＋周期＋目標金額＋累積金額＋積立月額 -->
+    <!-- 目標年月＋目標金額＋積立周期＋累積金額＋積立月額 -->
     <div style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:8px;margin-bottom:6px;">
-        <span style="font-size:15px;font-weight:700;color:var(--sub);flex-shrink:0;">目標：</span>
-        <select id="savingsTargetYM" style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
-        <span style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></span>
-        <span style="font-size:15px;font-weight:700;color:var(--sub);flex-shrink:0;">周期：</span>
-        <input id="savingsCycle" type="number" min="1" value="1" inputmode="numeric" style="width:34px;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--text);outline:none;padding:0;text-align:right;" oninput="updateSavingsCalc()">
-        <span style="font-size:13px;color:var(--sub);flex-shrink:0;">ヶ月毎</span>
+        <span style="font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">目標年月：</span>
+        <select id="savingsTargetYM" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
       </div>
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
         <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+      </div>
+
+      <div style="display:flex;align-items:center;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:8px;margin-top:6px;">
+        <span style="font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">積立周期：</span>
+        <select id="savingsCycle" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" onchange="updateSavingsCalc()"></select>
       </div>
 
       <div style="position:relative;margin-top:6px;">
@@ -694,7 +695,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.89"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.90"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1834,6 +1835,12 @@ function openSavingsForm(id) {
     }
   }
 
+  // 積立周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意）
+  const cycleSel = document.getElementById("savingsCycle");
+  cycleSel.innerHTML = [1,2,3,4,6,12]
+    .map(n => `<option value="${n}">${n === 1 ? "毎月" : n + "ヶ月ごと"}</option>`)
+    .join("");
+
   // 既存データ編集の場合
   if (id) {
     const plans = loadSavingsPlans();
@@ -1843,7 +1850,11 @@ function openSavingsForm(id) {
       document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       ymSel.value = `${p.targetYear}-${p.targetMonth}`;
-      document.getElementById("savingsCycle").value   = p.cycle || 1;
+      const cyc = p.cycle || 1;
+      if (![1,2,3,4,6,12].includes(cyc)) {
+        document.getElementById("savingsCycle").innerHTML += `<option value="${cyc}">${cyc}ヶ月ごと</option>`;
+      }
+      document.getElementById("savingsCycle").value = cyc;
       document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
@@ -1963,9 +1974,7 @@ function updateSavingsCalc() {
   if (amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month, cycle);
     displayEl.value = fmt(monthly);
-    noteEl.textContent = cycle > 1
-      ? `※計算値：${fmt(monthly)}（${cycle}ヶ月毎）`
-      : `※計算値：${fmt(monthly)}（毎月）`;
+    noteEl.textContent = `※計算値：${fmt(monthly)}`;
   } else {
     displayEl.value = "";
     noteEl.textContent = "";
