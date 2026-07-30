@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.73"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.74"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2062,7 +2062,7 @@ function renderFixedCostList(cycle) {
   el.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
     enriched.map(({ item, isPayMonth }, i) => {
       const icon = item.icon || guessIconEmoji(item.item);
-      const dueLabel = item.due_day ? `毎月${item.due_day}日` : "支払日未定";
+      const dueLabel = (item.due_day ? `毎月${item.due_day}日` : "支払日未定") + (item.paid ? "・済" : "");
 
       const opacity = !isPayMonth ? "0.55" : "1";
       const textColor = item.paid ? "var(--muted)" : "var(--text)";
