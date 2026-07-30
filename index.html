@@ -484,11 +484,12 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
-      <div style="display:flex;align-items:center;margin-top:6px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:8px 10px;gap:6px;">
+      <div id="savingsMonthlyWrap" style="display:flex;align-items:center;margin-top:6px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:8px 10px;gap:6px;">
         <span style="font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">積立月額：</span>
         <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
         <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%;flex-shrink:0;text-align:right;"></div>
       </div>
+      <div id="savingsOnceNote" style="display:none;margin-top:6px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「累積金額」を直接更新してください。</div>
     </div>
 
     <!-- 達成周期に対する累積金額の進み具合の図解 -->
@@ -699,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.91"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.92"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1696,7 +1697,7 @@ function loadSavingsPlans() {
   // 旧バージョンのデータに周期関連フィールドが無い場合は補完する（デフォルト＝毎月）
   let changed = false;
   plans.forEach(p => {
-    if (!p.cycle) { p.cycle = 1; changed = true; }
+    if (typeof p.cycle !== "number") { p.cycle = 1; changed = true; }
     if (typeof p.monthsSinceContribution !== "number") { p.monthsSinceContribution = 0; changed = true; }
   });
   if (changed) saveSavingsPlans(plans);
@@ -1707,9 +1708,10 @@ function saveSavingsPlans(plans) {
 }
 
 // この積立プランが「次回の新しい月を開始」操作で積立実行の対象になるかを判定する
-// （周期が毎月＝1の場合は常にtrue。それ以外は前回の積立からの経過月数で判定）
+// （周期が毎月＝1の場合は常にtrue。周期0＝都度は自動積立の対象外。それ以外は前回の積立からの経過月数で判定）
 function isSavingsDueNext(p) {
-  const cyc = p.cycle || 1;
+  const cyc = (typeof p.cycle === "number") ? p.cycle : 1;
+  if (cyc === 0) return false;
   if (cyc <= 1) return true;
   return ((p.monthsSinceContribution || 0) + 1) >= cyc;
 }
@@ -1723,9 +1725,10 @@ function calcRemainingMonths(targetYear, targetMonth) {
   return diff;
 }
 
-// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する
+// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する（周期0＝都度は常に0）
 function calcRemainingContributions(months, cycleMonths) {
-  const cyc = Math.max(cycleMonths || 1, 1);
+  if (!cycleMonths) return 0;
+  const cyc = Math.max(cycleMonths, 1);
   if (months <= 0) return 0;
   return Math.floor(months / cyc);
 }
@@ -1764,23 +1767,25 @@ function renderSavings() {
     const pct     = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
     const achievedPct = p.amount > 0 ? Math.round((p.balance||0) / p.amount * 100) : 0; // 100%超も表示する実際の達成率
     const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
-    const cycle   = p.cycle || 1;
+    const cycle   = (typeof p.cycle === "number") ? p.cycle : 1;
+    const isOnce  = cycle === 0;
     const balance = p.balance || 0;
     const monthly = p.monthly || 0;
     // 既に目標達成（残高が必要金額以上）
     const isAchieved = p.amount > 0 && balance >= p.amount;
     // 期限（目標月）を過ぎているのに未達成
     const isOverdue = !isAchieved && months < 0;
-    // このまま今の積立額・周期を続けた場合、期限までに到達できるか（周期分の積立回数のみで計算）
+    // このまま今の積立額・周期を続けた場合、期限までに到達できるか（周期分の積立回数のみで計算。「都度」は判定しない）
     const contributions = calcRemainingContributions(months, cycle);
     const projected = balance + monthly * contributions;
-    const onTrack = isAchieved || (p.amount > 0 && projected >= p.amount);
+    const onTrack = isAchieved || (!isOnce && p.amount > 0 && projected >= p.amount);
     let status, statusColor, barColor, bgColor, order;
     if (isAchieved)      { status = "達成！"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
     else if (isOverdue)  { status = "期限超過（未達成）"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = -1; }
+    else if (isOnce)     { status = "積立中"; statusColor = "var(--teal-d)"; barColor = "var(--teal)"; bgColor = "var(--teal-l)"; order = 2; }
     else if (onTrack)    { status = "達成の見込み"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
     else                 { status = "未達成の見込み"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
-    const cycleLabel = cycle > 1 ? `${cycle}ヶ月ごと` : "毎月";
+    const cycleLabel = isOnce ? "都度" : (cycle > 1 ? `${cycle}ヶ月ごと` : "毎月");
     return { p, pct, achievedPct, months, cycle, cycleLabel, status, statusColor, barColor, bgColor, order, isAchieved };
   });
 
@@ -1791,6 +1796,8 @@ function renderSavings() {
     enriched.map(({ p, status, statusColor, bgColor, cycle, cycleLabel }, i) => {
       const icon = p.icon || guessIconEmoji(p.name);
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
+      const isOnce = cycle === 0;
+      const amountLabel = isOnce ? "残り" + fmt(Math.max((p.amount||0) - (p.balance||0), 0)) : fmt(p.monthly||0);
 
       return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;padding:12.6px 14px;${borderStyle}">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -1800,7 +1807,7 @@ function renderSavings() {
           <div style="font-size:13px;font-weight:600;color:${statusColor};margin-top:2px;">${status}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;">${fmt(p.monthly||0)}</div>
+          <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;">${amountLabel}</div>
           <div style="font-size:11px;color:var(--muted);white-space:nowrap;margin-top:1px;">${cycleLabel}</div>
         </div>
       </div>
@@ -1835,10 +1842,10 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // 達成周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意）
+  // 達成周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意。0＝都度／自動積立なし）
   const cycleSel = document.getElementById("savingsCycle");
-  cycleSel.innerHTML = [1,2,3,4,6,12]
-    .map(n => `<option value="${n}">${n === 1 ? "毎月" : n + "ヶ月ごと"}</option>`)
+  cycleSel.innerHTML = [0,1,2,3,4,6,12]
+    .map(n => `<option value="${n}">${n === 0 ? "都度（自動積立なし）" : n === 1 ? "毎月" : n + "ヶ月ごと"}</option>`)
     .join("");
 
   // 既存データ編集の場合
@@ -1851,8 +1858,8 @@ function openSavingsForm(id) {
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       yearSel.value = p.targetYear;
       monSel.value  = p.targetMonth;
-      const cyc = p.cycle || 1;
-      if (![1,2,3,4,6,12].includes(cyc)) {
+      const cyc = (typeof p.cycle === "number") ? p.cycle : 1;
+      if (![0,1,2,3,4,6,12].includes(cyc)) {
         document.getElementById("savingsCycle").innerHTML += `<option value="${cyc}">${cyc}ヶ月ごと</option>`;
       }
       document.getElementById("savingsCycle").value = cyc;
@@ -1932,6 +1939,17 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
     </div>`;
   }
 
+  const isOnce = cycle === 0;
+  if (isOnce) {
+    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, color);
+    const pct = Math.round(ratio * 100);
+    return `
+    <div style="width:100%;">
+      ${dots}
+      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立中：目標の${pct}％（${filled}／${cap}）</div>
+    </div>`;
+  }
+
   const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, color);
   return `
     <div style="width:100%;">
@@ -1945,13 +1963,21 @@ function updateSavingsCalc() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
-  const cycle   = Math.max(parseInt(document.getElementById("savingsCycle").value) || 1, 1);
+  const cycleRaw = parseInt(document.getElementById("savingsCycle").value);
+  const cycle   = isNaN(cycleRaw) ? 1 : cycleRaw;
+  const isOnce  = cycle === 0;
   const displayEl = document.getElementById("savingsCalcDisplay");
   const noteEl    = document.getElementById("savingsCalcNote");
   const achievedWrap = document.getElementById("savingsAchievedWrap");
   const monthsVisualEl = document.getElementById("savingsMonthsVisual");
+  const monthlyWrap = document.getElementById("savingsMonthlyWrap");
+  const onceNote = document.getElementById("savingsOnceNote");
 
-  if (amount > 0 && year && month) {
+  // 「都度」は自動積立が無いため、積立月額の入力欄自体を隠す
+  monthlyWrap.style.display = isOnce ? "none" : "flex";
+  onceNote.style.display = isOnce ? "block" : "none";
+
+  if (!isOnce && amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month, cycle);
     displayEl.value = fmt(monthly);
     noteEl.textContent = `※計算値：${fmt(monthly)}`;
@@ -1960,19 +1986,21 @@ function updateSavingsCalc() {
     noteEl.textContent = "";
   }
 
-  // 残り月数の図解（目標金額が入力されている場合のみ表示）
+  // 進捗の図解（目標金額が入力されている場合のみ表示）
   if (amount > 0) {
     const months = (year && month) ? calcRemainingMonths(year, month) : 0;
     const manualMonthly = parseYenInput("savingsMonthlyManual");
-    const monthly = manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month, cycle).monthly : 0);
+    const monthly = isOnce ? 0 : (manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month, cycle).monthly : 0));
     const isAchieved = balance >= amount;
     const isOverdue = !isAchieved && (year && month) && months < 0;
     const contributions = calcRemainingContributions(months, cycle);
     const projected = balance + monthly * contributions;
-    const onTrack = isAchieved || projected >= amount;
+    // 「都度」はペース判定を行わない（一括入金前提のため、常に未達成表示になるのを避ける）
+    const onTrack = isAchieved || (!isOnce && projected >= amount);
     let color;
     if (isAchieved)      color = "var(--blue)";
     else if (isOverdue)  color = "var(--red)";
+    else if (isOnce)     color = "var(--teal)";
     else if (onTrack)    color = "var(--green)";
     else                 color = "var(--red)";
     achievedWrap.style.display = "block";
@@ -1999,7 +2027,9 @@ function saveSavingsPlan() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
-  const cycle   = Math.max(parseInt(document.getElementById("savingsCycle").value) || 1, 1);
+  const cycleRaw = parseInt(document.getElementById("savingsCycle").value);
+  const cycle   = isNaN(cycleRaw) ? 1 : cycleRaw;
+  const isOnce  = cycle === 0;
   const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
   const icon    = guessIconEmoji(name);
 
@@ -2007,21 +2037,24 @@ function saveSavingsPlan() {
   if (!amount) { showToast("必要金額を入力してください"); return; }
   if (!year || !month) { showToast("目標年月を選択してください"); return; }
 
-  const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month, cycle);
-  const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
+  let monthly = 0;
+  if (!isOnce) {
+    const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month, cycle);
+    monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
 
-  // このペース・周期を続けた場合、期限までに目標金額へ到達できるか確認（周期分の積立回数のみで判定）
-  const contributions = calcRemainingContributions(months, cycle);
-  const projected = balance + monthly * contributions;
-  if (amount > 0 && projected < amount) {
-    const shortage = amount - projected;
-    const cycleNote = cycle > 1 ? `（${cycle}ヶ月ごと）` : "";
-    const ok = confirm(
-      `この積立額${cycleNote}（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
-      `不足見込み額：${fmt(shortage)}\n\n` +
-      `このまま保存してよろしいですか？`
-    );
-    if (!ok) return;
+    // このペース・周期を続けた場合、期限までに目標金額へ到達できるか確認（周期分の積立回数のみで判定。「都度」は確認しない）
+    const contributions = calcRemainingContributions(months, cycle);
+    const projected = balance + monthly * contributions;
+    if (amount > 0 && projected < amount) {
+      const shortage = amount - projected;
+      const cycleNote = cycle > 1 ? `（${cycle}ヶ月ごと）` : "";
+      const ok = confirm(
+        `この積立額${cycleNote}（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
+        `不足見込み額：${fmt(shortage)}\n\n` +
+        `このまま保存してよろしいですか？`
+      );
+      if (!ok) return;
+    }
   }
 
   const plans = loadSavingsPlans();
@@ -2401,7 +2434,6 @@ function startNewMonth() {
     const plans = loadSavingsPlans();
     let savingsTotal = 0;
     plans.forEach(p => {
-      const cyc = p.cycle || 1;
       const due = isSavingsDueNext(p);
       if (due && p.monthly > 0) {
         p.balance = (p.balance || 0) + p.monthly;
