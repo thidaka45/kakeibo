@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.98"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.99"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1918,10 +1918,11 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
       // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
       bg = "var(--bg)"; borderColor = "var(--border)";
     }
-    // 24個並んだ時と同じ間隔になるよう、ドットサイズ・間隔は周期の数によらず固定にする
-    dots += `<div style="width:10px;height:10px;border-radius:50%;background:${bg};border:2px solid ${borderColor};flex-shrink:0;"></div>`;
+    dots += `<div style="width:10px;height:10px;border-radius:50%;background:${bg};border:2px solid ${borderColor};justify-self:center;"></div>`;
   }
-  return { html: `<div style="display:flex;align-items:center;justify-content:flex-start;gap:4px;flex-wrap:wrap;">${dots}</div>`, filled, cap: dotsCount };
+  // 1行12個・最大2行（24個）で常に枠を確保する。12列グリッドにすることで、
+  // 12個の時は枠幅いっぱいに均等配置され、13個以上は自動的に2行目へ折り返す。
+  return { html: `<div style="display:grid;grid-template-columns:repeat(12, 1fr);row-gap:8px;align-items:center;width:100%;min-height:28px;">${dots}</div>`, filled, cap: dotsCount };
 }
 
 // 図解ブロックのHTMLを生成する
