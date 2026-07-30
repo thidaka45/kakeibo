@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.92"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.93"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1842,9 +1842,9 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // 達成周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意。0＝都度／自動積立なし）
+  // 達成周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意。0＝都度／自動積立なし。最大24ヶ月）
   const cycleSel = document.getElementById("savingsCycle");
-  cycleSel.innerHTML = [0,1,2,3,4,6,12]
+  cycleSel.innerHTML = [0,1,2,3,4,6,12,24]
     .map(n => `<option value="${n}">${n === 0 ? "都度（自動積立なし）" : n === 1 ? "毎月" : n + "ヶ月ごと"}</option>`)
     .join("");
 
@@ -1859,7 +1859,7 @@ function openSavingsForm(id) {
       yearSel.value = p.targetYear;
       monSel.value  = p.targetMonth;
       const cyc = (typeof p.cycle === "number") ? p.cycle : 1;
-      if (![0,1,2,3,4,6,12].includes(cyc)) {
+      if (![0,1,2,3,4,6,12,24].includes(cyc)) {
         document.getElementById("savingsCycle").innerHTML += `<option value="${cyc}">${cyc}ヶ月ごと</option>`;
       }
       document.getElementById("savingsCycle").value = cyc;
@@ -1897,18 +1897,23 @@ function onSavingsNameInput() {
   document.getElementById("savingsIconDisplay").textContent = guessIconEmoji(name);
 }
 
-// 達成周期に対する累積金額の進み具合を「進捗ドット」で直感的に表現する。
-// ○の数＝達成周期（月数）、塗りつぶす数＝累積金額／目標金額の割合から逆算する。
-function cycleProgressDotsHTML(cycle, ratio, color) {
-  const cap = Math.min(cycle, 12); // 画面幅に収めるため最大12個まで
-  const filled = Math.min(Math.round(ratio * cap), cap);
+// 達成周期に対する進み具合を「進捗ドット」で直感的に表現する。
+// ○の数＝達成周期（月数、最大24個）。
+// ・塗りつぶし：累積金額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
+// ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
+function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
+  const dotsCount = Math.min(Math.max(cap, 1), 24);
+  const filled = Math.min(Math.round(moneyRatio * dotsCount), dotsCount);
+  const timeReached = Math.min(Math.round(timeRatio * dotsCount), dotsCount);
   let dots = "";
-  for (let i = 0; i < cap; i++) {
-    dots += i < filled
-      ? `<div style="width:15px;height:15px;border-radius:50%;background:${color};flex-shrink:0;"></div>`
-      : `<div style="width:15px;height:15px;border-radius:50%;background:var(--bg);border:2px solid var(--border);flex-shrink:0;"></div>`;
+  for (let i = 0; i < dotsCount; i++) {
+    const isFilled = i < filled;
+    const isTimeReached = i < timeReached;
+    const bg = isFilled ? color : "var(--bg)";
+    const borderColor = isTimeReached ? color : "var(--border)";
+    dots += `<div style="width:10px;height:10px;border-radius:50%;background:${bg};border:2px solid ${borderColor};flex-shrink:0;"></div>`;
   }
-  return { html: `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${dots}</div>`, filled, cap };
+  return { html: `<div style="display:flex;align-items:center;justify-content:space-between;width:100%;">${dots}</div>`, filled, cap: dotsCount };
 }
 
 // 図解ブロックのHTMLを生成する
@@ -1941,7 +1946,8 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
 
   const isOnce = cycle === 0;
   if (isOnce) {
-    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, color);
+    // 「都度」は周期が無いため、時間の縁取りは付けず金額の塗りつぶしのみで表現する
+    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, 0, color);
     const pct = Math.round(ratio * 100);
     return `
     <div style="width:100%;">
@@ -1950,7 +1956,9 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
     </div>`;
   }
 
-  const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, color);
+  // 達成周期の中で、現時点が時間的にどこまで来ているか（達成年月から逆算）
+  const timeRatio = Math.min(Math.max((cycle - months) / cycle, 0), 1);
+  const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, timeRatio, color);
   return `
     <div style="width:100%;">
       ${dots}
