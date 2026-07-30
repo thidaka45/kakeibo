@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.100"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.101"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1918,11 +1918,11 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
       // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
       bg = "var(--bg)"; borderColor = "var(--border)";
     }
-    dots += `<div style="width:20px;height:20px;border-radius:50%;background:${bg};border:2px solid ${borderColor};justify-self:center;"></div>`;
+    dots += `<div style="width:15px;height:15px;border-radius:50%;background:${bg};border:2px solid ${borderColor};justify-self:center;"></div>`;
   }
   // 1行12個・最大2行（24個）で常に枠を確保する。12列グリッドにすることで、
   // 12個の時は枠幅いっぱいに均等配置され、13個以上は自動的に2行目へ折り返す。
-  return { html: `<div style="display:grid;grid-template-columns:repeat(12, 1fr);row-gap:8px;align-items:center;width:100%;min-height:48px;">${dots}</div>`, filled, cap: dotsCount };
+  return { html: `<div style="display:grid;grid-template-columns:repeat(12, 1fr);row-gap:8px;align-items:center;width:100%;min-height:38px;">${dots}</div>`, filled, cap: dotsCount };
 }
 
 // 図解ブロックのHTMLを生成する
