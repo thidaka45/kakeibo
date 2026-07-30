@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.93"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.94"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1907,13 +1907,21 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
   const timeReached = Math.min(Math.round(timeRatio * dotsCount), dotsCount);
   let dots = "";
   for (let i = 0; i < dotsCount; i++) {
-    const isFilled = i < filled;
-    const isTimeReached = i < timeReached;
-    const bg = isFilled ? color : "var(--bg)";
-    const borderColor = isTimeReached ? color : "var(--border)";
+    let bg, borderColor;
+    if (i < filled) {
+      // 実際に積み立てられている分：塗りつぶし
+      bg = color; borderColor = color;
+    } else if (i < timeReached) {
+      // 時間的には積み立てているはずだが、まだ積み立てられていない分：縁取りのみ・中身は白
+      bg = "#fff"; borderColor = color;
+    } else {
+      // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
+      bg = "var(--bg)"; borderColor = "var(--border)";
+    }
+    // 24個並んだ時と同じ間隔になるよう、ドットサイズ・間隔は周期の数によらず固定にする
     dots += `<div style="width:10px;height:10px;border-radius:50%;background:${bg};border:2px solid ${borderColor};flex-shrink:0;"></div>`;
   }
-  return { html: `<div style="display:flex;align-items:center;justify-content:space-between;width:100%;">${dots}</div>`, filled, cap: dotsCount };
+  return { html: `<div style="display:flex;align-items:center;justify-content:flex-start;gap:4px;flex-wrap:wrap;">${dots}</div>`, filled, cap: dotsCount };
 }
 
 // 図解ブロックのHTMLを生成する
