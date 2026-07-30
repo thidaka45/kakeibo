@@ -459,45 +459,45 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
     </div>
 
-    <!-- 目標年月＋達成周期＋目標金額＋累積金額＋積立月額 -->
+    <!-- 目標年月＋積立ペース＋目標金額＋現在の貯蓄額＋1回の積立額 -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;margin-bottom:6px;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
-        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
+        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 116px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
           <select id="savingsYear" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
           <select id="savingsMonth" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
         </div>
       </div>
 
       <div style="display:flex;align-items:center;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:8px;margin-bottom:6px;">
-        <span style="font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">達成周期：</span>
+        <span style="width:106px;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">積立ペース：</span>
         <select id="savingsCycle" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" onchange="updateSavingsCalc()"></select>
       </div>
 
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
-        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">累積金額：</span>
-        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">現在の貯蓄額：</span>
+        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <div id="savingsMonthlyWrap" style="display:flex;align-items:center;margin-top:6px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:8px 10px;gap:6px;">
-        <span style="font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">積立月額：</span>
+        <span style="width:106px;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">1回の積立額：</span>
         <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
-        <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:42%;flex-shrink:0;text-align:right;"></div>
+        <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30%;flex-shrink:0;text-align:right;"></div>
       </div>
-      <div id="savingsOnceNote" style="display:none;margin-top:6px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「累積金額」を直接更新してください。</div>
+      <div id="savingsOnceNote" style="display:none;margin-top:6px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「現在の貯蓄額」を直接更新してください。</div>
     </div>
 
-    <!-- 達成周期に対する累積金額の進み具合の図解 -->
+    <!-- 積立ペースに対する現在の貯蓄額の進み具合の図解 -->
     <div id="savingsAchievedWrap" style="margin-bottom:10px;display:none;">
       <div id="savingsMonthsVisual" style="display:none;padding:10px 12px;background:var(--bg);border-radius:var(--radius-s);"></div>
     </div>
 
-    <!-- 積立月額（逆算・非表示・内部計算用） -->
+    <!-- 1回の積立額（逆算・非表示・内部計算用） -->
     <input type="hidden" id="savingsCalcDisplay">
 
     <!-- ボタン -->
@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.94"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.95"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1842,7 +1842,7 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
-  // 達成周期セレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意。0＝都度／自動積立なし。最大24ヶ月）
+  // 積立ペースセレクトを生成（分かりやすいよう「Nヶ月ごと」の文言で選択肢を用意。0＝都度／自動積立なし。最大24ヶ月）
   const cycleSel = document.getElementById("savingsCycle");
   cycleSel.innerHTML = [0,1,2,3,4,6,12,24]
     .map(n => `<option value="${n}">${n === 0 ? "都度（自動積立なし）" : n === 1 ? "毎月" : n + "ヶ月ごと"}</option>`)
@@ -1897,9 +1897,9 @@ function onSavingsNameInput() {
   document.getElementById("savingsIconDisplay").textContent = guessIconEmoji(name);
 }
 
-// 達成周期に対する進み具合を「進捗ドット」で直感的に表現する。
-// ○の数＝達成周期（月数、最大24個）。
-// ・塗りつぶし：累積金額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
+// 積立ペースに対する進み具合を「進捗ドット」で直感的に表現する。
+// ○の数＝積立ペース（月数、最大24個）。
+// ・塗りつぶし：現在の貯蓄額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
 // ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
 function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color) {
   const dotsCount = Math.min(Math.max(cap, 1), 24);
@@ -1964,13 +1964,13 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color) 
     </div>`;
   }
 
-  // 達成周期の中で、現時点が時間的にどこまで来ているか（達成年月から逆算）
+  // 積立ペースの中で、現時点が時間的にどこまで来ているか（目標年月から逆算）
   const timeRatio = Math.min(Math.max((cycle - months) / cycle, 0), 1);
   const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, timeRatio, color);
   return `
     <div style="width:100%;">
       ${dots}
-      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">達成周期${cycle}ヶ月中 ${filled}／${cap} 個ぶん貯まっています</div>
+      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立ペース${cycle}ヶ月中 ${filled}／${cap} 個ぶん貯まっています</div>
     </div>`;
 }
 
@@ -1989,7 +1989,7 @@ function updateSavingsCalc() {
   const monthlyWrap = document.getElementById("savingsMonthlyWrap");
   const onceNote = document.getElementById("savingsOnceNote");
 
-  // 「都度」は自動積立が無いため、積立月額の入力欄自体を隠す
+  // 「都度」は自動積立が無いため、1回の積立額の入力欄自体を隠す
   monthlyWrap.style.display = isOnce ? "none" : "flex";
   onceNote.style.display = isOnce ? "block" : "none";
 
