@@ -474,6 +474,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
 
       <div style="position:relative;margin-top:6px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">積立周期：</span>
+        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:6px;">
+          <select id="savingsCycle" style="border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" onchange="updateSavingsCalc()"></select>
+          <span style="font-size:14px;color:var(--sub);">ヶ月ごと</span>
+        </div>
+      </div>
+
+      <div style="position:relative;margin-top:6px;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">累積金額：</span>
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
@@ -698,7 +706,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.85"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.86"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1690,10 +1698,27 @@ function guessIconEmoji(name) {
 let editingSavingsId = null;
 
 function loadSavingsPlans() {
-  try { return JSON.parse(localStorage.getItem("savings_plans") || "[]"); } catch { return []; }
+  let plans;
+  try { plans = JSON.parse(localStorage.getItem("savings_plans") || "[]"); } catch { plans = []; }
+  // 旧バージョンのデータに周期関連フィールドが無い場合は補完する（デフォルト＝毎月）
+  let changed = false;
+  plans.forEach(p => {
+    if (!p.cycle) { p.cycle = 1; changed = true; }
+    if (typeof p.monthsSinceContribution !== "number") { p.monthsSinceContribution = 0; changed = true; }
+  });
+  if (changed) saveSavingsPlans(plans);
+  return plans;
 }
 function saveSavingsPlans(plans) {
   localStorage.setItem("savings_plans", JSON.stringify(plans));
+}
+
+// この積立プランが「次回の新しい月を開始」操作で積立実行の対象になるかを判定する
+// （周期が毎月＝1の場合は常にtrue。それ以外は前回の積立からの経過月数で判定）
+function isSavingsDueNext(p) {
+  const cyc = p.cycle || 1;
+  if (cyc <= 1) return true;
+  return ((p.monthsSinceContribution || 0) + 1) >= cyc;
 }
 
 // 残り月数を計算（今月を基準に目標年月までの差分。0=今月が期限、負数=期限超過）
@@ -1705,12 +1730,21 @@ function calcRemainingMonths(targetYear, targetMonth) {
   return diff;
 }
 
-// 月々積立額を逆算（残り月数が0以下＝今月中または期限超過の場合は、不足額をそのまま提示する）
-function calcMonthly(amount, balance, targetYear, targetMonth) {
+// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する
+function calcRemainingContributions(months, cycleMonths) {
+  const cyc = Math.max(cycleMonths || 1, 1);
+  if (months <= 0) return 0;
+  return Math.floor(months / cyc);
+}
+
+// 1回あたりの積立額を逆算（積立が発生する残り回数で不足額を割る。
+// 回数が0＝今月中または期限超過、あるいは周期が長く次の積立機会が無い場合は、不足額をそのまま提示する）
+function calcMonthly(amount, balance, targetYear, targetMonth, cycleMonths = 1) {
   const remaining = Math.max((amount || 0) - (balance || 0), 0);
   const months    = calcRemainingMonths(targetYear, targetMonth);
-  const divisor   = Math.max(months, 1);
-  return { monthly: Math.ceil(remaining / divisor), months, remaining };
+  const contributions = calcRemainingContributions(months, cycleMonths);
+  const divisor   = Math.max(contributions, 1);
+  return { monthly: Math.ceil(remaining / divisor), months, remaining, contributions };
 }
 
 function renderSavings() {
@@ -1720,8 +1754,8 @@ function renderSavings() {
 
   const plans = loadSavingsPlans();
 
-  // サマリー
-  const totalMonthly  = plans.reduce((s, p) => s + (p.monthly || 0), 0);
+  // サマリー：今回の「新しい月を開始」操作で実際に積み立てられる分のみ合計する
+  const totalMonthly  = plans.filter(isSavingsDueNext).reduce((s, p) => s + (p.monthly || 0), 0);
   document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly);
 
 
@@ -1737,28 +1771,31 @@ function renderSavings() {
     const pct     = p.amount > 0 ? Math.min(Math.round((p.balance||0) / p.amount * 100), 100) : 0;
     const achievedPct = p.amount > 0 ? Math.round((p.balance||0) / p.amount * 100) : 0; // 100%超も表示する実際の達成率
     const months  = calcRemainingMonths(p.targetYear, p.targetMonth);
+    const cycle   = p.cycle || 1;
     const balance = p.balance || 0;
     const monthly = p.monthly || 0;
     // 既に目標達成（残高が必要金額以上）
     const isAchieved = p.amount > 0 && balance >= p.amount;
     // 期限（目標月）を過ぎているのに未達成
     const isOverdue = !isAchieved && months < 0;
-    // このまま今の月々積立額を続けた場合、期限までに到達できるか（過去分の月は積立に含めない）
-    const projected = balance + monthly * Math.max(months, 0);
+    // このまま今の積立額・周期を続けた場合、期限までに到達できるか（周期分の積立回数のみで計算）
+    const contributions = calcRemainingContributions(months, cycle);
+    const projected = balance + monthly * contributions;
     const onTrack = isAchieved || (p.amount > 0 && projected >= p.amount);
     let status, statusColor, barColor, bgColor, order;
     if (isAchieved)      { status = "達成！"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
     else if (isOverdue)  { status = "期限超過（未達成）"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = -1; }
     else if (onTrack)    { status = "達成の見込み"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
     else                 { status = "未達成の見込み"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
-    return { p, pct, achievedPct, months, status, statusColor, barColor, bgColor, order, isAchieved };
+    const cycleLabel = cycle > 1 ? `${cycle}ヶ月ごと` : "毎月";
+    return { p, pct, achievedPct, months, cycle, cycleLabel, status, statusColor, barColor, bgColor, order, isAchieved };
   });
 
   // 表示順：項目名順（50音・辞書順）
   enriched.sort((a, b) => a.p.name.localeCompare(b.p.name, "ja"));
 
   listEl.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
-    enriched.map(({ p, status, statusColor, bgColor }, i) => {
+    enriched.map(({ p, status, statusColor, bgColor, cycle, cycleLabel }, i) => {
       const icon = p.icon || guessIconEmoji(p.name);
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
 
@@ -1769,7 +1806,10 @@ function renderSavings() {
           <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
           <div style="font-size:13px;font-weight:600;color:${statusColor};margin-top:2px;">${status}</div>
         </div>
-        <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;flex-shrink:0;">${fmt(p.monthly||0)}／月</div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;">${fmt(p.monthly||0)}</div>
+          <div style="font-size:11px;color:var(--muted);white-space:nowrap;margin-top:1px;">${cycleLabel}</div>
+        </div>
       </div>
     </div>`;
     }).join("") + `</div>`;
@@ -1802,6 +1842,10 @@ function openSavingsForm(id) {
     monSel.innerHTML += `<option value="${m}">${m}月</option>`;
   }
 
+  // 積立周期セレクトを生成
+  const cycleSel = document.getElementById("savingsCycle");
+  cycleSel.innerHTML = [1,2,3,4,6,12].map(n => `<option value="${n}">${n}</option>`).join("");
+
   // 既存データ編集の場合
   if (id) {
     const plans = loadSavingsPlans();
@@ -1812,6 +1856,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
       document.getElementById("savingsYear").value    = p.targetYear;
       document.getElementById("savingsMonth").value   = p.targetMonth;
+      document.getElementById("savingsCycle").value   = p.cycle || 1;
       document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
@@ -1825,6 +1870,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsMonthlyManual").value = "";
     yearSel.value = "";
     monSel.value  = "";
+    cycleSel.value = "1";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
@@ -1916,6 +1962,7 @@ function updateSavingsCalc() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
+  const cycle   = parseInt(document.getElementById("savingsCycle").value) || 1;
   const displayEl = document.getElementById("savingsCalcDisplay");
   const noteEl    = document.getElementById("savingsCalcNote");
   const detailEl  = document.getElementById("savingsCalcDetail");
@@ -1925,9 +1972,11 @@ function updateSavingsCalc() {
   const monthsVisualEl = document.getElementById("savingsMonthsVisual");
 
   if (amount > 0 && year && month) {
-    const { monthly } = calcMonthly(amount, balance, year, month);
+    const { monthly } = calcMonthly(amount, balance, year, month, cycle);
     displayEl.value = fmt(monthly);
-    noteEl.textContent = `※計算による積立月額：${fmt(monthly)}`;
+    noteEl.textContent = cycle > 1
+      ? `※計算による積立額：${fmt(monthly)}（${cycle}ヶ月ごと）`
+      : `※計算による積立月額：${fmt(monthly)}`;
   } else {
     displayEl.value = "";
     noteEl.textContent = "";
@@ -1937,10 +1986,11 @@ function updateSavingsCalc() {
   if (amount > 0) {
     const months = (year && month) ? calcRemainingMonths(year, month) : 0;
     const manualMonthly = parseYenInput("savingsMonthlyManual");
-    const monthly = manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month).monthly : 0);
+    const monthly = manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month, cycle).monthly : 0);
     const isAchieved = balance >= amount;
     const isOverdue = !isAchieved && (year && month) && months < 0;
-    const projected = balance + monthly * Math.max(months, 0);
+    const contributions = calcRemainingContributions(months, cycle);
+    const projected = balance + monthly * contributions;
     const onTrack = isAchieved || projected >= amount;
     const achievedPct = Math.round(balance / amount * 100);
     const pct = Math.min(achievedPct, 100);
@@ -1983,6 +2033,7 @@ function saveSavingsPlan() {
   const balance = parseYenInput("savingsBalance");
   const year    = parseInt(document.getElementById("savingsYear").value);
   const month   = parseInt(document.getElementById("savingsMonth").value);
+  const cycle   = parseInt(document.getElementById("savingsCycle").value) || 1;
   const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
   const icon    = guessIconEmoji(name);
 
@@ -1990,15 +2041,17 @@ function saveSavingsPlan() {
   if (!amount) { showToast("必要金額を入力してください"); return; }
   if (!year || !month) { showToast("目標年月を選択してください"); return; }
 
-  const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month);
+  const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month, cycle);
   const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
 
-  // この月々積立額のペースを続けた場合、期限までに目標金額へ到達できるか確認（過去分の月は含めない）
-  const projected = balance + monthly * Math.max(months, 0);
+  // このペース・周期を続けた場合、期限までに目標金額へ到達できるか確認（周期分の積立回数のみで判定）
+  const contributions = calcRemainingContributions(months, cycle);
+  const projected = balance + monthly * contributions;
   if (amount > 0 && projected < amount) {
     const shortage = amount - projected;
+    const cycleNote = cycle > 1 ? `（${cycle}ヶ月ごと）` : "";
     const ok = confirm(
-      `この積立月額（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
+      `この積立額${cycleNote}（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
       `不足見込み額：${fmt(shortage)}\n\n` +
       `このまま保存してよろしいですか？`
     );
@@ -2010,9 +2063,9 @@ function saveSavingsPlan() {
 
   if (editingSavingsId) {
     const idx = plans.findIndex(p => p.id === editingSavingsId);
-    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, icon, monthly };
+    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly };
   } else {
-    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, icon, monthly });
+    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly, monthsSinceContribution: 0 });
   }
 
   saveSavingsPlans(plans);
@@ -2377,14 +2430,18 @@ function startNewMonth() {
 
   if (!isFirstTime) {
     // 積立: 前月の各プランの積立残高に、月々の積立額を加算する（引き継ぎ）。
+    // 周期が毎月以外のプランは、周期の巡ってきた月のみ加算し、それ以外の月は経過月数だけ積み増す。
     // 取引実績への記録は行わない（ホーム画面はリアルタイムに積立タブの設定を参照するため）。
     const plans = loadSavingsPlans();
     let savingsTotal = 0;
     plans.forEach(p => {
-      if (p.monthly > 0) {
+      const cyc = p.cycle || 1;
+      const due = isSavingsDueNext(p);
+      if (due && p.monthly > 0) {
         p.balance = (p.balance || 0) + p.monthly;
         savingsTotal += p.monthly;
       }
+      p.monthsSinceContribution = due ? 0 : (p.monthsSinceContribution || 0) + 1;
     });
     saveSavingsPlans(plans);
 
