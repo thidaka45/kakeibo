@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.77"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.78"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1881,7 +1881,11 @@ function updateSavingsCalc() {
     achievedPctEl.style.color = barColor;
     achievedBarEl.style.width = pct + "%";
     achievedBarEl.style.background = barColor;
-    detailEl.textContent = (year && month) ? `残り${months}カ月` : "";
+    let statusText;
+    if (isAchieved)   statusText = "達成";
+    else if (onTrack) statusText = "達成見込み";
+    else              statusText = "未達見込み";
+    detailEl.textContent = (year && month) ? `残り${months}カ月 ${statusText}` : "";
   } else {
     achievedWrap.style.display = "none";
     detailEl.textContent = "";
