@@ -487,9 +487,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div id="savingsMonthlyWrap" style="display:flex;align-items:center;height:42px;box-sizing:border-box;margin-top:4px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:0 10px;gap:0;">
         <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>1回の積立額</span><span>：</span></span>
         <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
-        <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30%;flex-shrink:0;text-align:right;"></div>
+        <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34%;flex-shrink:0;text-align:right;margin-left:8px;"></div>
       </div>
-      <div id="savingsOnceNote" style="display:none;margin-top:4px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「現在の貯蓄額」を直接更新してください。</div>
+      <div id="savingsOnceNote" style="visibility:hidden;margin-top:4px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「現在の貯蓄額」を直接更新してください。</div>
     </div>
 
     <!-- 積立ペースに対する現在の貯蓄額の進み具合の図解 -->
@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.103"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.104"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1972,7 +1972,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, 
   return `
     <div style="width:100%;">
       ${dots}
-      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立ペース${cycle}ヶ月中 ${filled}／${cap} 個ぶん貯まっています</div>
+      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立ペース${cycle}ヶ月中 ${filled}／${cap} カ月ぶん貯まっています</div>
     </div>`;
 }
 
@@ -1991,9 +1991,10 @@ function updateSavingsCalc() {
   const monthlyWrap = document.getElementById("savingsMonthlyWrap");
   const onceNote = document.getElementById("savingsOnceNote");
 
-  // 「都度」は自動積立が無いため、1回の積立額の入力欄自体を隠す
-  monthlyWrap.style.display = isOnce ? "none" : "flex";
-  onceNote.style.display = isOnce ? "block" : "none";
+  // 「都度」は自動積立が無いため、1回の積立額の入力欄は隠す（ただし高さは保持し、
+  // 下にある○の図解の開始位置が周期の指定有無でズレないようにする）
+  monthlyWrap.style.visibility = isOnce ? "hidden" : "visible";
+  onceNote.style.visibility = isOnce ? "visible" : "hidden";
 
   if (!isOnce && amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month, cycle);
