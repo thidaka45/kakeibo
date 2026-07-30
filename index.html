@@ -462,7 +462,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- 目標年月＋積立ペース＋目標金額＋現在の貯蓄額＋1回の積立額 -->
     <div style="margin-bottom:10px;">
       <div style="position:relative;margin-bottom:6px;">
-        <span style="position:absolute;left:10px;width:106px;text-align:right;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
+        <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>目標年月</span><span>：</span></span>
         <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 116px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
           <select id="savingsYear" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
           <select id="savingsMonth" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
@@ -470,22 +470,22 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
 
       <div style="display:flex;align-items:center;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:8px;margin-bottom:6px;">
-        <span style="width:106px;text-align:right;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">積立ペース：</span>
+        <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>積立ペース</span><span>：</span></span>
         <select id="savingsCycle" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" onchange="updateSavingsCalc()"></select>
       </div>
 
       <div style="position:relative;">
-        <span style="position:absolute;left:10px;width:106px;text-align:right;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
+        <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>目標金額</span><span>：</span></span>
         <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;width:106px;text-align:right;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">現在の貯蓄額：</span>
+        <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>現在の貯蓄額</span><span>：</span></span>
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="width:100%;padding:8px 10px 8px 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
       <div id="savingsMonthlyWrap" style="display:flex;align-items:center;margin-top:6px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:8px 10px;gap:6px;">
-        <span style="width:106px;text-align:right;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;">1回の積立額：</span>
+        <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>1回の積立額</span><span>：</span></span>
         <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
         <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30%;flex-shrink:0;text-align:right;"></div>
       </div>
@@ -700,7 +700,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.96"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.97"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
