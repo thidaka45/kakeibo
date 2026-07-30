@@ -484,12 +484,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
-      <div id="savingsMonthlyWrap" style="display:flex;align-items:center;height:42px;box-sizing:border-box;margin-top:4px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:0 10px;gap:0;">
-        <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>1回の積立額</span><span>：</span></span>
-        <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
-        <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34%;flex-shrink:0;text-align:right;margin-left:8px;"></div>
+      <div id="savingsMonthlyWrap" style="display:flex;align-items:center;height:42px;box-sizing:border-box;margin-top:4px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:0 10px;overflow:hidden;">
+        <div id="savingsMonthlyFieldsGroup" style="display:flex;align-items:center;width:100%;gap:0;">
+          <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>1回の積立額</span><span>：</span></span>
+          <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
+          <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34%;flex-shrink:0;text-align:right;margin-left:8px;"></div>
+        </div>
+        <div id="savingsOnceInline" style="display:none;width:100%;font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">「都度」は自動積立なし。入金時に上の「現在の貯蓄額」を更新してください</div>
       </div>
-      <div id="savingsOnceNote" style="visibility:hidden;margin-top:4px;font-size:12px;color:var(--sub);padding:0 2px;">「都度」は自動積立を行いません。入金があったタイミングで上の「現在の貯蓄額」を直接更新してください。</div>
     </div>
 
     <!-- 積立ペースに対する現在の貯蓄額の進み具合の図解 -->
@@ -700,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.104"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.105"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1901,7 +1903,7 @@ function onSavingsNameInput() {
 // ○の数＝積立ペース（月数、最大24個）。
 // ・塗りつぶし：現在の貯蓄額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
 // ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
-// ・遅れている分（本来はもう塗れているはずなのに未達）：中身を薄い色で塗り、縁は濃い色にすることで一目で分かるようにする
+// ・遅れている分（本来はもう塗れているはずなのに未達）：中身は白のまま、縁だけを評価色にする
 function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color, lightColor) {
   const dotsCount = Math.min(Math.max(cap, 1), 24);
   const filled = Math.min(Math.round(moneyRatio * dotsCount), dotsCount);
@@ -1913,8 +1915,8 @@ function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color, lightColor) {
       // 実際に積み立てられている分：塗りつぶし
       bg = color; borderColor = color;
     } else if (i < timeReached) {
-      // 時間的には積み立てているはずだが、まだ積み立てられていない分：薄い色で塗り、縁は濃い色
-      bg = lightColor || color; borderColor = color;
+      // 時間的には積み立てているはずだが、まだ積み立てられていない分：縁取りのみ・中身は白
+      bg = "#fff"; borderColor = color;
     } else {
       // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
       bg = "var(--bg)"; borderColor = "var(--border)";
@@ -1988,13 +1990,13 @@ function updateSavingsCalc() {
   const noteEl    = document.getElementById("savingsCalcNote");
   const achievedWrap = document.getElementById("savingsAchievedWrap");
   const monthsVisualEl = document.getElementById("savingsMonthsVisual");
-  const monthlyWrap = document.getElementById("savingsMonthlyWrap");
-  const onceNote = document.getElementById("savingsOnceNote");
+  const monthlyFieldsGroup = document.getElementById("savingsMonthlyFieldsGroup");
+  const onceInline = document.getElementById("savingsOnceInline");
 
-  // 「都度」は自動積立が無いため、1回の積立額の入力欄は隠す（ただし高さは保持し、
-  // 下にある○の図解の開始位置が周期の指定有無でズレないようにする）
-  monthlyWrap.style.visibility = isOnce ? "hidden" : "visible";
-  onceNote.style.visibility = isOnce ? "visible" : "hidden";
+  // 「都度」は自動積立が無いため、同じ枠内で入力欄を案内文に差し替える
+  // （枠自体の高さは常に同じなので、下にある○の図解の開始位置がズレない）
+  monthlyFieldsGroup.style.display = isOnce ? "none" : "flex";
+  onceInline.style.display = isOnce ? "block" : "none";
 
   if (!isOnce && amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month, cycle);
