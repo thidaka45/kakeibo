@@ -459,26 +459,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
     </div>
 
-    <!-- 目標年月＋目標金額＋累積金額＋積立月額 -->
+    <!-- 目標年月＋周期＋目標金額＋累積金額＋積立月額 -->
     <div style="margin-bottom:10px;">
-      <div style="position:relative;margin-bottom:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標年月：</span>
-        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:4px;">
-          <select id="savingsYear" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
-          <select id="savingsMonth" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
-        </div>
+      <div style="display:flex;align-items:center;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:8px;margin-bottom:6px;">
+        <span style="font-size:15px;font-weight:700;color:var(--sub);flex-shrink:0;">目標：</span>
+        <select id="savingsTargetYM" style="flex:1;min-width:0;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--text);outline:none;padding:0;"></select>
+        <span style="width:1px;height:18px;background:var(--border);flex-shrink:0;"></span>
+        <span style="font-size:15px;font-weight:700;color:var(--sub);flex-shrink:0;">周期：</span>
+        <input id="savingsCycle" type="number" min="1" value="1" inputmode="numeric" style="width:34px;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--text);outline:none;padding:0;text-align:right;" oninput="updateSavingsCalc()">
+        <span style="font-size:13px;color:var(--sub);flex-shrink:0;">ヶ月毎</span>
       </div>
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">目標金額：</span>
         <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 84px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
-      </div>
-
-      <div style="position:relative;margin-top:6px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">積立周期：</span>
-        <div style="display:flex;align-items:center;width:100%;padding:8px 10px 8px 84px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);gap:6px;">
-          <select id="savingsCycle" style="border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" onchange="updateSavingsCalc()"></select>
-          <span style="font-size:14px;color:var(--sub);">ヶ月ごと</span>
-        </div>
       </div>
 
       <div style="position:relative;margin-top:6px;">
@@ -493,14 +486,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
     </div>
 
-    <!-- 達成率・グラフ -->
+    <!-- 残り月数の図解 -->
     <div id="savingsAchievedWrap" style="margin-bottom:10px;display:none;">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span id="savingsAchievedPct" style="font-size:13px;font-weight:600;white-space:nowrap;flex-shrink:0;width:48px;">0%</span>
-        <div class="savings-bar-track"><div id="savingsAchievedBar" class="savings-bar-fill" style="width:0%;"></div></div>
-      </div>
-      <div id="savingsCalcDetail" style="font-size:13px;color:var(--text);margin-top:6px;"></div>
-      <div id="savingsMonthsVisual" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-s);"></div>
+      <div id="savingsMonthsVisual" style="display:none;padding:10px 12px;background:var(--bg);border-radius:var(--radius-s);"></div>
     </div>
 
     <!-- 積立月額（逆算・非表示・内部計算用） -->
@@ -706,7 +694,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.86"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.87"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1829,22 +1817,22 @@ function openSavingsForm(id) {
   document.getElementById("savingsList").style.display = "none";
   form.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
-  // 年月セレクトを生成（先頭にプレースホルダーを追加し、新規時は未選択状態にできるようにする）
+  // 目標年月セレクトを生成（年月の組み合わせを1つのプルダウンにまとめ、先頭はプレースホルダー）
   const now = new Date();
-  const yearSel = document.getElementById("savingsYear");
-  const monSel  = document.getElementById("savingsMonth");
-  yearSel.innerHTML = `<option value="" disabled>年</option>`;
-  for (let y = now.getFullYear(); y <= now.getFullYear() + 10; y++) {
-    yearSel.innerHTML += `<option value="${y}">${y}年</option>`;
+  const ymSel = document.getElementById("savingsTargetYM");
+  // 編集中のプランがすでに期限切れの場合も選択肢として表示できるよう、開始年月を調整する
+  const editingPlan = id ? loadSavingsPlans().find(x => x.id === id) : null;
+  let startY = now.getFullYear(), startM = now.getMonth() + 1;
+  if (editingPlan && (editingPlan.targetYear < startY || (editingPlan.targetYear === startY && editingPlan.targetMonth < startM))) {
+    startY = editingPlan.targetYear; startM = editingPlan.targetMonth;
   }
-  monSel.innerHTML = `<option value="" disabled>月</option>`;
-  for (let m = 1; m <= 12; m++) {
-    monSel.innerHTML += `<option value="${m}">${m}月</option>`;
+  ymSel.innerHTML = `<option value="" disabled>選択してください</option>`;
+  for (let y = startY; y <= now.getFullYear() + 10; y++) {
+    for (let m = 1; m <= 12; m++) {
+      if (y === startY && m < startM) continue;
+      ymSel.innerHTML += `<option value="${y}-${m}">${y}年${m}月</option>`;
+    }
   }
-
-  // 積立周期セレクトを生成
-  const cycleSel = document.getElementById("savingsCycle");
-  cycleSel.innerHTML = [1,2,3,4,6,12].map(n => `<option value="${n}">${n}</option>`).join("");
 
   // 既存データ編集の場合
   if (id) {
@@ -1854,8 +1842,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsName").value    = p.name;
       document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
       document.getElementById("savingsBalance").value = "¥" + (p.balance || 0).toLocaleString("ja-JP");
-      document.getElementById("savingsYear").value    = p.targetYear;
-      document.getElementById("savingsMonth").value   = p.targetMonth;
+      ymSel.value = `${p.targetYear}-${p.targetMonth}`;
       document.getElementById("savingsCycle").value   = p.cycle || 1;
       document.getElementById("savingsMonthlyManual").value = p.monthly ? "¥" + p.monthly.toLocaleString("ja-JP") : "";
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
@@ -1868,9 +1855,8 @@ function openSavingsForm(id) {
     document.getElementById("savingsAmount").value  = "";
     document.getElementById("savingsBalance").value = "";
     document.getElementById("savingsMonthlyManual").value = "";
-    yearSel.value = "";
-    monSel.value  = "";
-    cycleSel.value = "1";
+    ymSel.value = "";
+    document.getElementById("savingsCycle").value = "1";
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
@@ -1878,7 +1864,7 @@ function openSavingsForm(id) {
   }
 
   // 入力変化で逆算
-  ["savingsAmount","savingsBalance","savingsYear","savingsMonth"].forEach(fid => {
+  ["savingsAmount","savingsBalance","savingsTargetYM"].forEach(fid => {
     document.getElementById(fid).addEventListener("input", updateSavingsCalc);
     document.getElementById(fid).addEventListener("change", updateSavingsCalc);
   });
@@ -1925,7 +1911,13 @@ function dotsTimelineHTML(months, color) {
 
 // 残り月数の図解ブロックのHTMLを生成する
 function renderMonthsVisual(months, isOverdue, isAchieved, color) {
-  if (isAchieved) return ""; // 達成済みは達成率バー・ステータス文字で表現済みのため非表示
+  if (isAchieved) {
+    return `
+    <div style="width:100%;display:flex;align-items:center;gap:10px;">
+      <div style="font-size:26px;">🏆</div>
+      <span style="font-size:20px;font-weight:700;color:${color};">達成！</span>
+    </div>`;
+  }
 
   if (isOverdue) {
     return `
@@ -1960,15 +1952,12 @@ function renderMonthsVisual(months, isOverdue, isAchieved, color) {
 function updateSavingsCalc() {
   const amount  = parseYenInput("savingsAmount");
   const balance = parseYenInput("savingsBalance");
-  const year    = parseInt(document.getElementById("savingsYear").value);
-  const month   = parseInt(document.getElementById("savingsMonth").value);
-  const cycle   = parseInt(document.getElementById("savingsCycle").value) || 1;
+  const ymRaw   = document.getElementById("savingsTargetYM").value;
+  const [year, month] = ymRaw ? ymRaw.split("-").map(Number) : [null, null];
+  const cycle   = Math.max(parseInt(document.getElementById("savingsCycle").value) || 1, 1);
   const displayEl = document.getElementById("savingsCalcDisplay");
   const noteEl    = document.getElementById("savingsCalcNote");
-  const detailEl  = document.getElementById("savingsCalcDetail");
   const achievedWrap = document.getElementById("savingsAchievedWrap");
-  const achievedPctEl = document.getElementById("savingsAchievedPct");
-  const achievedBarEl = document.getElementById("savingsAchievedBar");
   const monthsVisualEl = document.getElementById("savingsMonthsVisual");
 
   if (amount > 0 && year && month) {
@@ -1982,7 +1971,7 @@ function updateSavingsCalc() {
     noteEl.textContent = "";
   }
 
-  // 達成率・グラフ（目標金額が入力されている場合のみ表示）
+  // 残り月数の図解（目標金額が入力されている場合のみ表示）
   if (amount > 0) {
     const months = (year && month) ? calcRemainingMonths(year, month) : 0;
     const manualMonthly = parseYenInput("savingsMonthlyManual");
@@ -1992,30 +1981,17 @@ function updateSavingsCalc() {
     const contributions = calcRemainingContributions(months, cycle);
     const projected = balance + monthly * contributions;
     const onTrack = isAchieved || projected >= amount;
-    const achievedPct = Math.round(balance / amount * 100);
-    const pct = Math.min(achievedPct, 100);
-    let barColor;
-    if (isAchieved)   barColor = "var(--blue)";
-    else if (isOverdue) barColor = "var(--red)";
-    else if (onTrack) barColor = "var(--green)";
-    else              barColor = "var(--red)";
+    let color;
+    if (isAchieved)      color = "var(--blue)";
+    else if (isOverdue)  color = "var(--red)";
+    else if (onTrack)    color = "var(--green)";
+    else                 color = "var(--red)";
     achievedWrap.style.display = "block";
-    achievedPctEl.textContent = achievedPct + "%";
-    achievedPctEl.style.color = barColor;
-    achievedBarEl.style.width = pct + "%";
-    achievedBarEl.style.background = barColor;
-    let statusText;
-    if (isAchieved)      statusText = "達成！";
-    else if (isOverdue)  statusText = "期限超過（未達成）";
-    else if (onTrack)    statusText = "達成の見込み";
-    else                 statusText = "未達成の見込み";
-    detailEl.innerHTML = (year && month) ? `<span style="color:${barColor};font-weight:600;">${statusText}</span>` : "";
-    const visualHtml = (year && month) ? renderMonthsVisual(months, isOverdue, isAchieved, barColor) : "";
+    const visualHtml = (year && month) ? renderMonthsVisual(months, isOverdue, isAchieved, color) : "";
     monthsVisualEl.innerHTML = visualHtml;
     monthsVisualEl.style.display = visualHtml ? "block" : "none";
   } else {
     achievedWrap.style.display = "none";
-    detailEl.textContent = "";
     monthsVisualEl.innerHTML = "";
     monthsVisualEl.style.display = "none";
   }
@@ -2031,9 +2007,9 @@ function saveSavingsPlan() {
   const name    = document.getElementById("savingsName").value.trim();
   const amount  = parseYenInput("savingsAmount");
   const balance = parseYenInput("savingsBalance");
-  const year    = parseInt(document.getElementById("savingsYear").value);
-  const month   = parseInt(document.getElementById("savingsMonth").value);
-  const cycle   = parseInt(document.getElementById("savingsCycle").value) || 1;
+  const ymRaw   = document.getElementById("savingsTargetYM").value;
+  const [year, month] = ymRaw ? ymRaw.split("-").map(Number) : [null, null];
+  const cycle   = Math.max(parseInt(document.getElementById("savingsCycle").value) || 1, 1);
   const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
   const icon    = guessIconEmoji(name);
 
