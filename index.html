@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.105"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.106"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1728,11 +1728,13 @@ function calcRemainingMonths(targetYear, targetMonth) {
 }
 
 // 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する（周期0＝都度は常に0）
+// 残り月数のうち、指定した周期（Nヶ月ごと）で実際に積立が発生する回数を算出する（周期0＝都度は常に0）。
+// 残り月数はあるのに周期が長すぎて回数が0になる場合でも、期限までにあと1回は積立機会があるとみなす。
 function calcRemainingContributions(months, cycleMonths) {
   if (!cycleMonths) return 0;
-  const cyc = Math.max(cycleMonths, 1);
   if (months <= 0) return 0;
-  return Math.floor(months / cyc);
+  const cyc = Math.max(cycleMonths, 1);
+  return Math.max(Math.floor(months / cyc), 1);
 }
 
 // 1回あたりの積立額を逆算（積立が発生する残り回数で不足額を割る。
