@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.81"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.83"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1891,12 +1891,7 @@ function updateSavingsCalc() {
     else if (isOverdue)  statusText = "期限超過（未達成）";
     else if (onTrack)    statusText = "達成の見込み";
     else                 statusText = "未達成の見込み";
-    // 残り月数の表示：0＝今月が期限、負数＝期限を過ぎている旨を明示する
-    let monthsLabel;
-    if (months > 0)      monthsLabel = `残り${months}カ月`;
-    else if (months === 0) monthsLabel = "残り0カ月（今月が期限）";
-    else                  monthsLabel = `期限を${Math.abs(months)}カ月過ぎています`;
-    detailEl.innerHTML = (year && month) ? `${monthsLabel} <span style="color:${barColor};font-weight:600;">${statusText}</span>` : "";
+    detailEl.innerHTML = (year && month) ? `<span style="color:${barColor};font-weight:600;">${statusText}</span>` : "";
   } else {
     achievedWrap.style.display = "none";
     detailEl.textContent = "";
