@@ -437,7 +437,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <!-- 追加ボタン -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
     <span style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-      <span style="color:var(--red);">●</span>未達成の見込み　<span style="color:var(--green);">●</span>達成の見込み　<span style="color:var(--blue);">●</span>達成
+      <span style="color:var(--red);">●</span>未達成の見込み　<span style="color:var(--green);">●</span>達成の見込み　<span style="color:var(--blue);">●</span>達成！
     </span>
     <button onclick="openSavingsForm()" style="font-size:15px;font-weight:700;padding:4px 12px;border-radius:20px;border:0.5px solid var(--green);background:var(--green-l);color:var(--green-d);cursor:pointer;font-family:inherit;flex-shrink:0;">＋ 追加</button>
   </div>
@@ -697,7 +697,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.79"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.80"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1744,7 +1744,7 @@ function renderSavings() {
     const projected = balance + monthly * months;
     const onTrack = isAchieved || (p.amount > 0 && projected >= p.amount);
     let status, statusColor, barColor, bgColor, order;
-    if (isAchieved)      { status = "達成"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
+    if (isAchieved)      { status = "達成！"; statusColor = "var(--blue)";  barColor = "var(--blue)";  bgColor = "var(--blue-l)";  order = 1; }
     else if (onTrack)    { status = "達成の見込み"; statusColor = "var(--green)"; barColor = "var(--green)"; bgColor = "var(--green-l)"; order = 2; }
     else                 { status = "未達成の見込み"; statusColor = "var(--red)"; barColor = "var(--red)"; bgColor = "var(--red-l)"; order = 0; }
     return { p, pct, achievedPct, months, status, statusColor, barColor, bgColor, order, isAchieved };
@@ -1882,7 +1882,7 @@ function updateSavingsCalc() {
     achievedBarEl.style.width = pct + "%";
     achievedBarEl.style.background = barColor;
     let statusText;
-    if (isAchieved)   statusText = "達成";
+    if (isAchieved)   statusText = "達成！";
     else if (onTrack) statusText = "達成の見込み";
     else              statusText = "未達成の見込み";
     detailEl.innerHTML = (year && month) ? `残り${months}カ月 <span style="color:${barColor};font-weight:600;">${statusText}</span>` : "";
