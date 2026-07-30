@@ -492,6 +492,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         <div class="savings-bar-track"><div id="savingsAchievedBar" class="savings-bar-fill" style="width:0%;"></div></div>
       </div>
       <div id="savingsCalcDetail" style="font-size:13px;color:var(--text);margin-top:6px;"></div>
+      <div id="savingsMonthsVisual" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:var(--radius-s);"></div>
     </div>
 
     <!-- 積立月額（逆算・非表示・内部計算用） -->
@@ -697,7 +698,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.83"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.85"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1844,6 +1845,72 @@ function onSavingsNameInput() {
   document.getElementById("savingsIconDisplay").textContent = guessIconEmoji(name);
 }
 
+// 残り月数を「ドットタイムライン」で直感的に表現する。
+// 現在月から目標月までを点列でつなぎ、目標月には🏁を置くことで距離感を視覚化する。
+function dotsTimelineHTML(months, color) {
+  const maxInner = 9; // 中間ドットの最大表示数（画面幅に収めるため）
+  let dotsArr;
+  if (months <= 0) {
+    dotsArr = [{ type: "now-flag" }];
+  } else if (months <= maxInner + 1) {
+    dotsArr = [{ type: "now" }];
+    for (let i = 1; i < months; i++) dotsArr.push({ type: "mid" });
+    dotsArr.push({ type: "flag" });
+  } else {
+    dotsArr = [{ type: "now" }];
+    for (let i = 0; i < maxInner - 1; i++) dotsArr.push({ type: "mid" });
+    dotsArr.push({ type: "ellipsis" });
+    dotsArr.push({ type: "flag" });
+  }
+
+  const dotEls = dotsArr.map(d => {
+    if (d.type === "now")        return `<div style="width:10px;height:10px;border-radius:50%;background:${color};position:relative;z-index:1;flex-shrink:0;"></div>`;
+    if (d.type === "now-flag")   return `<div style="font-size:20px;position:relative;z-index:1;">🏁</div>`;
+    if (d.type === "mid")        return `<div style="width:7px;height:7px;border-radius:50%;background:var(--bg);border:2px solid var(--border);position:relative;z-index:1;flex-shrink:0;"></div>`;
+    if (d.type === "ellipsis")   return `<div style="font-size:12px;color:var(--muted);position:relative;z-index:1;flex-shrink:0;background:var(--bg);padding:0 2px;">…</div>`;
+    if (d.type === "flag")       return `<div style="font-size:20px;position:relative;z-index:1;flex-shrink:0;">🏁</div>`;
+  }).join("");
+
+  return `<div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:6px 2px;">
+    <div style="position:absolute;left:4px;right:4px;top:50%;height:2px;background:var(--border);"></div>
+    ${dotEls}
+  </div>`;
+}
+
+// 残り月数の図解ブロックのHTMLを生成する
+function renderMonthsVisual(months, isOverdue, isAchieved, color) {
+  if (isAchieved) return ""; // 達成済みは達成率バー・ステータス文字で表現済みのため非表示
+
+  if (isOverdue) {
+    return `
+    <div style="width:100%;">
+      <div style="position:relative;display:flex;align-items:center;gap:14px;padding:6px 2px;">
+        <div style="position:absolute;left:4px;right:4px;top:50%;height:2px;background:${color};opacity:.4;"></div>
+        <div style="font-size:20px;position:relative;z-index:1;">🚩</div>
+        <div style="font-size:11px;color:${color};font-weight:600;position:relative;z-index:1;background:var(--bg);padding:0 4px;">期限</div>
+        <div style="flex:1;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:${color};position:relative;z-index:1;flex-shrink:0;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:0 2px;margin-top:2px;"><span>期限</span><span>現在</span></div>
+      <div style="margin-top:6px;">
+        <span style="font-size:24px;font-weight:700;color:${color};">${Math.abs(months)}</span><span style="font-size:13px;font-weight:600;color:${color};margin-left:2px;">カ月経過</span>
+        <div style="font-size:11px;color:var(--sub);margin-top:1px;">期限を過ぎています</div>
+      </div>
+    </div>`;
+  }
+
+  const timeline = dotsTimelineHTML(months, color);
+  const subLabel = months === 0 ? "今月が期限です" : "目標まで";
+  return `
+    <div style="width:100%;">
+      ${timeline}
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:0 2px;margin-top:2px;"><span>現在</span><span>目標</span></div>
+      <div style="margin-top:6px;">
+        <span style="font-size:24px;font-weight:700;color:${color};letter-spacing:-.5px;">${months}</span><span style="font-size:13px;font-weight:600;color:${color};margin-left:2px;">カ月</span><span style="font-size:11px;color:var(--sub);margin-left:8px;">${subLabel}</span>
+      </div>
+    </div>`;
+}
+
 function updateSavingsCalc() {
   const amount  = parseYenInput("savingsAmount");
   const balance = parseYenInput("savingsBalance");
@@ -1855,6 +1922,7 @@ function updateSavingsCalc() {
   const achievedWrap = document.getElementById("savingsAchievedWrap");
   const achievedPctEl = document.getElementById("savingsAchievedPct");
   const achievedBarEl = document.getElementById("savingsAchievedBar");
+  const monthsVisualEl = document.getElementById("savingsMonthsVisual");
 
   if (amount > 0 && year && month) {
     const { monthly } = calcMonthly(amount, balance, year, month);
@@ -1892,9 +1960,14 @@ function updateSavingsCalc() {
     else if (onTrack)    statusText = "達成の見込み";
     else                 statusText = "未達成の見込み";
     detailEl.innerHTML = (year && month) ? `<span style="color:${barColor};font-weight:600;">${statusText}</span>` : "";
+    const visualHtml = (year && month) ? renderMonthsVisual(months, isOverdue, isAchieved, barColor) : "";
+    monthsVisualEl.innerHTML = visualHtml;
+    monthsVisualEl.style.display = visualHtml ? "block" : "none";
   } else {
     achievedWrap.style.display = "none";
     detailEl.textContent = "";
+    monthsVisualEl.innerHTML = "";
+    monthsVisualEl.style.display = "none";
   }
 }
 
