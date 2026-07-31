@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.107"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.108"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1903,28 +1903,22 @@ function onSavingsNameInput() {
 // ・塗りつぶし：現在の貯蓄額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
 // ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
 // ・遅れている分（本来はもう塗れているはずなのに未達）：中身は白のまま、縁だけを評価色にする
-function cycleProgressDotsHTML(cap, moneyRatio, timeRatio, color, lightColor) {
-  const dotsCount = Math.min(Math.max(cap, 1), 24);
-  const filled = Math.min(Math.round(moneyRatio * dotsCount), dotsCount);
-  const timeReached = Math.min(Math.round(timeRatio * dotsCount), dotsCount);
-  let dots = "";
-  for (let i = 0; i < dotsCount; i++) {
-    let bg, borderColor;
-    if (i < filled) {
-      // 実際に積み立てられている分：塗りつぶし
-      bg = color; borderColor = color;
-    } else if (i < timeReached) {
-      // 時間的には積み立てているはずだが、まだ積み立てられていない分：縁取りのみ・中身は白
-      bg = "#fff"; borderColor = color;
-    } else {
-      // まだ先（時間的にも到達していない）分：グレーの縁取り・中身は色なし
-      bg = "var(--bg)"; borderColor = "var(--border)";
-    }
-    dots += `<div style="width:15px;height:15px;border-radius:50%;background:${bg};border:2px solid ${borderColor};justify-self:center;"></div>`;
-  }
-  // 1行12個・最大2行（24個）で常に枠を確保する。12列グリッドにすることで、
-  // 12個の時は枠幅いっぱいに均等配置され、13個以上は自動的に2行目へ折り返す。
-  return { html: `<div style="display:grid;grid-template-columns:repeat(12, 1fr);row-gap:8px;align-items:center;width:100%;min-height:38px;">${dots}</div>`, filled, cap: dotsCount };
+// 計画（目標年月から逆算した本来のペース）と実績（現在の貯蓄額）を、
+// 2段の横バーメーターで比較できるようにする。1本にすべての情報を詰め込むより、
+// 「計画バー」と「実績バー」を並べて長さを比べるだけで進み具合が伝わるようにする狙い。
+function planActualBarHTML(label, ratio, color, showPct) {
+  const pct = Math.round(Math.min(Math.max(ratio, 0), 1) * 100);
+  const pctLabel = showPct ? `<span style="font-size:11px;font-weight:600;color:${color};">${pct}％</span>` : "";
+  return `
+    <div style="margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:11px;color:var(--sub);font-weight:600;">${label}</span>
+        ${pctLabel}
+      </div>
+      <div style="width:100%;height:14px;background:var(--bg);border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:7px;"></div>
+      </div>
+    </div>`;
 }
 
 // 図解ブロックのHTMLを生成する
@@ -1957,23 +1951,16 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, 
 
   const isOnce = cycle === 0;
   if (isOnce) {
-    // 「都度」は周期が無いため、時間の縁取りは付けず金額の塗りつぶしのみで表現する
-    const { html: dots, filled, cap } = cycleProgressDotsHTML(10, ratio, 0, color, lightColor);
-    const pct = Math.round(ratio * 100);
-    return `
-    <div style="width:100%;">
-      ${dots}
-      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立中：目標の${pct}％（${filled}／${cap}）</div>
-    </div>`;
+    // 「都度」は周期が無いため、計画バーは付けず実績バーのみで表現する
+    return `<div style="width:100%;">${planActualBarHTML("実績", ratio, color, true)}</div>`;
   }
 
-  // 積立ペースの中で、現時点が時間的にどこまで来ているか（目標年月から逆算）
+  // 積立ペースの中で、現時点が時間的にどこまで来ているか（目標年月から逆算）＝計画の進み具合
   const timeRatio = Math.min(Math.max((cycle - months) / cycle, 0), 1);
-  const { html: dots, filled, cap } = cycleProgressDotsHTML(cycle, ratio, timeRatio, color, lightColor);
   return `
     <div style="width:100%;">
-      ${dots}
-      <div style="margin-top:8px;font-size:12px;color:${color};font-weight:600;">積立ペース${cycle}ヶ月中 ${filled}／${cap} カ月ぶん貯まっています</div>
+      ${planActualBarHTML("計画", timeRatio, "var(--muted)", false)}
+      ${planActualBarHTML("実績", ratio, color, true)}
     </div>`;
 }
 
