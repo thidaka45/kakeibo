@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.108"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.110"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2011,8 +2011,11 @@ function updateSavingsCalc() {
     else if (onTrack)    { color = "var(--green)"; lightColor = "var(--green-l)"; }
     else                 { color = "var(--red)";   lightColor = "var(--red-l)"; }
     achievedWrap.style.display = "block";
-    const ratio = amount > 0 ? Math.min(balance / amount, 1) : 0;
-    const visualHtml = (year && month) ? renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, lightColor) : "";
+    // 実績：貯蓄額÷目標金額のシンプルな金額ベースの割合。
+    // 計画（時間ベース、金額を使わない）とは別の物差しなので、必ずしも一致はしないが、
+    // 「実際にいくら貯まっているか」を正直に表す指標として金額ベースのままにする。
+    const actualRatio = amount > 0 ? Math.min(balance / amount, 1) : 0;
+    const visualHtml = (year && month) ? renderMonthsVisual(cycle, actualRatio, isOverdue, isAchieved, months, color, lightColor) : "";
     monthsVisualEl.innerHTML = visualHtml;
     monthsVisualEl.style.display = visualHtml ? "block" : "none";
   } else {
