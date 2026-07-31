@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.110"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.111"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2023,6 +2023,28 @@ function updateSavingsCalc() {
     monthsVisualEl.innerHTML = "";
     monthsVisualEl.style.display = "none";
   }
+
+  // 画面上部の「今月の積立費合計」を、保存前の編集中の値でもリアルタイムに反映する
+  updateSavingsTotalLive(cycle, isOnce, amount, balance, year, month);
+}
+
+// 編集中（未保存）の内容を使って、画面上部の積立費合計をその場で再計算する
+function updateSavingsTotalLive(cycle, isOnce, amount, balance, year, month) {
+  const totalEl = document.getElementById("savingsTotalMonthly");
+  if (!totalEl) return;
+  const manualMonthly = parseYenInput("savingsMonthlyManual");
+  let liveMonthly = 0;
+  if (!isOnce) {
+    liveMonthly = manualMonthly > 0 ? manualMonthly : (amount > 0 && year && month ? calcMonthly(amount, balance, year, month, cycle).monthly : 0);
+  }
+  const liveDue = cycle !== 0; // isSavingsDueNextと同じ判定（都度のみ対象外）
+
+  const otherTotal = loadSavingsPlans()
+    .filter(p => p.id !== editingSavingsId)
+    .filter(isSavingsDueNext)
+    .reduce((s, p) => s + (p.monthly || 0), 0);
+
+  totalEl.textContent = fmt(otherTotal + (liveDue ? liveMonthly : 0));
 }
 
 function closeSavingsForm() {
