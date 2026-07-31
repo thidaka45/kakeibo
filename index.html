@@ -702,7 +702,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.111"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.5.112"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1959,7 +1959,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, 
   const timeRatio = Math.min(Math.max((cycle - months) / cycle, 0), 1);
   return `
     <div style="width:100%;">
-      ${planActualBarHTML("計画", timeRatio, "var(--muted)", false)}
+      ${planActualBarHTML("計画", timeRatio, "var(--muted)", true)}
       ${planActualBarHTML("実績", ratio, color, true)}
     </div>`;
 }
