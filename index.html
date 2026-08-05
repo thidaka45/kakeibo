@@ -321,7 +321,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;margin:0;padding:0;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
-    <div id="catGrid_expense" class="cat-icon-grid"></div>
+    <select class="field-select" id="catGrid_expense" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
+    <div id="customCatPanel_expense" style="display:none;background:var(--card);border-radius:var(--radius-s);padding:10px;margin-bottom:6px;border:1px solid var(--border);">
+      <input class="field-input" id="customCatName_expense" type="text" placeholder="項目名（例: ペット用品）" style="width:100%;padding:8px 10px;font-size:15px;margin-bottom:8px;">
+      <div id="customCatIconGrid_expense" class="cat-icon-grid"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" onclick="cancelCustomCat('expense')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--sub);font-size:13px;font-family:inherit;">キャンセル</button>
+        <button type="button" onclick="saveCustomCat('expense')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;font-family:inherit;">追加する</button>
+      </div>
+    </div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
@@ -371,7 +379,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;margin:0;padding:0;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
-    <div id="catGrid_income" class="cat-icon-grid"></div>
+    <select class="field-select" id="catGrid_income" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
+    <div id="customCatPanel_income" style="display:none;background:var(--card);border-radius:var(--radius-s);padding:10px;margin-bottom:6px;border:1px solid var(--border);">
+      <input class="field-input" id="customCatName_income" type="text" placeholder="項目名（例: ペット用品）" style="width:100%;padding:8px 10px;font-size:15px;margin-bottom:8px;">
+      <div id="customCatIconGrid_income" class="cat-icon-grid"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" onclick="cancelCustomCat('income')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--sub);font-size:13px;font-family:inherit;">キャンセル</button>
+        <button type="button" onclick="saveCustomCat('income')" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;font-family:inherit;">追加する</button>
+      </div>
+    </div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
@@ -828,7 +844,8 @@ function getSavingsCatOptions() {
 
 // カテゴリ名解決（取引実績・CSV出力など）に使う全カテゴリ一覧（固定費項目を含む）
 function getAllCats() {
-  return [...CATS_EXPENSE, ...CATS_INCOME, ...getFixedCostCatOptions(), ...getSavingsCatOptions(), CARRYOVER_CAT];
+  return [...CATS_EXPENSE, ...CATS_INCOME, ...getFixedCostCatOptions(), ...getSavingsCatOptions(),
+          ...loadCustomCats("expense"), ...loadCustomCats("income"), CARRYOVER_CAT];
 }
 
 // ============================================================
@@ -894,7 +911,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.17.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.18.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1261,35 +1278,99 @@ function setType(type) {
 
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
+  const customCats = loadCustomCats(inputType);
   const sel = F("catGrid");
-
-  const btnHtml = (c, disabled, subLabel) => `
-    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" ${disabled?"disabled":""}
-      onclick="selectCat('${c.id}')">
-      ${catIconSvg(c.emoji, 22)}
-      <span>${c.label}${subLabel || ""}</span>
-    </button>`;
-
-  let html = "";
+  const optStyle = 'style="font-size:23px;font-weight:800;"';
+  const optStylePaid = 'style="font-size:23px;font-weight:800;color:var(--muted);"';
+  const groupStyle = 'style="font-size:25px;font-weight:800;"';
+  let html = `<option value="" disabled ${selectedCat===""?"selected":""} style="font-size:17px;font-weight:400;color:var(--muted);">カテゴリを選択してください</option>`;
   const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
   if (fcOpts.length > 0) {
-    html += `<div class="cat-icon-grid-title">固定費</div>` +
-      fcOpts.map(c => btnHtml(c, c.paid, c.paid ? "（済）" : "")).join("");
+    html += `<optgroup label="ーー　固定費　ーー" ${groupStyle}>` +
+      fcOpts.map(c => c.paid
+        ? `<option ${optStylePaid} value="${c.id}" disabled>${c.emoji} ${c.label}（済）</option>`
+        : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
+      ).join("") +
+      `</optgroup>`;
   }
   const svOpts = inputType === "expense" ? getSavingsCatOptions() : [];
   if (svOpts.length > 0) {
-    html += `<div class="cat-icon-grid-title">積立に振り分け</div>` +
-      svOpts.map(c => btnHtml(c)).join("");
+    html += `<optgroup label="ーー　積立に振り分け　ーー" ${groupStyle}>` +
+      svOpts.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
+      `</optgroup>`;
   }
-  html += `<div class="cat-icon-grid-title">その他</div>` +
-    cats.map(c => btnHtml(c)).join("");
-
+  html += `<optgroup label="ーー　その他　ーー" ${groupStyle}>` +
+    cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
+    (customCats.length ? customCats.map(c => `<option style="font-size:19px;font-weight:800;" value="${c.id}">${c.label}</option>`).join("") : "") +
+    `<option value="__add_custom__" style="font-size:17px;font-weight:700;color:var(--green-d);">＋ 新しい項目を追加</option>` +
+    `</optgroup>`;
   sel.innerHTML = html;
+
+  sel.classList.toggle("cat-select-empty", selectedCat === "");
+  sel.value = selectedCat;
 }
 
-// プルダウン互換のため残している関数（現在はボタンから直接selectCatを呼ぶ）
+// プルダウンでカテゴリが選択されたときの処理
 function onCatChange(id) {
+  if (id === "__add_custom__") {
+    openCustomCatPanel();
+    return;
+  }
   selectCat(id);
+}
+
+// ============================================================
+// カテゴリの自由入力（項目名＋アイコン）
+// ============================================================
+function loadCustomCats(type) {
+  try { return JSON.parse(localStorage.getItem("kakeibo_custom_cats_" + type) || "[]"); }
+  catch { return []; }
+}
+function saveCustomCats(type, list) {
+  localStorage.setItem("kakeibo_custom_cats_" + type, JSON.stringify(list));
+}
+
+let customCatIcon = "box";
+
+function openCustomCatPanel() {
+  customCatIcon = "box";
+  const panel = document.getElementById("customCatPanel_" + inputType);
+  const nameInput = document.getElementById("customCatName_" + inputType);
+  if (nameInput) nameInput.value = "";
+  renderCustomCatIconGrid();
+  if (panel) panel.style.display = "block";
+  // プルダウンの表示自体は前回選択していたカテゴリのままに戻す
+  F("catGrid").value = selectedCat;
+}
+
+function cancelCustomCat(type) {
+  const panel = document.getElementById("customCatPanel_" + type);
+  if (panel) panel.style.display = "none";
+}
+
+function renderCustomCatIconGrid() {
+  const grid = document.getElementById("customCatIconGrid_" + inputType);
+  if (!grid) return;
+  grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(key => `
+    <button type="button" class="cat-icon-btn ${customCatIcon===key?"selected":""}" onclick="selectCustomCatIcon('${key}')">
+      ${catIconSvg(key, 20)}
+    </button>`).join("");
+}
+function selectCustomCatIcon(key) {
+  customCatIcon = key;
+  renderCustomCatIconGrid();
+}
+
+function saveCustomCat(type) {
+  const name = document.getElementById("customCatName_" + type).value.trim();
+  if (!name) { showToast("項目名を入力してください"); return; }
+  const list = loadCustomCats(type);
+  const id = "custom_" + type + "_" + Date.now().toString(36);
+  list.push({ id, emoji: customCatIcon, label: name });
+  saveCustomCats(type, list);
+  document.getElementById("customCatPanel_" + type).style.display = "none";
+  selectCat(id);
+  showToast(`「${name}」を追加しました`);
 }
 
 function selectCat(id) {
