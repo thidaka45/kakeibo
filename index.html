@@ -101,7 +101,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   font-size:16px;font-weight:700;color:var(--text);
   cursor:pointer;font-family:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);}
 .home-btn:active{background:var(--bg);}
-.page-toolbar .page-name{font-size:22px;font-weight:700;color:var(--text);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;white-space:nowrap;}
+.page-toolbar .page-name{font-size:22px;font-weight:700;color:var(--text);position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% - 5px));pointer-events:none;white-space:nowrap;}
 
 /* 直近取引 */
 .section-title{font-size:12px;font-weight:600;color:var(--sub);margin:6px 0 4px;letter-spacing:.02em;}
@@ -555,7 +555,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-utility" style="background:var(--gray-l);">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">補助機能</span></div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:8px 0 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">⚖️</span> 残高の答え合わせ</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:8px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 3v18"/><path d="M5 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M5 8h14"/><path d="M9 21h6"/></svg> 残高の答え合わせ</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       保有しているべき金額と、実際の口座＋手持ち残高を見比べられます。
@@ -565,7 +565,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">🚀</span> 初期設定</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><circle cx="12" cy="12" r="9"/><polyline points="10 8 15 12 10 16 10 8"/></svg> 初期設定</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       初めて家計簿を開始する方はこちらから。収入・固定費・積立費の登録を順番に行います。
@@ -575,7 +575,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">📅</span> 毎月の自動移行日</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 毎月の自動移行日</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行するよう設定できます。
@@ -585,7 +585,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">📱</span> ショートカットで自動化</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="6" y="2" width="12" height="20" rx="2"/><line x1="10" y1="19" x2="14" y2="19"/></svg> ショートカットで自動化</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       iPhoneのショートカット機能を使って、月度の移行を自動で開かせる設定方法を確認できます。
@@ -595,7 +595,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><span style="font-size:24px;">💾</span> データのバックアップ</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> データのバックアップ</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       取引データをCSV形式で書き出して、確認・保管できます。
@@ -828,7 +828,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.14.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.15.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
