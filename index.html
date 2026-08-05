@@ -52,7 +52,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 
 /* ページ */
-.page{display:none;padding:10px 14px calc(20px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
+.page{display:none;padding:10px 14px calc(34px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
 #page-savings.active,#page-fixedcosts.active,#page-graph.active{display:flex;}
 #page-home.active{display:flex;flex-direction:column;}
@@ -377,11 +377,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <!-- カテゴリ（プルダウン選択） -->
     <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
-      <button type="button" id="catIconBtn_income" onclick="toggleCatIconGrid('income')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
-      <input class="field-input" id="catNameInput_income" type="text" list="catNameList_income" placeholder="項目名（入力または候補から選択）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
-      <datalist id="catNameList_income"></datalist>
+      <button type="button" id="catIconBtn_income" onclick="openCatIconPicker('income')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
+      <input class="field-input" id="catNameInput_income" type="text" placeholder="項目名（例: 給与）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
     </div>
-    <div id="catIconGrid_income" class="cat-icon-grid" style="display:none;margin-bottom:6px;"></div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
@@ -416,6 +414,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <button class="cat-btn" style="border:none;background:var(--red-l);font-size:26px;font-weight:800;color:var(--red);padding:14px 10px;" onclick="inputNum('del')">⌫</button>
     </div>
   </div>
+</div>
+
+<!-- ===== アイコン選択（専用サブ画面） ===== -->
+<div class="page" id="page-caticonpicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">アイコンを選ぶ</span></div>
+  <div id="catIconPickerGrid" class="cat-icon-grid" style="max-height:none;"></div>
+</div>
 </div>
 
 <!-- ===== グラフ ===== -->
@@ -906,7 +912,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.22.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.23.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1347,6 +1353,26 @@ function onCatNameInput(type) {
 }
 
 // アイコン選択グリッドの開閉
+// アイコン選択サブ画面を開く（収入登録などから呼ばれる）
+let catIconPickerType = null;
+function openCatIconPicker(type) {
+  catIconPickerType = type;
+  const grid = document.getElementById("catIconPickerGrid");
+  if (grid) {
+    grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(key => `
+      <button type="button" class="cat-icon-btn ${currentCatIcon===key?"selected":""}" onclick="selectCatIconFromPicker('${key}')">
+        ${catIconSvg(key, 20)}
+      </button>`).join("");
+  }
+  showPage("caticonpicker");
+}
+function selectCatIconFromPicker(key) {
+  currentCatIcon = key;
+  const iconBtn = document.getElementById("catIconBtn_" + catIconPickerType);
+  if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
+  goBack();
+}
+
 function toggleCatIconGrid(type) {
   const grid = document.getElementById("catIconGrid_" + type);
   if (!grid) return;
@@ -1813,7 +1839,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","caticonpicker"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
