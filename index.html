@@ -135,8 +135,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
 .cat-btn .cat-emoji{font-size:16px;}
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
-.cat-icon-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto;padding:2px;}
-.cat-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:64px;padding:8px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;font-size:10px;line-height:1.2;transition:all .15s;}
+.cat-icon-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(60px, 1fr));gap:6px;max-height:220px;overflow-y:auto;padding:2px;}
+.cat-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;padding:8px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;font-size:10px;line-height:1.2;transition:all .15s;}
 .cat-icon-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
 .cat-icon-btn:disabled{opacity:.4;cursor:default;}
 .cat-icon-grid-title{width:100%;font-size:11px;font-weight:700;color:var(--sub);margin:4px 0 2px;}
@@ -476,9 +476,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン＋項目名 -->
     <div style="margin-bottom:4px;">
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
-        <div id="savingsIconDisplay" style="width:100%;padding:8px 4px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);color:var(--text);"></div>
+        <button type="button" id="savingsIconDisplay" onclick="toggleSavingsIconGrid()" style="width:100%;padding:8px 4px;height:38px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
         <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onSavingsNameInput()">
       </div>
+      <div id="savingsIconGrid" class="cat-icon-grid" style="display:none;margin-top:8px;"></div>
     </div>
 
     <!-- 目標年月＋積立ペース＋目標金額＋現在の貯蓄額＋1回の積立額 -->
@@ -907,7 +908,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.19.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.20.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2230,7 +2231,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
       document.getElementById("savingsDeleteBtn").style.display = "block";
-      document.getElementById("savingsIconDisplay").innerHTML = catIconSvg(p.icon || guessIconEmoji(p.name), 20);
+      renderSavingsIconSelect(p.icon || guessIconEmoji(p.name));
     }
   } else {
     document.getElementById("savingsName").value    = "";
@@ -2243,7 +2244,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
-    document.getElementById("savingsIconDisplay").innerHTML = catIconSvg("box", 20);
+    renderSavingsIconSelect("box");
   }
 
   // 入力変化で逆算
@@ -2254,10 +2255,49 @@ function openSavingsForm(id) {
   updateSavingsCalc();
 }
 
-// 項目名の入力に応じて、アイコン表示をリアルタイムに自動更新する
+let selectedSavingsIcon = "box";
+
+// アイコン選択ボタン（現在の選択を表示）を描画する
+function renderSavingsIconSelect(selected) {
+  selectedSavingsIcon = selected || "box";
+  const btn = document.getElementById("savingsIconDisplay");
+  if (btn) btn.innerHTML = catIconSvg(selectedSavingsIcon, 20);
+  const grid = document.getElementById("savingsIconGrid");
+  if (grid) grid.style.display = "none";
+}
+
+// アイコン候補グリッドの中身を描画する
+function renderSavingsIconGridOptions() {
+  const grid = document.getElementById("savingsIconGrid");
+  if (!grid) return;
+  grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(e => `
+    <button type="button" class="cat-icon-btn ${selectedSavingsIcon===e?"selected":""}" onclick="selectSavingsIcon('${e}')">
+      ${catIconSvg(e, 20)}
+    </button>`).join("");
+}
+
+// アイコングリッドの開閉
+function toggleSavingsIconGrid() {
+  const grid = document.getElementById("savingsIconGrid");
+  if (!grid) return;
+  const show = grid.style.display === "none";
+  if (show) renderSavingsIconGridOptions();
+  grid.style.display = show ? "grid" : "none";
+}
+
+// アイコンを手動で選び直したときの処理
+function selectSavingsIcon(e) {
+  selectedSavingsIcon = e;
+  const btn = document.getElementById("savingsIconDisplay");
+  if (btn) btn.innerHTML = catIconSvg(selectedSavingsIcon, 20);
+  renderSavingsIconGridOptions();
+  document.getElementById("savingsIconGrid").style.display = "none";
+}
+
+// 項目名の入力に応じて、アイコンの選択候補をリアルタイムに自動更新する（手動で選び直すことも可能）
 function onSavingsNameInput() {
   const name = document.getElementById("savingsName").value;
-  document.getElementById("savingsIconDisplay").innerHTML = catIconSvg(guessIconEmoji(name), 20);
+  renderSavingsIconSelect(guessIconEmoji(name));
 }
 
 // 積立ペースに対する進み具合を「進捗ドット」で直感的に表現する。
@@ -2425,7 +2465,7 @@ function saveSavingsPlan() {
   const cycle   = isNaN(cycleRaw) ? 1 : cycleRaw;
   const isOnce  = cycle === 0;
   const manualRaw = document.getElementById("savingsMonthlyManual").value.replace(/[^\d]/g, "");
-  const icon    = guessIconEmoji(name);
+  const icon    = selectedSavingsIcon || guessIconEmoji(name);
 
   if (!name)   { showToast("項目名を入力してください"); return; }
   if (!amount) { showToast("必要金額を入力してください"); return; }
@@ -2696,11 +2736,11 @@ function renderFcIconSelect(selected) {
   renderFcIconGridOptions();
 }
 
-// アイコン候補グリッドの中身を描画する（開閉状態はtoggleFcIconGridが管理）
+// アイコン候補グリッドの中身を描画する（開閉状態はtoggleFcIconGridが管理）。全アイコンから選べるようにする。
 function renderFcIconGridOptions() {
   const grid = document.getElementById("fcIconGrid");
   if (!grid) return;
-  grid.innerHTML = ICONS_FIXED.map(e => `
+  grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(e => `
     <button type="button" class="cat-icon-btn ${selectedFcIcon===e?"selected":""}" onclick="selectFcIcon('${e}')">
       ${catIconSvg(e, 20)}
     </button>`).join("");
