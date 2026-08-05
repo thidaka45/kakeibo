@@ -570,7 +570,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:15px;color:var(--sub);line-height:2.4;">
-      <div style="display:flex;justify-content:space-between;"><span>収入−実際の支出（積立・固定費の予定額は含まず）</span><span id="cfBalancePart" style="font-weight:700;color:var(--text);">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>現在の残高</span><span id="cfBalancePart" style="font-weight:700;color:var(--text);">¥0</span></div>
       <div style="display:flex;justify-content:space-between;"><span>＋ 未払いの固定費</span><span id="cfFixedPart" style="font-weight:700;color:var(--text);">¥0</span></div>
       <div style="display:flex;justify-content:space-between;"><span>＋ 積立の貯蓄額</span><span id="cfSavingsPart" style="font-weight:700;color:var(--text);">¥0</span></div>
     </div>
@@ -583,12 +583,15 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;">実際の総残高（口座＋手持ち）</div>
-    <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="width:100%;padding:14px;font-size:24px;font-weight:700;text-align:center;" oninput="renderCashflow()">
+    <div style="position:relative;">
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;color:var(--text);pointer-events:none;">¥</span>
+      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="45000" style="width:100%;padding:14px 14px 14px 32px;font-size:24px;font-weight:700;text-align:center;" oninput="renderCashflow()">
+    </div>
   </div>
 
   <div class="budget-card" style="text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center;">
-    <div style="font-size:13px;color:var(--sub);margin-bottom:6px;">差額</div>
     <div id="cfDiffLine" style="font-size:30px;font-weight:700;"></div>
+    <div id="cfDiffHint" style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6;"></div>
   </div>
 
   <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;text-align:center;">
@@ -958,7 +961,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.28.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.28.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2801,16 +2804,21 @@ function renderCashflow() {
 
   const inputEl = document.getElementById("cfBalanceInput");
   const diffEl  = document.getElementById("cfDiffLine");
+  const hintEl  = document.getElementById("cfDiffHint");
   const rawInput = inputEl.value;
   if (rawInput === "") {
     diffEl.textContent = "";
+    hintEl.textContent = "";
   } else {
     const actual = parseInt(rawInput || "0", 10) || 0;
     const diff = actual - shouldHave;
     diffEl.style.color = diff === 0 ? "var(--green-d)" : "var(--red)";
     diffEl.textContent = diff === 0
-      ? "差額なし（一致しています）"
-      : `差額：${fmtSigned(diff)}`;
+      ? "一致しています"
+      : fmtSigned(diff);
+    hintEl.textContent = diff === 0
+      ? ""
+      : "収入登録・支出登録で調整してください";
   }
 }
 
