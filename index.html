@@ -323,11 +323,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- カテゴリ（プルダウン選択） -->
     <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
       <button type="button" id="catIconBtn_expense" onclick="toggleCatIconGrid('expense')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
-      <input class="field-input" id="catNameInput_expense" type="text" placeholder="項目名（例: 食料品）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
+      <input class="field-input" id="catNameInput_expense" type="text" list="catNameList_expense" placeholder="項目名（入力または候補から選択）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
+      <datalist id="catNameList_expense"></datalist>
     </div>
     <div id="catIconGrid_expense" class="cat-icon-grid" style="display:none;margin-bottom:6px;"></div>
-    <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">クイック選択</div>
-    <div id="catQuickSelect_expense" class="cat-icon-grid" style="margin-bottom:6px;"></div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
@@ -379,11 +378,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- カテゴリ（プルダウン選択） -->
     <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
       <button type="button" id="catIconBtn_income" onclick="toggleCatIconGrid('income')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
-      <input class="field-input" id="catNameInput_income" type="text" placeholder="項目名（例: 食料品）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
+      <input class="field-input" id="catNameInput_income" type="text" list="catNameList_income" placeholder="項目名（入力または候補から選択）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
+      <datalist id="catNameList_income"></datalist>
     </div>
     <div id="catIconGrid_income" class="cat-icon-grid" style="display:none;margin-bottom:6px;"></div>
-    <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">クイック選択</div>
-    <div id="catQuickSelect_income" class="cat-icon-grid" style="margin-bottom:6px;"></div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
@@ -908,7 +906,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.21.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.22.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1278,7 +1276,7 @@ function setType(type) {
   });
 }
 
-// 項目名入力欄・アイコンボタン・クイック選択チップを描画する
+// 項目名入力欄・アイコンボタン・候補リスト（datalist）を描画する
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
 
@@ -1287,32 +1285,16 @@ function renderCatGrid() {
   if (nameInput && document.activeElement !== nameInput) nameInput.value = selectedCatName || "";
   if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
 
-  const chipHtml = (c, disabled, subLabel) => `
-    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" ${disabled?"disabled":""}
-      onclick="selectQuickCat('${c.id}')">
-      ${catIconSvg(c.emoji, 20)}
-      <span>${c.label}${subLabel || ""}</span>
-    </button>`;
-
-  let html = "";
-  const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
-  if (fcOpts.length > 0) {
-    html += `<div class="cat-icon-grid-title">固定費</div>` +
-      fcOpts.map(c => chipHtml(c, c.paid, c.paid ? "（済）" : "")).join("");
-  }
+  // 候補リスト（固定費・積立振り分け・プリセットの項目名）。入力候補として表示され、選ぶか自由入力かは利用者に委ねる。
+  const fcOpts = inputType === "expense" ? getFixedCostCatOptions().filter(c => !c.paid) : [];
   const svOpts = inputType === "expense" ? getSavingsCatOptions() : [];
-  if (svOpts.length > 0) {
-    html += `<div class="cat-icon-grid-title">積立に振り分け</div>` +
-      svOpts.map(c => chipHtml(c)).join("");
-  }
-  html += `<div class="cat-icon-grid-title">プリセット</div>` +
-    cats.map(c => chipHtml(c)).join("");
-
-  const quick = document.getElementById("catQuickSelect_" + inputType);
-  if (quick) quick.innerHTML = html;
+  const listOptions = [...fcOpts, ...svOpts, ...cats]
+    .map(c => `<option value="${c.label}">`).join("");
+  const list = document.getElementById("catNameList_" + inputType);
+  if (list) list.innerHTML = listOptions;
 }
 
-// クイック選択チップをタップしたときの処理（固定費・積立振り分けの連携ロジックは維持）
+// クイック選択・候補一致時に固定費・積立振り分けの連携ロジックを適用する
 function selectQuickCat(id) {
   selectedCat = id;
   catIsLocked = true;
@@ -1340,11 +1322,24 @@ function selectQuickCat(id) {
   renderCatGrid();
 }
 
-// 項目名を手入力したときの処理（クイック選択とは切り離し、自由入力扱いにする）
+// 項目名を入力・選択したときの処理。固定費・積立の項目名と完全一致すれば自動で連携し、
+// 一致しなければ自由入力（プリセット名と一致すればそのカテゴリ、それ以外はカスタム項目）として扱う。
 function onCatNameInput(type) {
+  const name = document.getElementById("catNameInput_" + type).value;
+
+  const fcOpts = type === "expense" ? getFixedCostCatOptions().filter(c => !c.paid) : [];
+  const svOpts = type === "expense" ? getSavingsCatOptions() : [];
+  const presetCats = type === "expense" ? CATS_EXPENSE : CATS_INCOME;
+  const match = [...fcOpts, ...svOpts, ...presetCats].find(c => c.label === name);
+
+  if (match) {
+    selectQuickCat(match.id);
+    return;
+  }
+
   catIsLocked = false;
   selectedCat = "";
-  selectedCatName = document.getElementById("catNameInput_" + type).value;
+  selectedCatName = name;
   currentCatIcon = guessIconEmoji(selectedCatName);
   const iconBtn = document.getElementById("catIconBtn_" + type);
   if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
