@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 14px calc(34px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
-#page-savings.active,#page-fixedcosts.active,#page-graph.active{display:flex;}
+#page-savings.active,#page-fixedcosts.active,#page-graph.active,#page-cashflow.active,#page-initsetup.active,#page-autotransition.active,#page-shortcutsguide.active,#page-backup.active,#page-caticonpicker.active,#page-quickitempicker.active{display:flex;}
 #page-home.active{display:flex;flex-direction:column;}
 
 /* ===== ホーム ===== */
@@ -958,7 +958,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.27.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.27.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
