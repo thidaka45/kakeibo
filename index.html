@@ -828,7 +828,13 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.15.0"; // ← 更新するたびに番号を上げる
+// ホーム画面の予算状況アイコン（線画スタイル。色はテキスト側のstatusColorをcurrentColorで継承）
+const ICON_ALERT_TRIANGLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
+const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const APP_VERSION = "2.16.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1019,7 +1025,7 @@ function renderHome() {
     document.getElementById("budgetBar").style.width = "0%";
     document.getElementById("budgetLabel").textContent = "予算消化率：0%";
     document.getElementById("budgetProjection").textContent = "+¥0";
-    document.getElementById("budgetStatusIcon").textContent = "";
+    document.getElementById("budgetStatusIcon").innerHTML = "";
     document.getElementById("budgetStatusText").textContent = "";
     document.getElementById("txList").innerHTML =
       `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;">「その他」タブの<br>「長押しで新しい月を開始」から<br>家計簿をスタートしてください</div>`;
@@ -1095,22 +1101,22 @@ function renderHome() {
 
   if (budgetTotal <= 0 && expense > 0) {
     // 収入がまだ入力されておらず、積立・固定費などの支出だけが先行している状態
-    statusIcon="🚨"; statusText="収入未入力（支出が先行）"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon=ICON_ALERT_TRIANGLE; statusText="収入未入力（支出が先行）"; statusColor="var(--red)"; barClass="bar-over";
   } else if (!isLatestPeriod) {
     // 過去の月度（着地予測ではなく、実際の最終消化率で評価）
-    if (pct <= 80)       { statusIcon="✅"; statusText="予算内で達成"; statusColor="var(--green)"; barClass="bar-ok"; }
-    else if (pct <= 100) { statusIcon="⚠️"; statusText="予算をやや超過"; statusColor="var(--amber)"; barClass="bar-warn"; }
-    else                 { statusIcon="🚨"; statusText="予算を超過"; statusColor="var(--red)"; barClass="bar-over"; }
+    if (pct <= 80)       { statusIcon=ICON_CHECK_CIRCLE; statusText="予算内で達成"; statusColor="var(--green)"; barClass="bar-ok"; }
+    else if (pct <= 100) { statusIcon=ICON_ALERT_CIRCLE; statusText="予算をやや超過"; statusColor="var(--amber)"; barClass="bar-warn"; }
+    else                 { statusIcon=ICON_ALERT_TRIANGLE; statusText="予算を超過"; statusColor="var(--red)"; barClass="bar-over"; }
   } else if (pct >= 100) {
-    statusIcon="🚨"; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon=ICON_ALERT_TRIANGLE; statusText="予算超過！"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < 0) {
-    statusIcon="🚨"; statusText="今のペースだと月末に不足の見込み"; statusColor="var(--red)"; barClass="bar-over";
+    statusIcon=ICON_ALERT_TRIANGLE; statusText="今のペースだと月末に不足の見込み"; statusColor="var(--red)"; barClass="bar-over";
   } else if (projectedBalance < budgetTotal * 0.05) {
-    statusIcon="⚠️"; statusText="今のペースだとギリ乗り切れる見込み"; statusColor="var(--amber)"; barClass="bar-warn";
+    statusIcon=ICON_ALERT_CIRCLE; statusText="今のペースだとギリ乗り切れる見込み"; statusColor="var(--amber)"; barClass="bar-warn";
   } else if (projectedBalance < budgetTotal * 0.2) {
-    statusIcon="✅"; statusText="今のペースだと順調に乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon=ICON_CHECK_CIRCLE; statusText="今のペースだと順調に乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   } else {
-    statusIcon="💚"; statusText="今のペースだと余裕で乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
+    statusIcon=ICON_CHECK_CIRCLE_FILLED; statusText="今のペースだと余裕で乗り切れる見込み"; statusColor="var(--green)"; barClass="bar-ok";
   }
 
   bar.className = "bar-fill " + barClass;
@@ -1118,7 +1124,8 @@ function renderHome() {
 
   document.getElementById("budgetLabel").textContent =
     budgetTotal <= 0 && expense > 0 ? `予算消化率：収入未入力` : `予算消化率：${pct}%`;
-  document.getElementById("budgetStatusIcon").textContent = statusIcon;
+  document.getElementById("budgetStatusIcon").innerHTML = statusIcon;
+  document.getElementById("budgetStatusIcon").style.color = statusColor;
   document.getElementById("budgetStatusText").textContent = statusText;
   document.getElementById("budgetStatusText").style.color = statusColor;
 
@@ -2128,7 +2135,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, 
   if (isAchieved) {
     return `
     <div style="width:100%;display:flex;align-items:center;gap:10px;">
-      <div style="font-size:26px;">🏆</div>
+      <div style="color:${color};"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M9 14.5L7 22l5-3 5 3-2-7.5"/></svg></div>
       <span style="font-size:20px;font-weight:700;color:${color};">達成！</span>
     </div>`;
   }
@@ -2138,7 +2145,7 @@ function renderMonthsVisual(cycle, ratio, isOverdue, isAchieved, months, color, 
     <div style="width:100%;">
       <div style="position:relative;display:flex;align-items:center;gap:14px;padding:6px 2px;">
         <div style="position:absolute;left:4px;right:4px;top:50%;height:2px;background:${color};opacity:.4;"></div>
-        <div style="font-size:20px;position:relative;z-index:1;">🚩</div>
+        <div style="position:relative;z-index:1;color:${color};"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="21" x2="5" y2="3"/><path d="M5 4h13l-3 4 3 4H5"/></svg></div>
         <div style="font-size:11px;color:${color};font-weight:600;position:relative;z-index:1;background:var(--bg);padding:0 4px;">期限</div>
         <div style="flex:1;"></div>
         <div style="width:10px;height:10px;border-radius:50%;background:${color};position:relative;z-index:1;flex-shrink:0;"></div>
