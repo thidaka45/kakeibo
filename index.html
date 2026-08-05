@@ -320,13 +320,28 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <input id="dateInput_expense" type="date" onchange="syncDateDisplay('expense')"
         style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;margin:0;padding:0;box-sizing:border-box;cursor:pointer;">
     </div>
-    <!-- カテゴリ（プルダウン選択） -->
-    <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
-      <button type="button" id="catIconBtn_expense" onclick="toggleCatIconGrid('expense')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
-      <input class="field-input" id="catNameInput_expense" type="text" list="catNameList_expense" placeholder="項目名（入力または候補から選択）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
-      <datalist id="catNameList_expense"></datalist>
+    <!-- 支出の種類（固定／積立／他） -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;" id="expenseModeTabs"></div>
+
+    <!-- 固定費モード -->
+    <div id="expenseModeFixed" style="display:none;">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">登録済みの固定費から選択</div>
+      <div id="expenseFixedList" class="cat-icon-grid"></div>
     </div>
-    <div id="catIconGrid_expense" class="cat-icon-grid" style="display:none;margin-bottom:6px;"></div>
+
+    <!-- 積立モード -->
+    <div id="expenseModeSavings" style="display:none;">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">登録済みの積立費から選択（登録月額を自動入力。金額は書き換え可能）</div>
+      <div id="expenseSavingsList" class="cat-icon-grid"></div>
+    </div>
+
+    <!-- 他モード（自由入力＋アイコン専用画面） -->
+    <div id="expenseModeOther" style="display:none;">
+      <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
+        <button type="button" id="catIconBtn_expense" onclick="openCatIconPicker('expense')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
+        <input class="field-input" id="catNameInput_expense" type="text" placeholder="項目名（例: 食料品）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
+      </div>
+    </div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
@@ -934,7 +949,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.24.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.25.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1273,6 +1288,7 @@ let selectedCatName = ""; // 項目名入力欄に表示する現在の項目名
 let catIsLocked = false;  // クイック選択で選ばれた状態かどうか（自由入力で編集するとfalseになる）
 let currentCatIcon = "box"; // アイコンボタンに表示中のアイコンキー
 let editingTxId = null; // 編集中の取引ID（nullなら新規入力）
+let expenseCatMode = "other"; // 支出画面の種類：fixed（固定費）/ savings（積立）/ other（他）
 
 // 支出／収入は別画面（page-expense / page-income）だが要素IDの末尾で区別しているため、
 // 現在のinputTypeに応じた要素を取得するヘルパー
@@ -1293,8 +1309,10 @@ function F(base) { return document.getElementById(base + "_" + inputType); }
 function setType(type) {
   inputType = type;
   selectedCat = ""; // 未選択にリセットする
+  selectedCatName = "";
   catIsLocked = false;
   currentCatIcon = "box";
+  if (type === "expense") expenseCatMode = "other";
 
   renderCatGrid();
 
@@ -1304,25 +1322,86 @@ function setType(type) {
   });
 }
 
-// 項目名入力欄・アイコンボタン・候補リスト（datalist）を描画する
+// 項目名入力欄・アイコンボタンなどを描画する（支出は種類ごとのUIに、収入はシンプルな自由入力に）
 function renderCatGrid() {
-  const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
+  if (inputType === "expense") {
+    renderExpenseModeTabs();
+    setExpenseModeVisibility();
+    if (expenseCatMode === "fixed")   renderExpenseFixedList();
+    if (expenseCatMode === "savings") renderExpenseSavingsList();
+    if (expenseCatMode === "other") {
+      const nameInput = document.getElementById("catNameInput_expense");
+      const iconBtn = document.getElementById("catIconBtn_expense");
+      if (nameInput && document.activeElement !== nameInput) nameInput.value = selectedCatName || "";
+      if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
+    }
+    return;
+  }
 
-  const nameInput = document.getElementById("catNameInput_" + inputType);
-  const iconBtn = document.getElementById("catIconBtn_" + inputType);
+  // 収入：シンプルな自由入力
+  const nameInput = document.getElementById("catNameInput_income");
+  const iconBtn = document.getElementById("catIconBtn_income");
   if (nameInput && document.activeElement !== nameInput) nameInput.value = selectedCatName || "";
   if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
-
-  // 候補リスト（固定費・積立振り分け・プリセットの項目名）。入力候補として表示され、選ぶか自由入力かは利用者に委ねる。
-  const fcOpts = inputType === "expense" ? getFixedCostCatOptions().filter(c => !c.paid) : [];
-  const svOpts = inputType === "expense" ? getSavingsCatOptions() : [];
-  const listOptions = [...fcOpts, ...svOpts, ...cats]
-    .map(c => `<option value="${c.label}">`).join("");
-  const list = document.getElementById("catNameList_" + inputType);
-  if (list) list.innerHTML = listOptions;
 }
 
-// クイック選択・候補一致時に固定費・積立振り分けの連携ロジックを適用する
+// 支出画面の「固定／積立／他」タブを描画する
+function renderExpenseModeTabs() {
+  const tabs = document.getElementById("expenseModeTabs");
+  if (!tabs) return;
+  const modes = [["fixed","固定"], ["savings","積立"], ["other","他"]];
+  tabs.innerHTML = modes.map(([m, label]) => `
+    <button type="button" onclick="setExpenseCatMode('${m}')"
+      style="padding:10px 4px;border-radius:10px;border:1.5px solid ${expenseCatMode===m?"var(--red)":"var(--border)"};background:${expenseCatMode===m?"var(--red-l)":"var(--card)"};color:${expenseCatMode===m?"var(--red)":"var(--sub)"};font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">
+      ${label}
+    </button>`).join("");
+}
+
+// 表示するモード用の枠だけを表示する
+function setExpenseModeVisibility() {
+  ["fixed","savings","other"].forEach(m => {
+    const el = document.getElementById("expenseMode" + m.charAt(0).toUpperCase() + m.slice(1));
+    if (el) el.style.display = expenseCatMode === m ? "block" : "none";
+  });
+}
+
+// 「固定」「積立」「他」タブを切り替えたときの処理
+function setExpenseCatMode(mode) {
+  expenseCatMode = mode;
+  selectedCat = "";
+  selectedCatName = "";
+  catIsLocked = false;
+  currentCatIcon = "box";
+  renderCatGrid();
+}
+
+// 固定費一覧（未払いのみ）を描画する
+function renderExpenseFixedList() {
+  const el = document.getElementById("expenseFixedList");
+  if (!el) return;
+  const fcOpts = getFixedCostCatOptions().filter(c => !c.paid);
+  if (!fcOpts.length) { el.innerHTML = `<div style="grid-column:1/-1;padding:10px;text-align:center;color:var(--muted);font-size:12px;">未払いの固定費がありません</div>`; return; }
+  el.innerHTML = fcOpts.map(c => `
+    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" onclick="selectQuickCat('${c.id}')">
+      ${catIconSvg(c.emoji, 20)}
+      <span>${c.label}</span>
+    </button>`).join("");
+}
+
+// 積立一覧を描画する
+function renderExpenseSavingsList() {
+  const el = document.getElementById("expenseSavingsList");
+  if (!el) return;
+  const svOpts = getSavingsCatOptions();
+  if (!svOpts.length) { el.innerHTML = `<div style="grid-column:1/-1;padding:10px;text-align:center;color:var(--muted);font-size:12px;">積立プランが登録されていません</div>`; return; }
+  el.innerHTML = svOpts.map(c => `
+    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" onclick="selectQuickCat('${c.id}')">
+      ${catIconSvg(c.emoji, 20)}
+      <span>${c.label}</span>
+    </button>`).join("");
+}
+
+// クイック選択時に固定費・積立振り分けの連携ロジックを適用する
 function selectQuickCat(id) {
   selectedCat = id;
   catIsLocked = true;
@@ -1343,38 +1422,31 @@ function selectQuickCat(id) {
       F("amountDisplay").textContent = "¥" + item.amount.toLocaleString("ja-JP");
     }
   } else if (typeof id === "string" && id.startsWith("sv_")) {
-    const svOpt = getSavingsCatOptions().find(c => c.id === id);
-    if (svOpt) F("memoInput").value = `積立振り分け（${svOpt.label}）`;
+    const svId = id.slice(3);
+    const plans = loadSavingsPlans();
+    const plan = plans.find(p => p.id === svId);
+    if (plan) {
+      F("memoInput").value = `積立振り分け（${plan.name}）`;
+      if (plan.monthly) {
+        inputAmt = String(plan.monthly);
+        F("amountDisplay").textContent = "¥" + plan.monthly.toLocaleString("ja-JP");
+      }
+    }
   }
-  document.getElementById("catIconGrid_" + inputType).style.display = "none";
   renderCatGrid();
 }
 
-// 項目名を入力・選択したときの処理。固定費・積立の項目名と完全一致すれば自動で連携し、
-// 一致しなければ自由入力（プリセット名と一致すればそのカテゴリ、それ以外はカスタム項目）として扱う。
+// 項目名を入力したときの処理（「他」タブ専用の自由入力）
 function onCatNameInput(type) {
   const name = document.getElementById("catNameInput_" + type).value;
-
-  const fcOpts = type === "expense" ? getFixedCostCatOptions().filter(c => !c.paid) : [];
-  const svOpts = type === "expense" ? getSavingsCatOptions() : [];
-  const presetCats = type === "expense" ? CATS_EXPENSE : CATS_INCOME;
-  const match = [...fcOpts, ...svOpts, ...presetCats].find(c => c.label === name);
-
-  if (match) {
-    selectQuickCat(match.id);
-    return;
-  }
-
   catIsLocked = false;
   selectedCat = "";
   selectedCatName = name;
   currentCatIcon = guessIconEmoji(selectedCatName);
   const iconBtn = document.getElementById("catIconBtn_" + type);
   if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
-  renderCatGrid();
 }
 
-// アイコン選択グリッドの開閉
 // アイコン選択サブ画面を開く（収入登録などから呼ばれる）
 let catIconPickerType = null;
 function openCatIconPicker(type) {
@@ -1393,25 +1465,6 @@ function selectCatIconFromPicker(key) {
   const iconBtn = document.getElementById("catIconBtn_" + catIconPickerType);
   if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
   goBack();
-}
-
-function toggleCatIconGrid(type) {
-  const grid = document.getElementById("catIconGrid_" + type);
-  if (!grid) return;
-  const show = grid.style.display === "none";
-  if (show) {
-    grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(key => `
-      <button type="button" class="cat-icon-btn ${currentCatIcon===key?"selected":""}" onclick="selectCatIcon('${key}','${type}')">
-        ${catIconSvg(key, 20)}
-      </button>`).join("");
-  }
-  grid.style.display = show ? "grid" : "none";
-}
-function selectCatIcon(key, type) {
-  currentCatIcon = key;
-  const iconBtn = document.getElementById("catIconBtn_" + type);
-  if (iconBtn) iconBtn.innerHTML = catIconSvg(currentCatIcon, 20);
-  document.getElementById("catIconGrid_" + type).style.display = "none";
 }
 
 // 自由入力の項目名に対応するカテゴリID（既存の同名項目があれば再利用、無ければ新規保存）
@@ -1504,15 +1557,24 @@ function submitTx() {
   const amt = parseInt(inputAmt || "0");
   if (!amt) { showToast("金額を入力してください"); return; }
 
-  const nameInput = document.getElementById("catNameInput_" + inputType);
-  const typedName = nameInput ? nameInput.value.trim() : "";
-  if (!typedName) { showToast("項目名を入力してください"); return; }
-
-  // クイック選択のまま（項目名を変更していない）ならそのIDを使い、固定費・積立の連携を維持する。
-  // 項目名を自由入力・変更した場合は、同名のカスタム項目があれば再利用し、無ければ新規作成する。
-  const finalCat = (catIsLocked && selectedCat && typedName === selectedCatName)
-    ? selectedCat
-    : resolveCustomCatId(inputType, typedName, currentCatIcon);
+  let finalCat;
+  if (inputType === "expense" && (expenseCatMode === "fixed" || expenseCatMode === "savings")) {
+    // 固定費・積立タブはクイック選択のみ（項目名の自由入力欄が無い）
+    if (!selectedCat) {
+      showToast(expenseCatMode === "fixed" ? "固定費の項目を選択してください" : "積立の項目を選択してください");
+      return;
+    }
+    finalCat = selectedCat;
+  } else {
+    const nameInput = document.getElementById("catNameInput_" + inputType);
+    const typedName = nameInput ? nameInput.value.trim() : "";
+    if (!typedName) { showToast("項目名を入力してください"); return; }
+    // 固定費・積立をクイック選択したまま項目名を変更していなければそのIDを使い、連携を維持する。
+    // 変更・自由入力した場合は、同名のカスタム項目があれば再利用し、無ければ新規作成する。
+    finalCat = (catIsLocked && selectedCat && typedName === selectedCatName)
+      ? selectedCat
+      : resolveCustomCatId(inputType, typedName, currentCatIcon);
+  }
 
   const date = F("dateInput").value || new Date().toISOString().slice(0,10);
   const memo = F("memoInput").value || "";
@@ -1561,7 +1623,8 @@ function submitTx() {
   currentCatIcon = "box";
   F("amountDisplay").textContent = "¥0";
   F("memoInput").value = "";
-  if (nameInput) nameInput.value = "";
+  const nameInputToClear = document.getElementById("catNameInput_" + inputType);
+  if (nameInputToClear) nameInputToClear.value = "";
   renderCatGrid();
   renderHome();
 
@@ -1597,6 +1660,11 @@ function openTxEdit(id) {
   selectedCatName = c ? c.label : "";
   currentCatIcon = c ? c.emoji : "box";
   catIsLocked = true;
+  if (tx.type === "expense") {
+    if (typeof tx.cat === "string" && tx.cat.startsWith("fc_")) expenseCatMode = "fixed";
+    else if (typeof tx.cat === "string" && tx.cat.startsWith("sv_")) expenseCatMode = "savings";
+    else expenseCatMode = "other";
+  }
   renderCatGrid();
 
   inputAmt = String(tx.amount);
