@@ -54,7 +54,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 14px calc(34px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
-#page-savings.active,#page-fixedcosts.active,#page-graph.active,#page-cashflow.active,#page-initsetup.active,#page-autotransition.active,#page-shortcutsguide.active,#page-backup.active,#page-caticonpicker.active,#page-quickitempicker.active{display:flex;}
+#page-savings.active,#page-fixedcosts.active,#page-graph.active,#page-cashflow.active,#page-initsetup.active,#page-autotransition.active,#page-shortcutsguide.active,#page-backup.active,#page-migration.active,#page-caticonpicker.active,#page-quickitempicker.active{display:flex;}
 #page-home.active{display:flex;flex-direction:column;}
 
 /* ===== ホーム ===== */
@@ -614,7 +614,27 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-utility" style="background:var(--gray-l);">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">補助機能</span></div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:8px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 3v18"/><path d="M5 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M5 8h14"/><path d="M9 21h6"/></svg> 残高の答え合わせ</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:8px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--purple);"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg> 機種変更・故障時のデータ移行</div>
+  <div class="export-section" style="padding:14px;">
+    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
+      残高・固定費・積立プラン・各種設定をまるごと保存し、新しい端末でそのまま復元します。機種変更・故障に備える場合はこちらを使ってください。
+    </div>
+    <button onclick="showPage('migration')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--purple);background:var(--purple-l);color:var(--purple-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+      データ移行（保存・復元）を開く
+    </button>
+  </div>
+
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> CSVデータの書き出し</div>
+  <div class="export-section" style="padding:14px;">
+    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
+      取引データをCSV形式で書き出します。Excelなどでオフラインで確認・加工したい場合はこちらを使ってください（このCSVから元の状態には復元できません）。
+    </div>
+    <button onclick="showPage('backup')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+      CSV書き出しを開く
+    </button>
+  </div>
+
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 3v18"/><path d="M5 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M5 8h14"/><path d="M9 21h6"/></svg> 残高の答え合わせ</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       保有しているべき金額と、実際の口座＋手持ち残高を見比べられます。
@@ -651,16 +671,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <button onclick="showPage('shortcutsguide')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--green);background:var(--green-l);color:var(--green-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       設定方法を見る
-    </button>
-  </div>
-
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> データのバックアップ</div>
-  <div class="export-section" style="padding:14px;">
-    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      取引データをCSV形式で書き出して、確認・保管できます。
-    </div>
-    <button onclick="showPage('backup')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      バックアップを開く
     </button>
   </div>
 
@@ -722,11 +732,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== データのバックアップ（専用画面） ===== -->
 <div class="page" id="page-backup" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">データのバックアップ</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">CSVデータの書き出し</span></div>
 
   <div class="budget-card" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
     <div style="font-size:14px;color:var(--sub);margin-bottom:20px;line-height:1.7;text-align:center;">
-      取引データをCSV形式で書き出します。Excelやスプレッドシートで開いて確認・保管できます。
+      取引データをCSV形式で書き出します。Excelやスプレッドシートで開いて確認・加工できます（このCSVから元の状態には復元できません。機種変更・故障に備える場合は「データ移行」をご利用ください）。
     </div>
     <button class="export-btn" onclick="exportCSV('month')" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -736,11 +746,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       全データをCSVで保存
     </button>
+  </div>
+</div>
+</div>
 
-    <div style="border-top:1px solid var(--gray);margin:24px 0 18px;"></div>
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">機種変更・故障に備えた全データの保存</div>
-    <div style="font-size:13px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます（上のCSVは記録の閲覧・保管用で、これとは別物です）。
+<!-- ===== データ移行（機種変更・故障対策） ===== -->
+<div class="page" id="page-migration" style="flex-direction:column;padding:0;overflow:hidden;background:var(--purple-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">データ移行（保存・復元）</span></div>
+
+  <div class="budget-card" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div style="font-size:14px;color:var(--sub);margin-bottom:20px;line-height:1.7;text-align:center;">
+      残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます。
     </div>
     <button class="export-btn" onclick="exportFullBackup()" style="background:var(--purple-l);border-color:var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -988,7 +1005,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.33.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.34.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2003,7 +2020,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","caticonpicker","quickitempicker"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","migration","caticonpicker","quickitempicker"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
