@@ -570,7 +570,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:15px;color:var(--sub);line-height:2.4;">
-      <div style="display:flex;justify-content:space-between;"><span>現在の残高</span><span id="cfBalancePart" style="font-weight:700;color:var(--text);">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>収入−実際の支出（積立・固定費の予定額は含まず）</span><span id="cfBalancePart" style="font-weight:700;color:var(--text);">¥0</span></div>
       <div style="display:flex;justify-content:space-between;"><span>＋ 未払いの固定費</span><span id="cfFixedPart" style="font-weight:700;color:var(--text);">¥0</span></div>
       <div style="display:flex;justify-content:space-between;"><span>＋ 積立の貯蓄額</span><span id="cfSavingsPart" style="font-weight:700;color:var(--text);">¥0</span></div>
     </div>
@@ -958,7 +958,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.27.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.28.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1172,8 +1172,8 @@ function renderHome() {
   document.getElementById("homeSavingsTotal").textContent = fmt(savingsTotal);
   document.getElementById("homeFixedTotal").textContent   = fmt(fixedTotal);
 
-  // 総支出＝取引の支出合計＋今月の積立合計＋今月の固定費合計
-  const expense = expenseTx + savingsTotal + fixedTotal;
+  // 総支出＝実際に取引として記録した支出のみ（未記録の積立・固定費の予定額は含まない）
+  const expense = expenseTx;
   const balance = income - expense;
 
   // 予算総額＝この月度に入力された収入の合計
@@ -1196,7 +1196,7 @@ function renderHome() {
 
   // 変動費（積立・固定費に相当するカテゴリを除いた、日々のやりくり費用）の実績ペースを算出する。
   // 節約すればするほど、この値は随時（描画のたびに）下がって反映される。
-  const variableTx = txs.filter(t => t.type === "expense" && !FIXED_LIKE_CATS.includes(t.cat) && !String(t.cat).startsWith("fc_"));
+  const variableTx = txs.filter(t => t.type === "expense" && !FIXED_LIKE_CATS.includes(t.cat) && !String(t.cat).startsWith("fc_") && !String(t.cat).startsWith("sv_"));
   const variableSpent = variableTx.reduce((s,t)=>s+t.amount, 0);
   const dailyPace = elapsedDays > 0 ? variableSpent / elapsedDays : 0;
 
@@ -3095,18 +3095,29 @@ function startNewMonth(silent) {
 
     // 積立: 前月の各プランの積立残高に、月々の積立額を加算する（引き継ぎ）。
     // 周期が毎月以外のプランは、周期の巡ってきた月のみ加算し、それ以外の月は経過月数だけ積み増す。
-    // 取引実績への記録は行わない（ホーム画面はリアルタイムに積立タブの設定を参照するため）。
+    // 取引履歴にも「積立自動計上」として記録し、収支ベースの残高計算に正しく反映されるようにする。
     const plans = loadSavingsPlans();
+    const txsForAccrual = loadTx();
     let savingsTotal = 0;
     plans.forEach(p => {
       const due = isSavingsDueNext(p);
       if (due && p.monthly > 0) {
         p.balance = (p.balance || 0) + p.monthly;
         savingsTotal += p.monthly;
+        txsForAccrual.push({
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          type: "expense",
+          cat: "sv_" + p.id,
+          amount: p.monthly,
+          memo: `積立自動計上（${p.name}）`,
+          date: today,
+          source: "auto_savings",
+        });
       }
       p.monthsSinceContribution = due ? 0 : (p.monthsSinceContribution || 0) + 1;
     });
     saveSavingsPlans(plans);
+    saveTx(txsForAccrual);
 
     // 固定費: 前月の項目・金額をそのまま引き継ぐ（cycle.fixed_costsは月度を跨ぐ永続データのため、
     // 何もしなくても項目は残る）。支払い済みフラグは新しい月度のためリセットする。
