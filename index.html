@@ -584,8 +584,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;">実際の総残高（口座＋手持ち）</div>
     <div style="position:relative;">
-      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:24px;font-weight:700;color:var(--text);pointer-events:none;">¥</span>
-      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="45000" style="width:100%;padding:14px 14px 14px 32px;font-size:24px;font-weight:700;text-align:center;" oninput="renderCashflow()">
+      <input class="field-input" id="cfBalanceInput" type="text" inputmode="numeric" placeholder="¥45,000" style="width:100%;padding:14px;font-size:24px;font-weight:700;text-align:center;" oninput="formatYenInput(this); renderCashflow();">
     </div>
   </div>
 
@@ -961,7 +960,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.28.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.28.2"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2805,12 +2804,12 @@ function renderCashflow() {
   const inputEl = document.getElementById("cfBalanceInput");
   const diffEl  = document.getElementById("cfDiffLine");
   const hintEl  = document.getElementById("cfDiffHint");
-  const rawInput = inputEl.value;
+  const rawInput = inputEl.value.replace(/[^\d]/g, "");
   if (rawInput === "") {
     diffEl.textContent = "";
     hintEl.textContent = "";
   } else {
-    const actual = parseInt(rawInput || "0", 10) || 0;
+    const actual = parseInt(rawInput, 10) || 0;
     const diff = actual - shouldHave;
     diffEl.style.color = diff === 0 ? "var(--green-d)" : "var(--red)";
     diffEl.textContent = diff === 0
