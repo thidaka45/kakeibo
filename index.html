@@ -325,14 +325,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <!-- 固定費モード -->
     <div id="expenseModeFixed" style="display:none;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">登録済みの固定費から選択</div>
-      <div id="expenseFixedList" class="cat-icon-grid"></div>
+      <button type="button" id="expenseFixedPickBtn" onclick="openQuickItemPicker('fixed')" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-family:inherit;text-align:left;"></button>
     </div>
 
     <!-- 積立モード -->
     <div id="expenseModeSavings" style="display:none;">
-      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">登録済みの積立費から選択（登録月額を自動入力。金額は書き換え可能）</div>
-      <div id="expenseSavingsList" class="cat-icon-grid"></div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">登録月額を自動入力します（金額は書き換え可能）</div>
+      <button type="button" id="expenseSavingsPickBtn" onclick="openQuickItemPicker('savings')" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);cursor:pointer;font-family:inherit;text-align:left;"></button>
     </div>
 
     <!-- 他モード（自由入力＋アイコン専用画面） -->
@@ -436,6 +435,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">アイコンを選ぶ</span></div>
   <div id="catIconPickerGrid" class="cat-icon-grid" style="max-height:none;"></div>
+</div>
+</div>
+
+<!-- ===== 固定費・積立の項目選択（専用サブ画面） ===== -->
+<div class="page" id="page-quickitempicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span></div>
+  <div id="quickItemPickerGrid" class="cat-icon-grid" style="max-height:none;"></div>
 </div>
 </div>
 
@@ -949,7 +956,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.25.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.26.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1377,28 +1384,66 @@ function setExpenseCatMode(mode) {
 
 // 固定費一覧（未払いのみ）を描画する
 function renderExpenseFixedList() {
-  const el = document.getElementById("expenseFixedList");
-  if (!el) return;
-  const fcOpts = getFixedCostCatOptions().filter(c => !c.paid);
-  if (!fcOpts.length) { el.innerHTML = `<div style="grid-column:1/-1;padding:10px;text-align:center;color:var(--muted);font-size:12px;">未払いの固定費がありません</div>`; return; }
-  el.innerHTML = fcOpts.map(c => `
-    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" onclick="selectQuickCat('${c.id}')">
-      ${catIconSvg(c.emoji, 20)}
-      <span>${c.label}</span>
-    </button>`).join("");
+  const btn = document.getElementById("expenseFixedPickBtn");
+  if (!btn) return;
+  btn.innerHTML = selectedCat
+    ? `${catIconSvg(currentCatIcon, 22)}<span style="font-size:15px;font-weight:600;color:var(--text);">${selectedCatName}</span>`
+    : `${catIconSvg("box", 22)}<span style="font-size:15px;color:var(--muted);">固定費の項目を選択</span>`;
 }
 
 // 積立一覧を描画する
 function renderExpenseSavingsList() {
-  const el = document.getElementById("expenseSavingsList");
-  if (!el) return;
-  const svOpts = getSavingsCatOptions();
-  if (!svOpts.length) { el.innerHTML = `<div style="grid-column:1/-1;padding:10px;text-align:center;color:var(--muted);font-size:12px;">積立プランが登録されていません</div>`; return; }
-  el.innerHTML = svOpts.map(c => `
-    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" onclick="selectQuickCat('${c.id}')">
-      ${catIconSvg(c.emoji, 20)}
-      <span>${c.label}</span>
-    </button>`).join("");
+  const btn = document.getElementById("expenseSavingsPickBtn");
+  if (!btn) return;
+  btn.innerHTML = selectedCat
+    ? `${catIconSvg(currentCatIcon, 22)}<span style="font-size:15px;font-weight:600;color:var(--text);">${selectedCatName}</span>`
+    : `${catIconSvg("box", 22)}<span style="font-size:15px;color:var(--muted);">積立の項目を選択</span>`;
+}
+
+// 固定費・積立の項目選択サブ画面を開く
+let quickItemPickerMode = null;
+function openQuickItemPicker(mode) {
+  quickItemPickerMode = mode;
+  const title = document.getElementById("quickItemPickerTitle");
+  const grid = document.getElementById("quickItemPickerGrid");
+  if (title) title.textContent = mode === "fixed" ? "固定費を選ぶ" : "積立を選ぶ";
+
+  if (mode === "fixed") {
+    const cycle = ensureCycle();
+    const items = cycle.fixed_costs || [];
+    if (!items.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--muted);font-size:13px;">固定費が登録されていません</div>`;
+    } else {
+      grid.innerHTML = items.map(item => {
+        const id = "fc_" + item.id;
+        return `
+        <button type="button" class="cat-icon-btn" ${item.paid ? "disabled" : ""}
+          style="border-color:var(--text);color:var(--text);"
+          onclick="${item.paid ? "" : `selectQuickItemAndBack('${id}')`}">
+          ${catIconSvg(item.icon || guessIconEmoji(item.item), 20)}
+          <span>${item.item}${item.paid ? "（済）" : ""}</span>
+        </button>`;
+      }).join("");
+    }
+  } else {
+    const plans = loadSavingsPlans();
+    if (!plans.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--muted);font-size:13px;">積立プランが登録されていません</div>`;
+    } else {
+      grid.innerHTML = plans.map(p => `
+        <button type="button" class="cat-icon-btn" style="border-color:var(--text);color:var(--text);" onclick="selectQuickItemAndBack('sv_${p.id}')">
+          ${catIconSvg(p.icon || guessIconEmoji(p.name), 20)}
+          <span>${p.name}</span>
+        </button>`).join("");
+    }
+  }
+  showPage("quickitempicker");
+}
+
+// サブ画面で項目をタップしたときの処理
+function selectQuickItemAndBack(id) {
+  selectQuickCat(id);
+  goBack();
 }
 
 // クイック選択時に固定費・積立振り分けの連携ロジックを適用する
@@ -1929,7 +1974,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","caticonpicker"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","caticonpicker","quickitempicker"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
