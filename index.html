@@ -159,7 +159,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .legend-dot{width:10px;height:10px;border-radius:2px;}
 .cat-summary{display:flex;flex-direction:column;gap:6px;}
 .cat-summary-row{display:flex;align-items:center;gap:8px;}
-.cat-summary-name{font-size:12px;color:var(--sub);width:60px;flex-shrink:0;}
+.cat-summary-name{font-size:12px;color:var(--sub);width:76px;flex-shrink:0;}
 .cat-summary-bar-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
 .cat-summary-bar-fill{height:100%;border-radius:4px;background:var(--red);transition:width .6s;}
 .savings-bar-track{flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden;}
@@ -908,7 +908,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.20.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.21.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1290,7 +1290,7 @@ function renderCatGrid() {
   const chipHtml = (c, disabled, subLabel) => `
     <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" ${disabled?"disabled":""}
       onclick="selectQuickCat('${c.id}')">
-      ${catIconSvg(c.emoji, 18)}
+      ${catIconSvg(c.emoji, 20)}
       <span>${c.label}${subLabel || ""}</span>
     </button>`;
 
@@ -1742,7 +1742,7 @@ function renderCatSummary(idx) {
   const maxCat = catTotals[0]?.total || 1;
   document.getElementById("catSummary").innerHTML = catTotals.map(c =>
         `<div class="cat-summary-row">
-          <div class="cat-summary-name" style="display:flex;align-items:center;gap:4px;">${catIconSvg(c.emoji,14)}${c.label}</div>
+          <div class="cat-summary-name" style="display:flex;align-items:center;gap:4px;">${catIconSvg(c.emoji,20)}${c.label}</div>
           <div class="cat-summary-bar-track">
             <div class="cat-summary-bar-fill" style="width:${Math.round(c.total/maxCat*100)}%"></div>
           </div>
@@ -2699,7 +2699,7 @@ function renderFixedCostList(cycle) {
 
       return `<div style="cursor:pointer;padding:12.6px 14px;${borderStyle}opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,17)}</div>
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,20)}</div>
         <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}<span style="font-size:13px;font-weight:400;color:${dueColor};">（${dueLabel}）</span></div>
         <span style="font-size:17px;font-weight:700;color:${amtColor};white-space:nowrap;flex-shrink:0;">${fmt(item.amount||0)}</span>
       </div>
