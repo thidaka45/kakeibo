@@ -204,6 +204,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== ホーム ===== -->
 <div class="page active" id="page-home">
+  <!-- 自動移行後、収入がまだ入力されていない場合のバナー -->
+  <div id="homeIncomePendingBanner" style="display:none;background:var(--amber-l);border:1px solid var(--amber);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
+    <div style="font-size:12px;color:var(--red);margin-bottom:6px;">新しい月度が自動的に開始されました。収入（給与など）を入力してください。</div>
+    <button onclick="dismissIncomePendingBanner()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--amber);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">収入を入力する →</button>
+  </div>
   <div class="month-header">
     <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)">‹</button>
     <span class="month-title" id="monthTitle"></span>
@@ -535,7 +540,36 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== ユーティリティ ===== -->
 <div class="page" id="page-utility" style="background:var(--gray-l);">
   <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">補助機能</span></div>
-  <div class="section-title" style="margin-top:4px">データのバックアップ</div>
+  <div class="section-title" style="margin-top:4px">初期設定</div>
+  <div class="export-section">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
+      初めて家計簿を開始する方はこちらから。収入・固定費・積立費の登録と、毎月の自動移行日の設定を順番に行います。
+    </div>
+    <button class="export-btn" onclick="openInitialSetupWizard()" style="background:var(--green-l);border-color:var(--green);color:var(--green-d);font-weight:700;">
+      初期設定を開始する
+    </button>
+
+    <div style="font-size:12px;color:var(--text);font-weight:600;margin:14px 0 4px;">毎月の自動移行日</div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
+      指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <select id="autoTransitionDaySelect" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:13px;"></select>
+      <button onclick="saveAutoTransitionDay()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">保存</button>
+    </div>
+    <div id="autoTransitionDayStatus" style="font-size:11px;color:var(--sub);"></div>
+
+    <div style="font-size:12px;color:var(--text);font-weight:600;margin:14px 0 4px;">iPhoneショートカットで自動化する方法</div>
+    <div style="font-size:11px;color:var(--sub);line-height:1.8;">
+      1. 「ショートカット」アプリ→「オートメーション」→「個人用オートメーションを作成」→「時刻」を選択し、毎日決まった時刻に設定<br>
+      2. アクションで「Safariで開く」（または「URLを開く」）を追加し、次のURLを指定：<br>
+      <code style="word-break:break-all;background:var(--gray-l);padding:2px 4px;border-radius:4px;font-size:10px;">https://thidaka45.github.io/kakeibo/?auto_check=1</code><br>
+      3. 「実行前に尋ねる」をオフにする<br>
+      4. 上の「毎月の自動移行日」を設定しておけば、指定日以降にこのオートメーションが開いたタイミングで自動的に新しい月度へ移行します
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:18px">データのバックアップ</div>
   <div class="export-section">
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       取引データをCSV形式で書き出します。Excelやスプレッドシートで開いて確認・保管できます。
@@ -702,7 +736,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.5.112"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.6.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -712,6 +746,54 @@ function loadTx() {
 }
 function saveTx(txs) {
   localStorage.setItem("kakeibo_tx", JSON.stringify(txs));
+}
+
+// ============================================================
+// 初期設定（自動月次移行・初期設定完了フラグ）
+// ============================================================
+function loadSetup() {
+  try {
+    return JSON.parse(localStorage.getItem("kakeibo_setup") || "null") ||
+      { auto_transition_day: null, last_auto_migrate_ym: null, initial_setup_done: false };
+  } catch { return { auto_transition_day: null, last_auto_migrate_ym: null, initial_setup_done: false }; }
+}
+function saveSetup(s) {
+  localStorage.setItem("kakeibo_setup", JSON.stringify(s));
+}
+
+// 移行日プルダウン（1〜28日。月末付近の日はズレやすいため29〜31は選択肢に含めない）を描画する
+function renderAutoTransitionDaySelect() {
+  const sel = document.getElementById("autoTransitionDaySelect");
+  if (!sel) return;
+  const current = loadSetup().auto_transition_day;
+  sel.innerHTML = `<option value="">未設定</option>` +
+    Array.from({length:28}, (_,i)=>i+1).map(d =>
+      `<option value="${d}" ${d===current?"selected":""}>${d}日</option>`
+    ).join("");
+  const statusEl = document.getElementById("autoTransitionDayStatus");
+  if (statusEl) {
+    statusEl.textContent = current ? `現在の設定：毎月${current}日以降に自動移行` : "現在、自動移行は未設定です";
+  }
+}
+function saveAutoTransitionDay() {
+  const val = document.getElementById("autoTransitionDaySelect").value;
+  const s = loadSetup();
+  s.auto_transition_day = val ? parseInt(val, 10) : null;
+  saveSetup(s);
+  renderAutoTransitionDaySelect();
+  showToast(val ? `毎月${val}日以降に自動移行するよう設定しました` : "自動移行の設定を解除しました");
+}
+
+// 初期設定ウィザード：既存の「新しい月を開始」フロー（収入→積立→固定費）をそのまま呼び出す
+function openInitialSetupWizard() {
+  const s = loadSetup();
+  s.initial_setup_done = true;
+  saveSetup(s);
+  if (!ensurePeriods().length) {
+    startNewMonth(); // 初回はここで confirm() → 収入入力へ案内される
+  } else {
+    showToast("すでに家計簿は開始されています。収入・固定費・積立費はそれぞれのタブから編集できます");
+  }
 }
 
 
@@ -1144,6 +1226,11 @@ function revertFixedCostPaidFromTx(type, cat) {
 }
 
 function submitTx() {
+  const periods = ensurePeriods();
+  if (periods.length && viewPeriodIndex !== null && viewPeriodIndex !== periods.length - 1) {
+    showToast("過去の月度は参照専用のため、記録の追加・更新はできません");
+    return;
+  }
   const amt = parseInt(inputAmt || "0");
   if (!amt) { showToast("金額を入力してください"); return; }
   if (!selectedCat) { showToast("カテゴリを選択してください"); return; }
@@ -1190,6 +1277,11 @@ function submitTx() {
   renderCatGrid();
   renderHome();
 
+  if (inputType === "income") {
+    const s = loadSetup();
+    if (s.income_pending) { s.income_pending = false; saveSetup(s); }
+  }
+
   // 「新しい月を開始」フロー中に収入を記録した場合、続けて積立の確認に案内する
   if (newMonthFlowStep === "income" && inputType === "income") {
     newMonthFlowStep = "savings";
@@ -1202,6 +1294,12 @@ function submitTx() {
 function openTxEdit(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx) return;
+  const periods = ensurePeriods();
+  const txPeriodIdx = findPeriodIndexForDate(tx.date);
+  if (periods.length && txPeriodIdx !== periods.length - 1) {
+    showToast("過去の月度の記録は参照専用のため編集できません");
+    return;
+  }
   editingTxId = id;
 
   showPage(tx.type); // 'expense' または 'income'
@@ -2448,14 +2546,17 @@ function cancelHoldReceipt() {
 //   「月初確保」の支出として自動的に計上した上で、月度を切り替える。
 let newMonthFlowStep = null; // null | "income" | "savings" | "fixedcosts"
 
-function startNewMonth() {
+// silent=true の場合、confirm()ダイアログを出さずに実行する（起動時の自動移行用）。
+function startNewMonth(silent) {
   const periods = ensurePeriods();
   const isFirstTime = periods.length === 0;
 
-  const confirmMsg = isFirstTime
-    ? "家計簿をこの日から開始します。まず収入（給与など）の入力から始めましょう。よろしいですか？"
-    : "新しい月度を開始します。積立・固定費は前月の内容を引き継ぎます。まず収入（給与など）を入力してください。よろしいですか？";
-  if (!confirm(confirmMsg)) return;
+  if (!silent) {
+    const confirmMsg = isFirstTime
+      ? "家計簿をこの日から開始します。まず収入（給与など）の入力から始めましょう。よろしいですか？"
+      : "新しい月度を開始します。積立・固定費は前月の内容を引き継ぎます。まず収入（給与など）を入力してください。よろしいですか？";
+    if (!confirm(confirmMsg)) return;
+  }
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -2489,11 +2590,52 @@ function startNewMonth() {
   viewPeriodIndex = startNewPeriod(today);
   renderHome();
 
+  if (silent) {
+    // 自動移行の場合は画面遷移させず、ホームに「収入未入力」バナーを出すだけに留める
+    // （バックグラウンド的な起動でも操作を強制しないため）
+    const s = loadSetup();
+    s.income_pending = true;
+    saveSetup(s);
+    toggleFlowBanner("homeIncomePendingBanner", true);
+    return;
+  }
+
   // ①収入 → ②積立 → ③固定費 の順に案内する
   newMonthFlowStep = "income";
   setType("income");
   showPage("income");
   showToast("まず収入を入力してください");
+}
+
+// 起動時に呼ばれる：指定した移行日を過ぎていれば、当月まだ実行していない場合のみ自動で新しい月へ移行する
+function autoCheckMonthlyTransition() {
+  const setup = loadSetup();
+  if (!setup.auto_transition_day) return; // 移行日が未設定なら何もしない
+
+  const now = new Date();
+  const ym = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  if (setup.last_auto_migrate_ym === ym) return; // 今月すでに実行済み
+
+  const periods = ensurePeriods();
+  if (!periods.length) return; // 初期設定がまだの場合は自動実行しない（初期設定メニューから開始してもらう）
+
+  if (now.getDate() >= setup.auto_transition_day) {
+    startNewMonth(true);
+    setup.last_auto_migrate_ym = ym;
+    saveSetup(setup);
+    showToast("移行日を過ぎたため、新しい月度を自動的に開始しました");
+  }
+}
+
+// 収入未入力バナーの「収入を入力する」ボタン
+function dismissIncomePendingBanner() {
+  const s = loadSetup();
+  s.income_pending = false;
+  saveSetup(s);
+  toggleFlowBanner("homeIncomePendingBanner", false);
+  newMonthFlowStep = "income";
+  setType("income");
+  showPage("income");
 }
 
 // 積立タブから固定費タブへ（新しい月を開始フローの一部）
@@ -2611,8 +2753,11 @@ function init() {
   syncDateDisplay("income");
 
   setType("expense");
-  renderHome();
   ensureCycle();
+  autoCheckMonthlyTransition();
+  renderHome();
+  renderAutoTransitionDaySelect();
+  toggleFlowBanner("homeIncomePendingBanner", !!loadSetup().income_pending);
 
   // 画像確認（ショートカット）から戻ってきた場合、元の編集画面に復帰する
   const pendingReturn = localStorage.getItem("kakeibo_pending_return_tx");
