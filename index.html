@@ -736,6 +736,23 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       全データをCSVで保存
     </button>
+
+    <div style="border-top:1px solid var(--gray);margin:24px 0 18px;"></div>
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">機種変更・故障に備えた全データの保存</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
+      残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます（上のCSVは記録の閲覧・保管用で、これとは別物です）。
+    </div>
+    <button class="export-btn" onclick="exportFullBackup()" style="background:var(--purple-l);border-color:var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      全データを1ファイルに保存する
+    </button>
+    <input type="file" id="fullBackupFileInput" accept="application/json,.json" style="display:none;" onchange="importFullBackupFile(event)">
+    <button class="export-btn" onclick="document.getElementById('fullBackupFileInput').click()" style="background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
+      保存したファイルから復元する
+    </button>
+    <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
+      ※ 復元すると、この端末の現在のデータはすべて上書きされます（元に戻せません）。
+    </div>
   </div>
 </div>
 </div>
@@ -971,7 +988,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.32.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.33.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2025,6 +2042,81 @@ function getExportLabel(range) {
   return range === "month" && viewPeriodIndex !== null && ensurePeriods().length
     ? `家計簿_${periodLabel(viewPeriodIndex)}`
     : `家計簿_全データ`;
+}
+
+// ============================================================
+// 全データのバックアップ・復元（機種変更・故障対策）
+// CSVとは別に、残高・固定費・積立プラン・各種設定を含む全localStorageを
+// 1つのJSONファイルに書き出し／読み込みできるようにする。
+// ============================================================
+function exportFullBackup() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("kakeibo_")) {
+      data[key] = localStorage.getItem(key);
+    }
+  }
+  const payload = {
+    app: "kakeibo-full-backup",
+    appVersion: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const stamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, "0") + String(now.getDate()).padStart(2, "0");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `kakeibo_backup_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("全データを1ファイルに保存しました。安全な場所に保管してください");
+}
+
+function importFullBackupFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = ""; // 同じファイルを続けて選び直せるようにリセットしておく
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try { payload = JSON.parse(reader.result); }
+    catch { showToast("ファイルの読み込みに失敗しました（形式が正しくありません）"); return; }
+
+    if (!payload || payload.app !== "kakeibo-full-backup" || !payload.data) {
+      showToast("このアプリのバックアップファイルではないようです");
+      return;
+    }
+    const keys = Object.keys(payload.data);
+    if (!keys.length) { showToast("バックアップファイルにデータが含まれていません"); return; }
+
+    const dateStr = payload.exportedAt
+      ? new Date(payload.exportedAt).toLocaleString("ja-JP")
+      : "不明";
+    const ok = confirm(
+      `このファイル（保存日時：${dateStr}）で、現在のこの端末のデータを全て上書きします。\n\n` +
+      `今のデータは全て消え、元に戻せません。よろしいですか？`
+    );
+    if (!ok) return;
+
+    // 復元前に既存のkakeibo_キーを一旦すべて削除する
+    // （バックアップ後に廃止されたキーが端末に残り続けるのを防ぐため）
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("kakeibo_")) localStorage.removeItem(key);
+    }
+    keys.forEach(k => localStorage.setItem(k, payload.data[k]));
+
+    showToast("データを復元しました。再読み込みします…");
+    setTimeout(() => location.reload(), 800);
+  };
+  reader.onerror = () => showToast("ファイルの読み込みに失敗しました");
+  reader.readAsText(file);
 }
 
 // CSV出力
