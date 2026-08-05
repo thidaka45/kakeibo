@@ -526,7 +526,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       アプリ上の記録から算出した「保有しているべき金額」と、実際の口座＋手持ち残高を見比べられます。
     </div>
-    <button class="export-btn" onclick="toggleCashflowPanel()" style="background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:700;">
+    <button class="export-btn" onclick="toggleCashflowPanel()" style="background:var(--blue-l);border-color:var(--blue);color:var(--blue);">
       残高の答え合わせを開く
     </button>
 
@@ -564,23 +564,23 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       初めて家計簿を開始する方はこちらから。収入・固定費・積立費の登録と、毎月の自動移行日の設定を順番に行います。
     </div>
-    <button class="export-btn" onclick="openInitialSetupWizard()" style="background:var(--green-l);border-color:var(--green);color:var(--green-d);font-weight:700;">
+    <button class="export-btn" onclick="openInitialSetupWizard()" style="background:var(--green-l);border-color:var(--green);color:var(--green-d);">
       初期設定を開始する
     </button>
 
-    <div style="font-size:12px;color:var(--text);font-weight:600;margin:14px 0 4px;">毎月の自動移行日</div>
+    <div class="section-title" style="margin:14px 0 4px">毎月の自動移行日</div>
 
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <select id="autoTransitionDaySelect" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:13px;"></select>
-      <button onclick="saveAutoTransitionDay()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">保存</button>
+      <select id="autoTransitionDaySelect" class="field-select" style="flex:1;"></select>
+      <button class="export-btn" onclick="saveAutoTransitionDay()" style="width:auto;white-space:nowrap;padding:8px 14px;margin-top:0;background:var(--green-l);border-color:var(--green);color:var(--green-d);">保存</button>
     </div>
     <div id="autoTransitionDayStatus" style="font-size:11px;color:var(--sub);"></div>
 
-    <div style="font-size:12px;color:var(--text);font-weight:600;margin:14px 0 4px;">iPhoneショートカットで自動化する方法</div>
-    <div style="font-size:11px;color:var(--sub);line-height:1.8;">
+    <div class="section-title" style="margin:14px 0 4px">iPhoneショートカットで自動化する方法</div>
+    <div style="font-size:11px;color:var(--sub);line-height:1.6;">
       1. 「ショートカット」アプリ→「オートメーション」→「個人用オートメーションを作成」→「時刻」を選択し、毎日決まった時刻に設定<br>
       2. アクションで「Safariで開く」（または「URLを開く」）を追加し、次のURLを指定：<br>
       <code style="word-break:break-all;background:var(--gray-l);padding:2px 4px;border-radius:4px;font-size:10px;">https://thidaka45.github.io/kakeibo/?auto_check=1</code><br>
@@ -753,7 +753,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.9.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.9.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
