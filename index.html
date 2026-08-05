@@ -634,13 +634,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 毎月の自動移行日</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 毎月の自動移行日の変更</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行するよう設定できます。
+      指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行するよう設定できます。初期設定で決めた日も、後からいつでもここで変更できます。
     </div>
     <button onclick="showPage('autotransition')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--green);background:var(--green-l);color:var(--green-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      移行日の設定を開く
+      移行日を変更する
     </button>
   </div>
 
@@ -689,11 +689,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 毎月の自動移行日（専用画面） ===== -->
 <div class="page" id="page-autotransition" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">毎月の自動移行日</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">毎月の自動移行日の変更</span></div>
 
   <div class="budget-card">
     <div style="font-size:14px;color:var(--sub);margin-bottom:16px;line-height:1.7;">
-      指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。
+      指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。すでに設定済みの日を変更したい場合も、ここで選び直して保存してください。
     </div>
     <select id="autoTransitionDaySelect" class="field-select" style="width:100%;font-size:22px;font-weight:700;text-align:center;padding:14px;margin-bottom:14px;"></select>
     <button onclick="saveAutoTransitionDay()" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--green);background:var(--green);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">保存する</button>
@@ -971,7 +971,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.32.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.32.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
