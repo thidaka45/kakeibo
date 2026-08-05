@@ -971,7 +971,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.29.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.30.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1653,10 +1653,10 @@ function submitTx() {
     txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, memo, date };
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
-    if (old.cat !== finalCat) {
-      revertFixedCostPaidFromTx(old.type, old.cat);
-      revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
-    }
+    // カテゴリが変わっていない場合でも、金額だけの編集で積立残高が
+    // 二重加算されないよう、必ず旧内容を取り消してから新内容を反映する
+    revertFixedCostPaidFromTx(old.type, old.cat);
+    revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
     updateFixedCostAmountFromTx(inputType, finalCat, amt);
     updateSavingsBalanceFromTx(inputType, finalCat, amt);
     showToast("取引を更新しました");
@@ -1741,12 +1741,6 @@ function openTxEdit(id) {
   if (receiptBtn) receiptBtn.style.display = tx.receiptRef ? "inline-flex" : "none";
   F("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
   document.getElementById("pageName_" + tx.type).textContent = tx.type === "expense" ? "支出履歴更新" : "収入履歴更新";
-}
-
-// 編集をキャンセルして通常の新規入力状態に戻す
-function cancelTxEdit() {
-  resetEditMode();
-  showPage("home");
 }
 
 // 編集中の取引を削除する
@@ -2018,34 +2012,6 @@ function toggleFlowBanner(id, show) {
 // ============================================================
 // エクスポート（CSV / Excel 選択式）
 // ============================================================
-let exportFmt = "csv"; // デフォルト: CSV
-
-function setExportFmt(fmt) {
-  exportFmt = fmt;
-  // ボタンの見た目を切替
-  const csvBtn = document.getElementById("fmtCSV");
-  const xlsBtn = document.getElementById("fmtXLS");
-  if (fmt === "csv") {
-    csvBtn.style.background = "var(--card)";
-    csvBtn.style.color      = "var(--green)";
-    xlsBtn.style.background = "none";
-    xlsBtn.style.color      = "var(--sub)";
-  } else {
-    xlsBtn.style.background = "var(--card)";
-    xlsBtn.style.color      = "var(--green)";
-    csvBtn.style.background = "none";
-    csvBtn.style.color      = "var(--sub)";
-  }
-}
-
-function exportData(range) {
-  if (exportFmt === "excel") {
-    exportExcel(range);
-  } else {
-    exportCSV(range);
-  }
-}
-
 function getExportTxs(range) {
   const allCats = getAllCats();
   let txs = loadTx().sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -2889,17 +2855,6 @@ function renderFixedCostList(cycle) {
       </div>
     </div>`;
     }).join("") + `</div>`;
-}
-
-// 支払い済み/未払いのトグル
-function toggleFixedCostPaid(id) {
-  const cycle = ensureCycle();
-  const item = cycle.fixed_costs.find(i => i.id === id);
-  if (!item) return;
-  item.paid = !item.paid;
-  saveCycle(cycle);
-  renderFixedCostList(cycle);
-  renderHome();
 }
 
 // ---- 固定費の登録・編集フォーム ----
