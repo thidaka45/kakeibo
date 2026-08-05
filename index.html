@@ -520,19 +520,32 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 資金繰り ===== -->
 <div class="page" id="page-cashflow">
   <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">資金繰り</span></div>
-  <div class="section-title" style="margin-top:4px">残高の答え合わせ</div>
+  <div class="section-title" style="margin-top:4px">保有しているべき金額</div>
 
-  <!-- 現在の総残高 -->
+  <div class="budget-card" style="margin-bottom:8px;">
+    <div style="font-size:12px;color:var(--sub);line-height:2;">
+      <div style="display:flex;justify-content:space-between;"><span>現在の残高（今月度の収支）</span><span id="cfBalancePart">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>＋ 未払いの固定費</span><span id="cfFixedPart">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>＋ 積立の現在の貯蓄額</span><span id="cfSavingsPart">¥0</span></div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;font-weight:700;color:var(--text);">＝ 保有しているべき金額</span>
+      <span style="font-size:20px;font-weight:700;color:var(--green-d);" id="cfShouldHaveTotal">¥0</span>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:14px">残高の答え合わせ</div>
   <div class="budget-card" style="margin-bottom:8px;">
     <div class="budget-row">
       <span class="budget-label">実際の総残高（口座＋手持ち）</span>
     </div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:16px;">
-      <button onclick="setAvailableBalance()" style="padding:8px 12px;border-radius:8px;border:none;background:var(--green);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">補正</button>
+      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:16px;" oninput="renderCashflow()">
     </div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.6;">
-      銀行アプリなどで確認した実際の残高を入力してください。アプリ上の記録との差分は、年会費や利息などレシートのない出入金が原因の可能性があります。
+    <div id="cfDiffLine" style="font-size:13px;font-weight:700;text-align:right;"></div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px;">
+      銀行アプリなどで確認した実際の残高を入力すると、「保有しているべき金額」との差額を表示します。差額はレシートのない出入金や記録漏れが原因の可能性があります。
     </div>
   </div>
 </div>
@@ -733,7 +746,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.7.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.8.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2270,17 +2283,6 @@ function adjustBalance(delta) {
   saveState(s);
 }
 
-function setAvailableBalance() {
-  const v = parseInt(document.getElementById("cfBalanceInput").value || "0", 10);
-  if (isNaN(v)) { showToast("金額を入力してください"); return; }
-  const s = loadState();
-  s.available_balance = v;
-  s.balance_updated_at = new Date().toISOString();
-  saveState(s);
-  showToast("残高を補正しました");
-  renderCashflow();
-}
-
 function daysBetween(a, b) {
   const MS = 24 * 60 * 60 * 1000;
   return Math.round((new Date(b) - new Date(a)) / MS);
@@ -2288,8 +2290,44 @@ function daysBetween(a, b) {
 
 // ---- 描画 ----
 function renderCashflow() {
-  const state = loadState();
-  document.getElementById("cfBalanceInput").value = state.available_balance || 0;
+  const periods = ensurePeriods();
+  let currentBalance = 0;
+  if (periods.length) {
+    const idx = (viewPeriodIndex === null || viewPeriodIndex > periods.length - 1) ? periods.length - 1 : viewPeriodIndex;
+    const txs = periodTxs(idx);
+    const income  = txs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const expense = txs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    currentBalance = income - expense;
+  }
+
+  const now = new Date();
+  const cycle = ensureCycle();
+  const unpaidFixed = cycle.fixed_costs
+    .filter(i => fcIsPayMonth(i.cycle || "monthly", now) && !i.paid)
+    .reduce((s,i)=>s+(i.amount||0),0);
+
+  const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.balance||0),0);
+
+  const shouldHave = currentBalance + unpaidFixed + savingsTotal;
+
+  document.getElementById("cfBalancePart").textContent = fmt(currentBalance);
+  document.getElementById("cfFixedPart").textContent    = fmt(unpaidFixed);
+  document.getElementById("cfSavingsPart").textContent  = fmt(savingsTotal);
+  document.getElementById("cfShouldHaveTotal").textContent = fmt(shouldHave);
+
+  const inputEl = document.getElementById("cfBalanceInput");
+  const diffEl  = document.getElementById("cfDiffLine");
+  const rawInput = inputEl.value;
+  if (rawInput === "") {
+    diffEl.textContent = "";
+  } else {
+    const actual = parseInt(rawInput || "0", 10) || 0;
+    const diff = actual - shouldHave;
+    diffEl.style.color = diff === 0 ? "var(--green-d)" : "var(--red)";
+    diffEl.textContent = diff === 0
+      ? "差額なし（一致しています）"
+      : `差額：${fmtSigned(diff)}`;
+  }
 }
 
 // 固定費ページの描画
