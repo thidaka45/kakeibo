@@ -137,6 +137,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
 .cat-icon-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(60px, 1fr));gap:6px;max-height:190px;overflow-y:auto;padding:2px 2px 6px;}
 .cat-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:100%;padding:8px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;font-size:10px;line-height:1.2;transition:all .15s;}
+.cat-icon-grid-lg{grid-template-columns:repeat(auto-fill, minmax(88px, 1fr));gap:10px;}
+.cat-icon-grid-lg .cat-icon-btn{padding:14px 6px;font-size:14px;font-weight:600;gap:6px;}
 .cat-icon-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
 .cat-icon-btn:disabled{opacity:.4;cursor:default;}
 .cat-icon-grid-title{width:100%;font-size:11px;font-weight:700;color:var(--sub);margin:4px 0 2px;}
@@ -434,7 +436,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-caticonpicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">アイコンを選ぶ</span></div>
-  <div id="catIconPickerGrid" class="cat-icon-grid" style="max-height:none;"></div>
+  <div id="catIconPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
 
@@ -442,7 +444,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-quickitempicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span></div>
-  <div id="quickItemPickerGrid" class="cat-icon-grid" style="max-height:none;"></div>
+  <div id="quickItemPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
 
@@ -956,7 +958,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.26.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.27.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1380,6 +1382,9 @@ function setExpenseCatMode(mode) {
   catIsLocked = false;
   currentCatIcon = "box";
   renderCatGrid();
+  if (mode === "fixed" || mode === "savings") {
+    openQuickItemPicker(mode);
+  }
 }
 
 // 固定費一覧（未払いのみ）を描画する
@@ -1420,7 +1425,7 @@ function openQuickItemPicker(mode) {
         <button type="button" class="cat-icon-btn" ${item.paid ? "disabled" : ""}
           style="border-color:var(--text);color:var(--text);"
           onclick="${item.paid ? "" : `selectQuickItemAndBack('${id}')`}">
-          ${catIconSvg(item.icon || guessIconEmoji(item.item), 20)}
+          ${catIconSvg(item.icon || guessIconEmoji(item.item), 30)}
           <span>${item.item}${item.paid ? "（済）" : ""}</span>
         </button>`;
       }).join("");
@@ -1432,7 +1437,7 @@ function openQuickItemPicker(mode) {
     } else {
       grid.innerHTML = plans.map(p => `
         <button type="button" class="cat-icon-btn" style="border-color:var(--text);color:var(--text);" onclick="selectQuickItemAndBack('sv_${p.id}')">
-          ${catIconSvg(p.icon || guessIconEmoji(p.name), 20)}
+          ${catIconSvg(p.icon || guessIconEmoji(p.name), 30)}
           <span>${p.name}</span>
         </button>`).join("");
     }
@@ -1500,7 +1505,7 @@ function openCatIconPicker(type) {
   if (grid) {
     grid.innerHTML = Object.keys(CAT_ICON_PATHS).map(key => `
       <button type="button" class="cat-icon-btn ${currentCatIcon===key?"selected":""}" onclick="selectCatIconFromPicker('${key}')">
-        ${catIconSvg(key, 20)}
+        ${catIconSvg(key, 30)}
       </button>`).join("");
   }
   showPage("caticonpicker");
