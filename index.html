@@ -703,8 +703,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">初期設定</span></div>
 
-  <div class="budget-card" style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;">
-    <div style="font-size:15px;color:var(--sub);line-height:1.8;margin-bottom:20px;">
+  <div class="budget-card" style="text-align:center;">
+    <div style="font-size:17px;color:var(--text);line-height:1.8;margin-bottom:20px;">
       収入・固定費・積立費の登録を順番に案内します。データが大きく変わるため、ボタンは1.2秒の長押しと確認画面を経てから実行されます。
     </div>
     <button id="initSetupBtn" class="export-btn"
@@ -724,7 +724,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">自動移行日の変更</span></div>
 
   <div class="budget-card">
-    <div style="font-size:14px;color:var(--sub);margin-bottom:16px;line-height:1.7;">
+    <div style="font-size:16px;color:var(--text);margin-bottom:16px;line-height:1.7;">
       指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。すでに設定済みの日を変更したい場合も、ここで選び直して保存してください。
     </div>
     <select id="autoTransitionDaySelect" class="field-select" style="width:100%;font-size:22px;font-weight:700;text-align:center;padding:14px;margin-bottom:14px;"></select>
@@ -740,10 +740,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">ショートカット連携</span></div>
 
   <div class="budget-card">
-    <div style="font-size:14px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
+    <div style="font-size:16px;color:var(--text);margin-bottom:14px;line-height:1.7;">
       iPhoneの「ショートカット」機能を使うと、毎日決まった時刻にアプリを裏側で開かせ、移行日を過ぎていれば自動的に新しい月度へ切り替えられます。設定手順は以下の通りです。
     </div>
-    <div style="font-size:14px;color:var(--text);line-height:2.1;">
+    <div style="font-size:15px;color:var(--text);line-height:2.1;">
       1. 「ショートカット」アプリ→「オートメーション」→「個人用オートメーションを作成」→「時刻」を選択し、毎日決まった時刻に設定<br>
       2. アクションで「Safariで開く」（または「URLを開く」）を追加し、次のURLを指定：<br>
       <code style="display:block;word-break:break-all;background:var(--gray-l);padding:8px;border-radius:8px;font-size:13px;margin:8px 0;">https://thidaka45.github.io/kakeibo/?auto_check=1</code>
@@ -759,8 +759,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">CSV書き出し</span></div>
 
-  <div class="budget-card" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
-    <div style="font-size:14px;color:var(--sub);margin-bottom:20px;line-height:1.7;text-align:center;">
+  <div class="budget-card">
+    <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
       取引データをCSV形式で書き出します。Excelやスプレッドシートで開いて確認・加工できます（このCSVから元の状態には復元できません。機種変更・故障に備える場合は「データ移行」をご利用ください）。
     </div>
     <button class="export-btn" onclick="exportCSV('month')" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
@@ -780,8 +780,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">データ移行</span></div>
 
-  <div class="budget-card" style="flex:1;display:flex;flex-direction:column;justify-content:center;">
-    <div style="font-size:14px;color:var(--sub);margin-bottom:20px;line-height:1.7;text-align:center;">
+  <div class="budget-card">
+    <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
       残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます。
     </div>
     <button class="export-btn" onclick="exportFullBackup()" style="background:var(--purple-l);border-color:var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
@@ -1021,7 +1021,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.36.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.37.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
