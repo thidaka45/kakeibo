@@ -135,6 +135,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .cat-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 4px;border-radius:var(--radius-s);border:1.5px solid var(--border);background:none;cursor:pointer;font-size:10px;color:var(--sub);font-family:inherit;transition:all .2s;}
 .cat-btn .cat-emoji{font-size:16px;}
 .cat-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
+.cat-icon-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto;padding:2px;}
+.cat-icon-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:64px;padding:8px 4px;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;font-family:inherit;font-size:10px;line-height:1.2;transition:all .15s;}
+.cat-icon-btn.selected{border-color:var(--green);background:var(--green-l);color:var(--green-d);}
+.cat-icon-btn:disabled{opacity:.4;cursor:default;}
+.cat-icon-grid-title{width:100%;font-size:11px;font-weight:700;color:var(--sub);margin:4px 0 2px;}
 .submit-btn{width:100%;padding:14px;border-radius:var(--radius-s);border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;color:#fff;}
 .submit-btn.expense{background:var(--red);}
 .submit-btn.income{background:var(--amber);}
@@ -316,7 +321,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;margin:0;padding:0;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
-    <select class="field-select" id="catGrid_expense" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
+    <div id="catGrid_expense" class="cat-icon-grid"></div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
@@ -366,7 +371,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
         style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;margin:0;padding:0;box-sizing:border-box;cursor:pointer;">
     </div>
     <!-- カテゴリ（プルダウン選択） -->
-    <select class="field-select" id="catGrid_income" onchange="onCatChange(this.value)" style="margin-bottom:6px;font-size:17px;font-weight:600;padding:10px 12px;"></select>
+    <div id="catGrid_income" class="cat-icon-grid"></div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
@@ -459,7 +464,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン＋項目名 -->
     <div style="margin-bottom:4px;">
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
-        <div id="savingsIconDisplay" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);">📦</div>
+        <div id="savingsIconDisplay" style="width:100%;padding:8px 4px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);color:var(--text);"></div>
         <input class="field-input" id="savingsName" type="text" placeholder="目的名（例: 車検費用）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onSavingsNameInput()">
       </div>
     </div>
@@ -719,9 +724,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <!-- アイコン・項目名 -->
     <div style="margin-bottom:8px;">
       <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;">
-        <select id="fcIconSelect" onchange="onFcIconSelectChange()" style="width:100%;padding:8px 4px;font-size:20px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);"></select>
+        <button type="button" id="fcIconSelect" onclick="toggleFcIconGrid()" style="width:100%;padding:8px 4px;height:38px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
         <input class="field-input" id="fcName" type="text" placeholder="項目名（例: 水道光熱費）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onFcNameInput()">
       </div>
+      <div id="fcIconGrid" class="cat-icon-grid" style="display:none;margin-top:8px;"></div>
     </div>
 
     <!-- 金額 -->
@@ -829,12 +835,66 @@ function getAllCats() {
 // バージョン情報
 // ============================================================
 // ホーム画面の予算状況アイコン（線画スタイル。色はテキスト側のstatusColorをcurrentColorで継承）
+// カテゴリ・アイコン選択用の線画アイコンライブラリ（キー→SVGパス、サイズはCAT_ICON_SVGで指定）
+const CAT_ICON_PATHS = {
+  cart:      '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/>',
+  bowl:      '<path d="M3 12h18"/><path d="M4 12a8 8 0 0016 0"/><line x1="12" y1="4" x2="12" y2="8"/>',
+  bottle:    '<rect x="9" y="8" width="6" height="13" rx="2"/><path d="M10 8V5a2 2 0 012-2 2 2 0 012 2v3"/>',
+  train:     '<rect x="4" y="4" width="16" height="12" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><circle cx="8" cy="18" r="1"/><circle cx="16" cy="18" r="1"/>',
+  phone:     '<rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/>',
+  house:     '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  pill:      '<rect x="2" y="9" width="20" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/>',
+  party:     '<path d="M12 2l2.3 6 6.7.5-5 4.3 1.6 6.5L12 15.8 6.4 19.3 8 12.8 3 8.5l6.7-.5z"/>',
+  piggy:     '<ellipse cx="12" cy="13" rx="9" ry="6"/><circle cx="17" cy="11" r="1"/><path d="M12 7V4"/><path d="M8 19v2"/><path d="M16 19v2"/>',
+  box:       '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/>',
+  coin:      '<circle cx="12" cy="12" r="9"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="13" x2="16" y2="13"/>',
+  gift:      '<rect x="3" y="8" width="18" height="4"/><rect x="5" y="12" width="14" height="9"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M12 8s-4-1-4-4a2 2 0 014 0 2 2 0 014 0c0 3-4 4-4 4z"/>',
+  laptop:    '<rect x="3" y="4" width="18" height="12" rx="1"/><line x1="1" y1="20" x2="23" y2="20"/>',
+  chart:     '<polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/>',
+  bank:      '<path d="M3 21h18"/><path d="M5 6l7-4 7 4"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/><path d="M3 10h18"/>',
+  loop:      '<path d="M3 12a9 9 0 0115-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 01-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
+  bulb:      '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a6 6 0 00-4 10.5c.6.6 1 1.4 1 2.5h6c0-1.1.4-1.9 1-2.5A6 6 0 0012 2z"/>',
+  shield:    '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/>',
+  clipboard: '<rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/>',
+  tv:        '<rect x="3" y="5" width="18" height="13" rx="2"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/>',
+  car:       '<path d="M5 17h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 17V11l2-5h14l2 5v6"/>',
+  moto:      '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6l-2-7H9"/>',
+  bike:      '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-9h4l3 9"/><path d="M10 8h4"/>',
+  taxi:      '<path d="M5 17h14"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 17V11l2-5h14l2 5v6"/><rect x="9" y="3" width="6" height="2"/>',
+  card:      '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+  scale:     '<path d="M12 3v18"/><path d="M5 8l-3 6a3 3 0 006 0l-3-6z"/><path d="M19 8l-3 6a3 3 0 006 0l-3-6z"/><path d="M5 8h14"/><path d="M9 21h6"/>',
+  receipt:   '<path d="M6 2h12v18l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/>',
+  broom:     '<path d="M20 4L10 14"/><path d="M6 18l4-4 3 3-4 4a3 3 0 01-5-3z"/>',
+  plant:     '<path d="M12 22v-9"/><path d="M12 13c-4 0-7-3-7-7 4 0 7 3 7 7z"/><path d="M12 13c4 0 7-3 7-7-4 0-7 3-7 7z"/>',
+  parking:   '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 16V8h4a3 3 0 010 6H9"/>',
+  chair:     '<path d="M5 3v11a2 2 0 002 2h1"/><path d="M19 3v11a2 2 0 01-2 2h-1"/><path d="M8 16v5"/><path d="M16 16v5"/><line x1="8" y1="10" x2="16" y2="10"/>',
+  antenna:   '<path d="M12 20h.01"/><path d="M8.5 16.5a5 5 0 017 0"/><path d="M5 13a10 10 0 0114 0"/><path d="M2 9.5a15 15 0 0120 0"/>',
+};
+// 既存データ（絵文字）から新しいアイコンキーへの変換（後方互換用）
+const EMOJI_TO_ICON_KEY = {
+  "🛒":"cart","🍜":"bowl","🧴":"bottle","🚃":"train","📱":"phone","🏠":"house","💊":"pill",
+  "🎉":"party","🐷":"piggy","📦":"box","💰":"coin","🎁":"gift","💻":"laptop","📈":"chart",
+  "🏦":"bank","🔄":"loop","💡":"bulb","🛡️":"shield","📋":"clipboard","📺":"tv","🚗":"car",
+  "🏍️":"moto","🚲":"bike","🚕":"taxi","💳":"card","⚖️":"scale","🧾":"receipt","🧹":"broom",
+  "🌱":"plant","🅿️":"parking","🪑":"chair","📡":"antenna",
+};
+function resolveIconKey(value) {
+  if (value && CAT_ICON_PATHS[value]) return value;
+  if (value && EMOJI_TO_ICON_KEY[value]) return EMOJI_TO_ICON_KEY[value];
+  return "box";
+}
+function catIconSvg(value, size) {
+  size = size || 20;
+  const key = resolveIconKey(value);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON_PATHS[key]}</svg>`;
+}
+
 const ICON_ALERT_TRIANGLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.16.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.17.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1151,7 +1211,7 @@ function renderHome() {
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
         const d  = new Date(t.date);
         return `<div class="tx-item">
-          <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
+          <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
           <div class="tx-info">
             <div class="tx-name">${t.memo || c.label}</div>
             <div class="tx-date">${d.getMonth()+1}/${d.getDate()}  ${c.label}</div>
@@ -1202,35 +1262,32 @@ function setType(type) {
 function renderCatGrid() {
   const cats = inputType === "expense" ? CATS_EXPENSE : CATS_INCOME;
   const sel = F("catGrid");
-  const optStyle = 'style="font-size:23px;font-weight:800;"';
-  const optStylePaid = 'style="font-size:23px;font-weight:800;color:var(--muted);"';
-  const groupStyle = 'style="font-size:25px;font-weight:800;"';
-  let html = `<option value="" disabled ${selectedCat===""?"selected":""} style="font-size:17px;font-weight:400;color:var(--muted);">カテゴリを選択してください</option>`;
+
+  const btnHtml = (c, disabled, subLabel) => `
+    <button type="button" class="cat-icon-btn ${selectedCat===c.id?"selected":""}" ${disabled?"disabled":""}
+      onclick="selectCat('${c.id}')">
+      ${catIconSvg(c.emoji, 22)}
+      <span>${c.label}${subLabel || ""}</span>
+    </button>`;
+
+  let html = "";
   const fcOpts = inputType === "expense" ? getFixedCostCatOptions() : [];
   if (fcOpts.length > 0) {
-    html += `<optgroup label="ーー　固定費　ーー" ${groupStyle}>` +
-      fcOpts.map(c => c.paid
-        ? `<option ${optStylePaid} value="${c.id}" disabled>${c.emoji} ${c.label}（済）</option>`
-        : `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`
-      ).join("") +
-      `</optgroup>`;
+    html += `<div class="cat-icon-grid-title">固定費</div>` +
+      fcOpts.map(c => btnHtml(c, c.paid, c.paid ? "（済）" : "")).join("");
   }
   const svOpts = inputType === "expense" ? getSavingsCatOptions() : [];
   if (svOpts.length > 0) {
-    html += `<optgroup label="ーー　積立に振り分け　ーー" ${groupStyle}>` +
-      svOpts.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
-      `</optgroup>`;
+    html += `<div class="cat-icon-grid-title">積立に振り分け</div>` +
+      svOpts.map(c => btnHtml(c)).join("");
   }
-  html += `<optgroup label="ーー　その他　ーー" ${groupStyle}>` +
-    cats.map(c => `<option ${optStyle} value="${c.id}">${c.emoji} ${c.label}</option>`).join("") +
-    `</optgroup>`;
-  sel.innerHTML = html;
+  html += `<div class="cat-icon-grid-title">その他</div>` +
+    cats.map(c => btnHtml(c)).join("");
 
-  sel.classList.toggle("cat-select-empty", selectedCat === "");
-  sel.value = selectedCat;
+  sel.innerHTML = html;
 }
 
-// プルダウンでカテゴリが選択されたときの処理
+// プルダウン互換のため残している関数（現在はボタンから直接selectCatを呼ぶ）
 function onCatChange(id) {
   selectCat(id);
 }
@@ -1588,7 +1645,7 @@ function renderCatSummary(idx) {
   const maxCat = catTotals[0]?.total || 1;
   document.getElementById("catSummary").innerHTML = catTotals.map(c =>
         `<div class="cat-summary-row">
-          <div class="cat-summary-name">${c.emoji} ${c.label}</div>
+          <div class="cat-summary-name" style="display:flex;align-items:center;gap:4px;">${catIconSvg(c.emoji,14)}${c.label}</div>
           <div class="cat-summary-bar-track">
             <div class="cat-summary-bar-fill" style="width:${Math.round(c.total/maxCat*100)}%"></div>
           </div>
@@ -1643,7 +1700,7 @@ function renderHistoryTxList(idx) {
              </span>`
           : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
-          <div class="tx-icon" style="background:${bg}">${c.emoji}</div>
+          <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
           <div class="tx-info">
             <div class="tx-name">${t.memo || c.label}${receiptMark}</div>
             <div class="tx-date">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${c.label}</div>
@@ -2011,7 +2068,7 @@ function renderSavings() {
 
       return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;padding:12.6px 14px;${borderStyle}">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:${bgColor};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
+        <div style="width:40px;height:40px;border-radius:10px;background:${bgColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,20)}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
           <div style="font-size:13px;font-weight:600;color:${statusColor};margin-top:2px;">${status}</div>
@@ -2077,7 +2134,7 @@ function openSavingsForm(id) {
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
       document.getElementById("savingsDeleteBtn").style.display = "block";
-      document.getElementById("savingsIconDisplay").textContent = p.icon || guessIconEmoji(p.name);
+      document.getElementById("savingsIconDisplay").innerHTML = catIconSvg(p.icon || guessIconEmoji(p.name), 20);
     }
   } else {
     document.getElementById("savingsName").value    = "";
@@ -2090,7 +2147,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
-    document.getElementById("savingsIconDisplay").textContent = "📦";
+    document.getElementById("savingsIconDisplay").innerHTML = catIconSvg("box", 20);
   }
 
   // 入力変化で逆算
@@ -2104,7 +2161,7 @@ function openSavingsForm(id) {
 // 項目名の入力に応じて、アイコン表示をリアルタイムに自動更新する
 function onSavingsNameInput() {
   const name = document.getElementById("savingsName").value;
-  document.getElementById("savingsIconDisplay").textContent = guessIconEmoji(name);
+  document.getElementById("savingsIconDisplay").innerHTML = catIconSvg(guessIconEmoji(name), 20);
 }
 
 // 積立ペースに対する進み具合を「進捗ドット」で直感的に表現する。
@@ -2506,7 +2563,7 @@ function renderFixedCostList(cycle) {
 
       return `<div style="cursor:pointer;padding:12.6px 14px;${borderStyle}opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;">${icon}</div>
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,17)}</div>
         <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}<span style="font-size:13px;font-weight:400;color:${dueColor};">（${dueLabel}）</span></div>
         <span style="font-size:17px;font-weight:700;color:${amtColor};white-space:nowrap;flex-shrink:0;">${fmt(item.amount||0)}</span>
       </div>
@@ -2531,17 +2588,44 @@ let editingFixedCostId = null;
 // アイコン選択の候補一覧
 const ICONS_FIXED = ["📦","🏠","💡","📱","🛡️","🏦","📋","📺","🚗","🏍️","🚲","🚃","🚕","💳","⚖️","🧾","🧹","🌱","🅿️","🪑","💻","📡"];
 
-// アイコンのプルダウンを描画する（selectedがICONS_FIXEDに無い場合も、既存データ保護のため選択肢として追加する）
+let selectedFcIcon = "📦";
+
+// アイコン選択ボタン（現在の選択を表示）とアイコングリッドを描画する
 function renderFcIconSelect(selected) {
-  const sel = document.getElementById("fcIconSelect");
-  const known = ICONS_FIXED.includes(selected);
-  let options = ICONS_FIXED.map(e =>
-    `<option value="${e}" ${selected === e ? "selected" : ""}>${e}</option>`
-  ).join("");
-  if (selected && !known) {
-    options += `<option value="${selected}" selected>${selected}</option>`;
-  }
-  sel.innerHTML = options;
+  selectedFcIcon = selected || "📦";
+  const btn = document.getElementById("fcIconSelect");
+  if (btn) btn.innerHTML = catIconSvg(selectedFcIcon, 20);
+  const grid = document.getElementById("fcIconGrid");
+  if (grid) grid.style.display = "none";
+  renderFcIconGridOptions();
+}
+
+// アイコン候補グリッドの中身を描画する（開閉状態はtoggleFcIconGridが管理）
+function renderFcIconGridOptions() {
+  const grid = document.getElementById("fcIconGrid");
+  if (!grid) return;
+  grid.innerHTML = ICONS_FIXED.map(e => `
+    <button type="button" class="cat-icon-btn ${selectedFcIcon===e?"selected":""}" onclick="selectFcIcon('${e}')">
+      ${catIconSvg(e, 20)}
+    </button>`).join("");
+}
+
+// アイコングリッドの開閉
+function toggleFcIconGrid() {
+  const grid = document.getElementById("fcIconGrid");
+  if (!grid) return;
+  const show = grid.style.display === "none";
+  grid.style.display = show ? "flex" : "none";
+  if (show) renderFcIconGridOptions();
+}
+
+// アイコンを選び直したときの処理
+function selectFcIcon(e) {
+  selectedFcIcon = e;
+  const btn = document.getElementById("fcIconSelect");
+  if (btn) btn.innerHTML = catIconSvg(selectedFcIcon, 20);
+  renderFcIconGridOptions();
+  document.getElementById("fcIconGrid").style.display = "none";
 }
 
 // 項目名の入力に応じて、アイコンの選択候補をリアルタイムに自動更新する（手動で選び直すことも可能）
@@ -2549,9 +2633,6 @@ function onFcNameInput() {
   const name = document.getElementById("fcName").value;
   renderFcIconSelect(guessIconEmoji(name));
 }
-
-// アイコンを手動で選び直したときの処理（現状は選択値をそのまま保存時に使用するため、ここでは何もしない）
-function onFcIconSelectChange() {}
 
 // 新規登録、または既存項目をタップして編集
 function openFixedCostForm(id = null) {
@@ -2601,7 +2682,7 @@ function saveFixedCostItem() {
   const amount = parseYenInput("fcAmount");
   const dueDayRaw = document.getElementById("fcDueDay").value;
   const due_day = dueDayRaw ? parseInt(dueDayRaw, 10) : null;
-  const icon = document.getElementById("fcIconSelect").value || guessIconEmoji(name);
+  const icon = selectedFcIcon || guessIconEmoji(name);
   const fcCycle = "monthly"; // 支払い周期選択は廃止し、固定費は毎月発生する項目として統一
 
   const cycle = ensureCycle();
