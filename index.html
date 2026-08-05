@@ -971,7 +971,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.30.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.32.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2680,6 +2680,20 @@ function loadCycle() {
 }
 function saveCycle(c) { localStorage.setItem("kakeibo_cycle", JSON.stringify(c)); }
 
+// レシート取込み時に「固定費として記録するか」を確認した回答を店名・カテゴリ名ごとに記憶しておく。
+// value は 紐付け先の固定費ID（例:"abc123"）、または明示的に「固定費ではない」を意味する "none"。
+// 同じ表記のOCR結果が次回以降来たときは、この学習内容を優先して自動判定に使う。
+function loadFcLearnMap() {
+  try { return JSON.parse(localStorage.getItem("kakeibo_fc_learn") || "{}"); } catch { return {}; }
+}
+function saveFcLearnMap(m) { localStorage.setItem("kakeibo_fc_learn", JSON.stringify(m)); }
+function fcLearnRemember(store, rawCat, value) {
+  const m = loadFcLearnMap();
+  if (store)  m[store]  = value;
+  if (rawCat) m[rawCat] = value;
+  saveFcLearnMap(m);
+}
+
 // 支払い周期の定義。isPayMonth: 今月がこの項目の支払い月かどうかを判定する。
 const FC_CYCLES = {
   monthly:        { label:"毎月",   isPayMonth: () => true },
@@ -3217,6 +3231,88 @@ function receiveFromUrl() {
     return;
   }
 
+  const cycle = ensureCycle();
+  const fixedCosts = cycle.fixed_costs || [];
+
+  // 過去にこの店名・カテゴリ名で確認した回答（学習内容）があれば、それを優先する。
+  // ・固定費IDが記録されていれば、その項目が今も存在し未払いなら確認なしで自動的に固定費として記録
+  // 　（項目が削除済み、または既に支払済みの場合は学習内容を使わず、通常の候補探索に戻す）
+  // ・"none" が記録されていれば、固定費の候補探索自体を省略し、毎回通常カテゴリとして記録する
+  const learnMap = loadFcLearnMap();
+  const learnedValue = learnMap[store] || learnMap[rawCat];
+  let skipFcMatch = false;
+
+  if (learnedValue === "none") {
+    skipFcMatch = true;
+  } else if (learnedValue) {
+    const learnedFc = fixedCosts.find(fc => fc.id === learnedValue && !fc.paid);
+    if (learnedFc) {
+      const txs = loadTx();
+      txs.push({
+        id: Date.now(), type: "expense", cat: "fc_" + learnedFc.id, amount,
+        memo: store || "", date, source: "receipt", receiptRef: rawRef || null
+      });
+      saveTx(txs);
+      adjustBalance(-amount);
+      updateFixedCostAmountFromTx("expense", "fc_" + learnedFc.id, amount);
+      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
+      showToast(`${date} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
+      return;
+    }
+    // 学習した固定費IDが「存在しない（削除済み）」または「既に支払済み」の場合は、
+    // 学習内容をいったんクリアして通常の候補探索に戻す
+    if (!fixedCosts.some(fc => fc.id === learnedValue)) {
+      const m = loadFcLearnMap();
+      if (m[store] === learnedValue) delete m[store];
+      if (m[rawCat] === learnedValue) delete m[rawCat];
+      saveFcLearnMap(m);
+    }
+  }
+
+  // 未払いの固定費の中に、カテゴリ名または店名と一致・部分一致するものがないか確認する。
+  // 一致すれば、通常カテゴリとして記録する前に「固定費として記録しますか？」と確認する。
+  // （取込み直後は自動判定で確定させず、必ず利用者に確認させることで、
+  //   　誤って固定費が「未払い」のまま埋もれてしまうのを防ぐ。回答は学習し、次回以降は自動化する）
+  const fcCandidate = skipFcMatch ? null : fixedCosts.find(fc => {
+    if (fc.paid) return false; // 支払済みの項目は候補にしない
+    const label = fc.label || "";
+    if (!label) return false;
+    return label === rawCat || label === store
+      || (rawCat && (label.includes(rawCat) || rawCat.includes(label)))
+      || (store && (label.includes(store) || store.includes(label)));
+  });
+
+  if (fcCandidate) {
+    const linkToFixed = confirm(
+      `${date} ${store} ¥${amount.toLocaleString()}\n\n` +
+      `固定費「${fcCandidate.label}」の支払いですか？\n\n` +
+      `「OK」→ 固定費「${fcCandidate.label}」の支払いとして記録し、固定費一覧を「済」にします\n` +
+      `「キャンセル」→ 通常の支出として記録します（固定費一覧は更新されません）\n\n` +
+      `※ この回答は記憶され、次回以降「${store || rawCat}」は自動的に同じ扱いになります`
+    );
+    fcLearnRemember(store, rawCat, linkToFixed ? fcCandidate.id : "none");
+    if (linkToFixed) {
+      const txs = loadTx();
+      txs.push({
+        id: Date.now(),
+        type: "expense",
+        cat: "fc_" + fcCandidate.id,
+        amount,
+        memo: store || "",
+        date,
+        source: "receipt",
+        receiptRef: rawRef || null
+      });
+      saveTx(txs);
+      adjustBalance(-amount);
+      updateFixedCostAmountFromTx("expense", "fc_" + fcCandidate.id, amount);
+
+      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
+      showToast(`${date} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
+      return;
+    }
+  }
+
   const matched = CATS_EXPENSE.find(c => c.label === rawCat);
   const cat = matched ? matched.id : CATS_EXPENSE[0].id;
 
@@ -3235,6 +3331,7 @@ function receiveFromUrl() {
   adjustBalance(-amount);
 
   if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
+
 
   showToast(
     matched
