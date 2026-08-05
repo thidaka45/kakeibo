@@ -766,7 +766,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.11.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.11.2"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1594,7 +1594,7 @@ function showPage(name) {
   if (name==="graph")      renderGraph();
   if (name==="savings")    { renderSavings(); toggleFlowBanner("flowNextToFixed", newMonthFlowStep === "savings"); }
   if (name==="fixedcosts") { renderFixedCostsPage(); toggleFlowBanner("flowFinish", newMonthFlowStep === "fixedcosts"); }
-  if (name==="utility")    renderAutoTransitionDaySelect();
+  if (name==="utility")    { renderAutoTransitionDaySelect(); resetUtilityPageState(); }
   if (name==="cashflow")   renderCashflow();
 }
 
@@ -2345,6 +2345,14 @@ function cancelHoldInitSetup() {
 }
 
 // 補助機能ページの「ショートカットで自動化する方法」パネルの開閉
+// 補助機能ページを表示するたびに、開閉状態を初期状態（閉じた状態）に戻す
+function resetUtilityPageState() {
+  const guidePanel = document.getElementById("shortcutsGuidePanel");
+  const guideArrow = document.getElementById("shortcutsGuideArrow");
+  if (guidePanel) guidePanel.style.display = "none";
+  if (guideArrow) guideArrow.textContent = "▾";
+}
+
 function toggleShortcutsGuide() {
   const el = document.getElementById("shortcutsGuidePanel");
   const arrow = document.getElementById("shortcutsGuideArrow");
@@ -2623,7 +2631,7 @@ function startNewMonth(silent) {
 
   if (!silent) {
     const confirmMsg = isFirstTime
-      ? "家計簿をこの日から開始します。まず収入（給与など）の入力から始めましょう。よろしいですか？"
+      ? "初期設定を開始します。ここから収入・固定費・積立費の登録に進みます。よろしいですか？"
       : "新しい月度を開始します。積立・固定費は前月の内容を引き継ぎます。まず収入（給与など）を入力してください。よろしいですか？";
     if (!confirm(confirmMsg)) return;
   }
