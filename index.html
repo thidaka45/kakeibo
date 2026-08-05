@@ -583,14 +583,25 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;">実際の総残高（口座＋手持ち）</div>
-    <div style="position:relative;">
-      <input class="field-input" id="cfBalanceInput" type="text" inputmode="numeric" placeholder="¥45,000" style="width:100%;padding:14px;font-size:24px;font-weight:700;text-align:center;" oninput="formatYenInput(this); renderCashflow();">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">銀行口座</div>
+        <input class="field-input" id="cfBankInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:center;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--sub);margin-bottom:4px;">手持ち</div>
+        <input class="field-input" id="cfCashInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:center;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;display:flex;justify-content:space-between;align-items:baseline;">
+      <span style="font-size:12px;color:var(--sub);">合計</span>
+      <span id="cfActualTotal" style="font-size:20px;font-weight:700;color:var(--text);">¥0</span>
     </div>
   </div>
 
-  <div class="budget-card" style="text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center;">
-    <div id="cfDiffLine" style="font-size:30px;font-weight:700;"></div>
-    <div id="cfDiffHint" style="font-size:14px;color:var(--sub);margin-top:8px;line-height:1.6;"></div>
+  <div class="budget-card" style="text-align:center;padding:12px;">
+    <div id="cfDiffLine" style="font-size:24px;font-weight:700;"></div>
+    <div id="cfDiffHint" style="font-size:13px;color:var(--sub);margin-top:6px;line-height:1.5;"></div>
   </div>
 
   <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;text-align:center;">
@@ -960,7 +971,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.28.8"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.29.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2801,15 +2812,20 @@ function renderCashflow() {
   document.getElementById("cfSavingsPart").textContent  = fmt(savingsTotal);
   document.getElementById("cfShouldHaveTotal").textContent = fmt(shouldHave);
 
-  const inputEl = document.getElementById("cfBalanceInput");
+  const bankInput = document.getElementById("cfBankInput");
+  const cashInput = document.getElementById("cfCashInput");
   const diffEl  = document.getElementById("cfDiffLine");
   const hintEl  = document.getElementById("cfDiffHint");
-  const rawInput = inputEl.value.replace(/[^\d]/g, "");
-  if (rawInput === "") {
+  const bankRaw = bankInput.value.replace(/[^\d]/g, "");
+  const cashRaw = cashInput.value.replace(/[^\d]/g, "");
+  const actualTotal = (parseInt(bankRaw, 10) || 0) + (parseInt(cashRaw, 10) || 0);
+  document.getElementById("cfActualTotal").textContent = fmt(actualTotal);
+
+  if (bankRaw === "" && cashRaw === "") {
     diffEl.textContent = "";
     hintEl.textContent = "";
   } else {
-    const actual = parseInt(rawInput, 10) || 0;
+    const actual = actualTotal;
     const diff = actual - shouldHave;
     diffEl.style.color = diff === 0 ? "var(--green-d)" : (diff > 0 ? "var(--blue)" : "var(--red)");
     diffEl.textContent = diff === 0
