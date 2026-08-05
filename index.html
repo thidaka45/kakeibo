@@ -517,43 +517,49 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 </div>
 
-<!-- ===== 資金繰り ===== -->
-<div class="page" id="page-cashflow">
-  <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">資金繰り</span></div>
-  <div class="section-title" style="margin-top:4px">保有しているべき金額</div>
-
-  <div class="budget-card" style="margin-bottom:8px;">
-    <div style="font-size:12px;color:var(--sub);line-height:2;">
-      <div style="display:flex;justify-content:space-between;"><span>現在の残高（今月度の収支）</span><span id="cfBalancePart">¥0</span></div>
-      <div style="display:flex;justify-content:space-between;"><span>＋ 未払いの固定費</span><span id="cfFixedPart">¥0</span></div>
-      <div style="display:flex;justify-content:space-between;"><span>＋ 積立の現在の貯蓄額</span><span id="cfSavingsPart">¥0</span></div>
-    </div>
-    <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:13px;font-weight:700;color:var(--text);">＝ 保有しているべき金額</span>
-      <span style="font-size:20px;font-weight:700;color:var(--green-d);" id="cfShouldHaveTotal">¥0</span>
-    </div>
-  </div>
-
-  <div class="section-title" style="margin-top:14px">残高の答え合わせ</div>
-  <div class="budget-card" style="margin-bottom:8px;">
-    <div class="budget-row">
-      <span class="budget-label">実際の総残高（口座＋手持ち）</span>
-    </div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-      <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:16px;" oninput="renderCashflow()">
-    </div>
-    <div id="cfDiffLine" style="font-size:13px;font-weight:700;text-align:right;"></div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px;">
-      銀行アプリなどで確認した実際の残高を入力すると、「保有しているべき金額」との差額を表示します。差額はレシートのない出入金や記録漏れが原因の可能性があります。
-    </div>
-  </div>
-</div>
-
 <!-- ===== ユーティリティ ===== -->
 <div class="page" id="page-utility" style="background:var(--gray-l);">
   <div class="page-toolbar"><button class="home-btn" onclick="showPage('home')">🏠 ホーム</button><span class="page-name">補助機能</span></div>
-  <div class="section-title" style="margin-top:4px">初期設定</div>
+
+  <div class="section-title" style="margin-top:4px">残高の答え合わせ</div>
+  <div class="export-section">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
+      アプリ上の記録から算出した「保有しているべき金額」と、実際の口座＋手持ち残高を見比べられます。
+    </div>
+    <button class="export-btn" onclick="toggleCashflowPanel()" style="background:var(--blue-l);border-color:var(--blue);color:var(--blue);font-weight:700;">
+      残高の答え合わせを開く
+    </button>
+
+    <div id="cashflowPanel" style="display:none;margin-top:12px;">
+      <div class="budget-card" style="margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--sub);line-height:2;">
+          <div style="display:flex;justify-content:space-between;"><span>現在の残高（今月度の収支）</span><span id="cfBalancePart">¥0</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>＋ 未払いの固定費</span><span id="cfFixedPart">¥0</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>＋ 積立の現在の貯蓄額</span><span id="cfSavingsPart">¥0</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);margin:8px 0;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">＝ 保有しているべき金額</span>
+          <span style="font-size:20px;font-weight:700;color:var(--green-d);" id="cfShouldHaveTotal">¥0</span>
+        </div>
+      </div>
+
+      <div class="budget-card" style="margin-bottom:8px;">
+        <div class="budget-row">
+          <span class="budget-label">実際の総残高（口座＋手持ち）</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+          <input class="field-input" id="cfBalanceInput" type="number" inputmode="numeric" placeholder="例: 45000" style="flex:1;padding:8px 10px;font-size:16px;" oninput="renderCashflow()">
+        </div>
+        <div id="cfDiffLine" style="font-size:13px;font-weight:700;text-align:right;"></div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px;">
+          銀行アプリなどで確認した実際の残高を入力すると、「保有しているべき金額」との差額を表示します。差額はレシートのない出入金や記録漏れが原因の可能性があります。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:18px">初期設定</div>
   <div class="export-section">
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       初めて家計簿を開始する方はこちらから。収入・固定費・積立費の登録と、毎月の自動移行日の設定を順番に行います。
@@ -563,6 +569,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
 
     <div style="font-size:12px;color:var(--text);font-weight:600;margin:14px 0 4px;">毎月の自動移行日</div>
+
     <div style="font-size:11px;color:var(--sub);margin-bottom:8px;line-height:1.6;">
       指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。
     </div>
@@ -746,7 +753,7 @@ function getAllCats() {
 // ============================================================
 // バージョン情報
 // ============================================================
-const APP_VERSION = "2.8.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.9.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1568,13 +1575,13 @@ function renderHistoryTxList(idx) {
 // ページ切替
 // ============================================================
 function showPage(name) {
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","utility"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
   if (name==="savings")    { renderSavings(); toggleFlowBanner("flowNextToFixed", newMonthFlowStep === "savings"); }
   if (name==="fixedcosts") { renderFixedCostsPage(); toggleFlowBanner("flowFinish", newMonthFlowStep === "fixedcosts"); }
-  if (name==="cashflow")   renderCashflow();
+  if (name==="utility")    renderAutoTransitionDaySelect();
 }
 
 function toggleFlowBanner(id, show) {
@@ -2286,6 +2293,15 @@ function adjustBalance(delta) {
 function daysBetween(a, b) {
   const MS = 24 * 60 * 60 * 1000;
   return Math.round((new Date(b) - new Date(a)) / MS);
+}
+
+// 補助機能ページの「残高の答え合わせ」パネルの開閉
+function toggleCashflowPanel() {
+  const el = document.getElementById("cashflowPanel");
+  if (!el) return;
+  const show = el.style.display === "none";
+  el.style.display = show ? "block" : "none";
+  if (show) renderCashflow();
 }
 
 // ---- 描画 ----
