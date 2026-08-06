@@ -728,8 +728,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
   </div>
 
-  <div class="budget-card" id="trendEval" style="margin-bottom:10px;font-size:14px;line-height:1.8;min-height:24px;"></div>
-
   <div class="budget-card" style="padding:10px;">
     <div id="trendChart"></div>
   </div>
@@ -1104,7 +1102,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.44.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.45.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2000,56 +1998,6 @@ function buildTrendSlots() {
 function slotTxs(slot) { return slot.idx === null ? [] : periodTxs(slot.idx); }
 function shortSlotLabel(slot) { return `${slot.date.getMonth() + 1}月`; }
 
-// 直近半分の月平均と、それ以前の半分の月平均を比べて傾向を判定する。
-// 単発の突発的な支出に引っ張られないよう、
-// 「直近半分の月の“ほとんど”が、以前の平均を上回り続けているか（＝一過性でなく持続しているか）」も条件に加える。
-function buildTrendEvaluation(data, n) {
-  if (n < 4) {
-    return `<div style="color:var(--sub);">傾向を判断するには、あと${4 - n}ヶ月分ほどデータが必要です（直近4ヶ月以上で評価します）。</div>`;
-  }
-  const halfLen = Math.floor(n / 2);
-  const results = data.map(d => {
-    const firstHalf  = d.values.slice(0, n - halfLen);
-    const secondHalf = d.values.slice(n - halfLen);
-    const firstAvg  = firstHalf.reduce((s, v) => s + v, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((s, v) => s + v, 0) / secondHalf.length;
-    const diff = secondAvg - firstAvg;
-    const pct = firstAvg > 0 ? diff / firstAvg : (secondAvg > 0 ? 1 : 0);
-    // 直近半分のうち、以前の平均の9割以上を保っている月が半数以上あるか＝一時的な急増ではなく続いているか
-    const sustainedCount = secondHalf.filter(v => v >= firstAvg * 0.9).length;
-    const sustained = sustainedCount >= Math.ceil(secondHalf.length / 2);
-    return { label: d.cat.label, firstAvg, secondAvg, diff, pct, sustained };
-  }).filter(d => d.firstAvg > 0 || d.secondAvg > 0);
-
-  // 「継続的な増加傾向」：直近半分の平均が以前より20%以上・かつ月1,000円以上増え、それが一過性でなく続いている
-  const rising = results
-    .filter(d => d.diff >= 1000 && d.pct >= 0.2 && d.sustained)
-    .sort((a, b) => b.diff - a.diff)
-    .slice(0, 3);
-  const falling = results
-    .filter(d => d.diff <= -1000 && d.pct <= -0.2)
-    .sort((a, b) => a.diff - b.diff)
-    .slice(0, 3);
-
-  if (!rising.length && !falling.length) {
-    return `<div style="color:var(--sub);">直近${n}ヶ月では、家計に影響しそうな継続的な増加傾向は見られません。</div>`;
-  }
-  let html = "";
-  if (rising.length) {
-    html += `<div style="margin-bottom:${falling.length ? "10px" : "0"};">
-      <div style="font-weight:700;color:var(--red);margin-bottom:4px;">⚠️ このペースが続くと家計への影響が大きくなりそうなもの</div>
-      ${rising.map(d => `<div>・${escHtml(d.label)}：直近平均 ${fmt(Math.round(d.secondAvg))}／月（以前は${fmt(Math.round(d.firstAvg))}／月、+${Math.round(d.pct * 100)}%）</div>`).join("")}
-    </div>`;
-  }
-  if (falling.length) {
-    html += `<div>
-      <div style="font-weight:700;color:var(--blue);margin-bottom:4px;">継続的に減っているもの</div>
-      ${falling.map(d => `<div>・${escHtml(d.label)}：直近平均 ${fmt(Math.round(d.secondAvg))}／月（以前は${fmt(Math.round(d.firstAvg))}／月、${Math.round(d.pct * 100)}%）</div>`).join("")}
-    </div>`;
-  }
-  return html;
-}
-
 // 概況：収入・支出・繰越（貯蓄）の3項目を必ず表示する
 function buildOverviewSeries(slots) {
   const incomeValues = slots.map(slot =>
@@ -2121,17 +2069,21 @@ function buildSavingsDetailSeries(slots) {
 }
 
 // 最初の月を基準(0%)にした増減率へ変換する。
-// 基準月が0円の場合は割合を定義できないため、0円→0%・0円以外→+100%として簡易的に扱う。
+// 表示期間内で、実際にデータが存在する最初の月を基準（0%）にする。
+// それより前（データがまだ無い月）は比較のしようがないため0%として扱う。
 function toPctSeries(values) {
-  const baseline = values[0];
-  if (!baseline) return values.map(v => v === 0 ? 0 : 100);
-  return values.map(v => Math.round((v - baseline) / baseline * 100));
+  const baseIdx = values.findIndex(v => v !== 0);
+  if (baseIdx === -1) return values.map(() => 0);
+  const baseline = values[baseIdx];
+  return values.map((v, i) => i < baseIdx ? 0 : Math.round((v - baseline) / baseline * 100));
 }
 
 // 月ラベルのヘッダー行（各系列行のグラフとx座標を合わせる）
 function buildTrendMonthHeaderRow(slots) {
   const W = 240;
-  const xFor = i => slots.length > 1 ? i * (W / (slots.length - 1)) : W / 2;
+  const n = slots.length;
+  const spacing = n > 0 ? W / n : W;
+  const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const labels = slots.map((slot, i) =>
     (i % 2 === 0 || i === slots.length - 1)
       ? `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
@@ -2143,27 +2095,30 @@ function buildTrendMonthHeaderRow(slots) {
   </div>`;
 }
 
-// 項目1つ分の行：中央の点線（0%基準）からの増減を、増加=赤の■・減少=青の■で表す
+// 項目1つ分の行：中央の点線（0%基準）からの増減を棒グラフで表す（増加=赤・減少=青）
 function buildTrendSparklineRow(label, pctValues) {
   const W = 240, H = 40, center = H / 2, ampPx = 15;
   const n = pctValues.length;
   const maxAbs = Math.max(1, ...pctValues.map(v => Math.abs(v)));
-  const xFor = i => n > 1 ? i * (W / (n - 1)) : W / 2;
+  const spacing = n > 0 ? W / n : W;
+  const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const yFor = v => center - (v / maxAbs) * ampPx;
+  const barW = Math.max(2, spacing * 0.55);
 
-  // 月ごとの仕切り線
+  // 月ごとの仕切り線（セルの境界）
   let dividers = "";
-  for (let i = 0; i < n; i++) {
-    dividers += `<line x1="${xFor(i).toFixed(1)}" y1="0" x2="${xFor(i).toFixed(1)}" y2="${H}" stroke="var(--border)" stroke-width="0.5" opacity="0.6"/>`;
+  for (let i = 0; i <= n; i++) {
+    const gx = spacing * i;
+    dividers += `<line x1="${gx.toFixed(1)}" y1="0" x2="${gx.toFixed(1)}" y2="${H}" stroke="var(--border)" stroke-width="0.5" opacity="0.6"/>`;
   }
 
-  const pts = pctValues.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
-  let markers = "";
+  let bars = "";
   pctValues.forEach((v, i) => {
     if (v === 0) return;
     const color = v > 0 ? "var(--red)" : "var(--blue)";
-    const x = xFor(i), y = yFor(v);
-    markers += `<rect x="${(x - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="6" height="6" fill="${color}"/>`;
+    const y = Math.min(center, yFor(v));
+    const h = Math.abs(yFor(v) - center);
+    bars += `<rect x="${(xFor(i) - barW / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" rx="1"/>`;
   });
 
   return `<div style="display:flex;align-items:center;gap:4px;padding:9px 0;border-bottom:1px solid var(--border);">
@@ -2171,8 +2126,7 @@ function buildTrendSparklineRow(label, pctValues) {
     <svg viewBox="0 0 ${W} ${H}" style="flex:1;min-width:0;height:36px;display:block;">
       ${dividers}
       <line x1="0" y1="${center}" x2="${W}" y2="${center}" stroke="var(--sub)" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
-      <polyline points="${pts}" fill="none" stroke="var(--sub)" stroke-width="1" opacity="0.4"/>
-      ${markers}
+      ${bars}
     </svg>
   </div>`;
 }
@@ -2185,22 +2139,18 @@ function buildTrendSectionHtml(title, series) {
 
 function renderTrend() {
   const chartBox = document.getElementById("trendChart");
-  const evalBox = document.getElementById("trendEval");
-  if (!chartBox || !evalBox) return;
+  if (!chartBox) return;
 
   const slots = buildTrendSlots();
   if (!slots.length) {
     chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
-    evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
-  const n = slots.length; // 常に12
 
-  let sectionsHtml, evalSeries;
+  let sectionsHtml;
   if (trendMode === "overview") {
     const series = buildOverviewSeries(slots);
     sectionsHtml = series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
-    evalSeries = series;
   } else {
     const incomeSeries   = buildIncomeDetailSeries(slots);
     const expenseSeries  = buildExpenseDetailSeries(slots);
@@ -2209,23 +2159,19 @@ function renderTrend() {
       buildTrendSectionHtml("収入の内訳", incomeSeries) +
       buildTrendSectionHtml("支出の内訳", expenseSeries) +
       buildTrendSectionHtml("繰越（貯蓄）の内訳", savingsSeries);
-    evalSeries = [...incomeSeries, ...expenseSeries, ...savingsSeries];
+    if (!incomeSeries.length && !expenseSeries.length && !savingsSeries.length) sectionsHtml = "";
   }
 
-  if (!sectionsHtml || !evalSeries.length) {
+  if (!sectionsHtml) {
     chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
-    evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
 
   chartBox.innerHTML = `
-    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;">最初の月（${escHtml(shortSlotLabel(slots[0]))}）を基準（0%）とした増減です。<span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;">データが実在する最初の月を基準（0%）とした増減です。<span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
     ${buildTrendMonthHeaderRow(slots)}
     ${sectionsHtml}
   `;
-
-  const evalData = evalSeries.map(s => ({ cat: { label: s.label }, values: s.values }));
-  evalBox.innerHTML = buildTrendEvaluation(evalData, n);
 }
 
 // ============================================================
