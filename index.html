@@ -1113,7 +1113,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.50.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.51.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1996,10 +1996,13 @@ function setTrendMode(m) {
 }
 
 // 直近12ヶ月分の「枠」を必ず用意する。実際のデータが無い月は idx:null（空欄）として扱う。
+// 起点は「登録されている最新の月度」ではなく、「実績が確定している直近の月度」
+// （進行中の最新月度は、月の途中で実績が未確定のため1つ前を基準にする）にする。
 function buildTrendSlots() {
   const periods = ensurePeriods();
   if (!periods.length) return [];
-  const lastStart = new Date(periods[periods.length - 1].start_date);
+  const anchorPeriod = periods.length >= 2 ? periods[periods.length - 2] : periods[periods.length - 1];
+  const lastStart = new Date(anchorPeriod.start_date);
   const slots = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(lastStart.getFullYear(), lastStart.getMonth() - i, 1);
@@ -2089,9 +2092,7 @@ function buildTrendMonthHeaderRow(slots) {
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const labels = slots.map((slot, i) =>
-    (i % 2 === 0 || i === slots.length - 1)
-      ? `<text x="${xFor(i).toFixed(1)}" y="12" font-size="11" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
-      : ""
+    `<text x="${xFor(i).toFixed(1)}" y="12" font-size="10" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
   ).join("");
   let dividers = "";
   for (let i = 0; i <= n; i++) {
