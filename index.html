@@ -312,7 +312,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 支出入力 ===== -->
 <div class="page" id="page-expense" style="background:var(--red-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name" id="pageName_expense">支出登録</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_expense">支出登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -381,7 +381,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== 収入入力 ===== -->
 <div class="page" id="page-income" style="background:var(--amber-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name" id="pageName_income">収入登録</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_income">収入登録</span></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -435,7 +435,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== アイコン選択（専用サブ画面） ===== -->
 <div class="page" id="page-caticonpicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">アイコンを選ぶ</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">アイコンを選ぶ</span></div>
   <div id="catIconPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
@@ -443,7 +443,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 固定費・積立の項目選択（専用サブ画面） ===== -->
 <div class="page" id="page-quickitempicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span></div>
   <div id="quickItemPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
@@ -451,7 +451,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 14px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-    <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">取引実績</span></div>
+    <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span></div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（9件分の高さに固定し、それ以上はスクロール） -->
   <div style="flex:none;height:596px;overflow-y:scroll;padding:0 14px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -468,7 +468,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 積立 ===== -->
 <div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;background:var(--teal-l);">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">積立費登録</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">積立費登録</span></div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
   <div id="flowNextToFixed" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
@@ -566,7 +566,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 資金繰り（残高の答え合わせ） ===== -->
 <div class="page" id="page-cashflow" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">残高の答え合わせ</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">残高の答え合わせ</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
     本来「保有しているべき金額」（残高＋未払いの固定費＋積立の貯蓄額）と、実際の口座・手持ちの合計を見比べ、記録漏れなどによる差額がないか確認できます。
@@ -616,7 +616,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 <!-- ===== ユーティリティ（メイン一覧） ===== -->
 <div class="page" id="page-utility" style="background:var(--gray-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">補助機能</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">補助機能</span></div>
 
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:8px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 3v18"/><path d="M5 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M19 8l-3 6a3 3 0 0 0 6 0l-3-6z"/><path d="M5 8h14"/><path d="M9 21h6"/></svg> 残高の答え合わせ</div>
   <div class="export-section" style="padding:14px;">
@@ -723,7 +723,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== カテゴリ別推移（専用画面） ===== -->
 <div class="page" id="page-trend" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">カテゴリ別推移</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ別推移</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
     カテゴリを縦、月度を横に並べた表です。金額が大きいほど背景が濃く表示されるので、増減がひと目で分かります。
@@ -753,7 +753,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 学習データ管理（専用画面） ===== -->
 <div class="page" id="page-fclearn" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">学習データ管理</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">学習データ管理</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
     レシート取込み時に「固定費として記録するか」を確認した回答は、店名・カテゴリ名ごとに記憶され、次回以降の自動判定に使われます。誤って学習された内容があれば、ここから個別に削除できます。
@@ -771,7 +771,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== カスタムカテゴリ整理（専用画面） ===== -->
 <div class="page" id="page-customcats" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">カテゴリ整理</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ整理</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
     支出・収入の登録画面で自由入力して追加されたカテゴリの一覧です。使わなくなったものは削除できます（削除しても、過去の取引記録自体は残ります）。
@@ -786,7 +786,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== バージョン情報（専用画面） ===== -->
 <div class="page" id="page-versioninfo" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">バージョン情報</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">バージョン情報</span></div>
 
   <div class="budget-card" style="text-align:center;">
     <div style="font-size:13px;color:var(--sub);margin-bottom:6px;">かんたん家計簿</div>
@@ -798,7 +798,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 初期設定（専用画面） ===== -->
 <div class="page" id="page-initsetup" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">初期設定</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">初期設定</span></div>
 
   <div class="budget-card">
     <div style="font-size:17px;color:var(--text);line-height:1.8;margin-bottom:20px;text-align:left;">
@@ -818,7 +818,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 毎月の自動移行日（専用画面） ===== -->
 <div class="page" id="page-autotransition" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">自動移行日の変更</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">自動移行日の変更</span></div>
 
   <div class="budget-card">
     <div style="font-size:16px;color:var(--text);margin-bottom:16px;line-height:1.7;">
@@ -834,7 +834,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== ショートカットで自動化（専用画面） ===== -->
 <div class="page" id="page-shortcutsguide" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">ショートカット連携</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">ショートカット連携</span></div>
 
   <div class="budget-card">
     <div style="font-size:16px;color:var(--text);margin-bottom:14px;line-height:1.7;">
@@ -854,7 +854,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== データのバックアップ（専用画面） ===== -->
 <div class="page" id="page-backup" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">CSV書き出し</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">CSV書き出し</span></div>
 
   <div class="budget-card">
     <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
@@ -875,7 +875,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== データ移行（機種変更・故障対策） ===== -->
 <div class="page" id="page-migration" style="flex-direction:column;padding:0;overflow:hidden;background:var(--purple-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">データ移行</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">データ移行</span></div>
 
   <div class="budget-card">
     <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
@@ -899,7 +899,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== 固定費 ===== -->
 <div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;background:var(--orange-l);">
 <div style="flex-shrink:0;padding:10px 14px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">固定費登録</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">固定費登録</span></div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
   <div id="flowFinish" style="display:none;background:var(--green-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
@@ -1118,7 +1118,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.40.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.40.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
