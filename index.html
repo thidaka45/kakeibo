@@ -725,9 +725,9 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <div class="budget-card" style="margin-bottom:8px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <button id="trendModeOverviewBtn" onclick="setTrendMode('overview')" style="padding:10px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">概況</button>
-        <button id="trendModeIncomeBtn" onclick="setTrendMode('income')" style="padding:10px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
-        <button id="trendModeExpenseBtn" onclick="setTrendMode('expense')" style="padding:10px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
+        <button id="trendModeOverviewBtn" onclick="setTrendMode('overview')" style="padding:12px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">概況</button>
+        <button id="trendModeIncomeBtn" onclick="setTrendMode('income')" style="padding:12px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
+        <button id="trendModeExpenseBtn" onclick="setTrendMode('expense')" style="padding:12px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
       </div>
     </div>
 
@@ -1113,7 +1113,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.48.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.48.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2162,15 +2162,15 @@ function renderTrend() {
     sectionsHtml = series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
   } else if (trendMode === "income") {
     const incomeSeries = buildIncomeAllSeries(slots);
-    sectionsHtml = buildTrendSectionHtml("収入の項目", incomeSeries);
+    sectionsHtml = incomeSeries.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
   } else {
     const fixedSeries   = buildFixedCostAllSeries(slots);
     const savingsSeries = buildSavingsAllSeries(slots);
     const otherSeries   = buildOtherRepresentativeSeries(slots);
     sectionsHtml =
-      buildTrendSectionHtml("固定費（全項目）", fixedSeries) +
-      buildTrendSectionHtml("積立（全項目）", savingsSeries) +
-      buildTrendSectionHtml("その他（代表的な項目）", otherSeries);
+      buildTrendSectionHtml("■固定費", fixedSeries) +
+      buildTrendSectionHtml("■積立費", savingsSeries) +
+      buildTrendSectionHtml("■その他", otherSeries);
   }
 
   if (!sectionsHtml) {
