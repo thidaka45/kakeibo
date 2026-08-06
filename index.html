@@ -1104,7 +1104,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.43.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.44.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1981,11 +1981,24 @@ function setTrendMode(m) {
   renderTrend();
 }
 
-function shortPeriodLabel(idx) {
+// 直近12ヶ月分の「枠」を必ず用意する。実際のデータが無い月は idx:null（空欄）として扱う。
+function buildTrendSlots() {
   const periods = ensurePeriods();
-  const d = new Date(periods[idx].start_date);
-  return `${d.getMonth() + 1}月`;
+  if (!periods.length) return [];
+  const lastStart = new Date(periods[periods.length - 1].start_date);
+  const slots = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(lastStart.getFullYear(), lastStart.getMonth() - i, 1);
+    const idx = periods.findIndex(p => {
+      const ps = new Date(p.start_date);
+      return ps.getFullYear() === d.getFullYear() && ps.getMonth() === d.getMonth();
+    });
+    slots.push({ date: d, idx: idx === -1 ? null : idx });
+  }
+  return slots;
 }
+function slotTxs(slot) { return slot.idx === null ? [] : periodTxs(slot.idx); }
+function shortSlotLabel(slot) { return `${slot.date.getMonth() + 1}月`; }
 
 // 直近半分の月平均と、それ以前の半分の月平均を比べて傾向を判定する。
 // 単発の突発的な支出に引っ張られないよう、
@@ -2037,36 +2050,36 @@ function buildTrendEvaluation(data, n) {
   return html;
 }
 
-// 概況：収入・支出・繰越（貯蓄）の3項目のみ
-function buildOverviewSeries(idxList) {
-  const incomeValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "income" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
+// 概況：収入・支出・繰越（貯蓄）の3項目を必ず表示する
+function buildOverviewSeries(slots) {
+  const incomeValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "income" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
   );
-  const expenseValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  const expenseValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
   );
-  const carryoverValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "income" && t.cat === "carryover").reduce((s, t) => s + t.amount, 0)
+  const carryoverValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "income" && t.cat === "carryover").reduce((s, t) => s + t.amount, 0)
   );
-  const series = [];
-  if (incomeValues.some(v => v > 0))    series.push({ label: "収入", values: incomeValues });
-  if (expenseValues.some(v => v > 0))   series.push({ label: "支出", values: expenseValues });
-  if (carryoverValues.some(v => v > 0)) series.push({ label: "繰越（貯蓄）", values: carryoverValues });
-  return series;
+  return [
+    { label: "収入", values: incomeValues },
+    { label: "支出", values: expenseValues },
+    { label: "繰越", values: carryoverValues }
+  ];
 }
 
 // 詳細：支出の内訳（固定費・積立はまとめ、それ以外は代表的な分類のみ）
-function buildExpenseDetailSeries(idxList) {
-  const fixedValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "expense" && String(t.cat).startsWith("fc_")).reduce((s, t) => s + t.amount, 0)
+function buildExpenseDetailSeries(slots) {
+  const fixedValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "expense" && String(t.cat).startsWith("fc_")).reduce((s, t) => s + t.amount, 0)
   );
-  const savingsValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "expense" && String(t.cat).startsWith("sv_")).reduce((s, t) => s + t.amount, 0)
+  const savingsValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "expense" && String(t.cat).startsWith("sv_")).reduce((s, t) => s + t.amount, 0)
   );
   const normalCats = [...CATS_EXPENSE, ...loadCustomCats("expense")];
   const normalSeries = normalCats.map(c => {
-    const values = idxList.map(idx =>
-      periodTxs(idx).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    const values = slots.map(slot =>
+      slotTxs(slot).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
     );
     return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 4);
@@ -2079,24 +2092,24 @@ function buildExpenseDetailSeries(idxList) {
 }
 
 // 詳細：収入の内訳（繰越を除く、代表的なカテゴリのみ）
-function buildIncomeDetailSeries(idxList) {
+function buildIncomeDetailSeries(slots) {
   const cats = [...CATS_INCOME, ...loadCustomCats("income")];
   return cats.map(c => {
-    const values = idxList.map(idx =>
-      periodTxs(idx).filter(t => t.type === "income" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    const values = slots.map(slot =>
+      slotTxs(slot).filter(t => t.type === "income" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
     );
     return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
 }
 
 // 詳細：繰越（貯蓄）の内訳（繰越そのものと、積立プランごとの拠出額）
-function buildSavingsDetailSeries(idxList) {
-  const carryoverValues = idxList.map(idx =>
-    periodTxs(idx).filter(t => t.type === "income" && t.cat === "carryover").reduce((s, t) => s + t.amount, 0)
+function buildSavingsDetailSeries(slots) {
+  const carryoverValues = slots.map(slot =>
+    slotTxs(slot).filter(t => t.type === "income" && t.cat === "carryover").reduce((s, t) => s + t.amount, 0)
   );
   const planSeries = getSavingsCatOptions().map(c => {
-    const values = idxList.map(idx =>
-      periodTxs(idx).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    const values = slots.map(slot =>
+      slotTxs(slot).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
     );
     return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total);
@@ -2116,17 +2129,16 @@ function toPctSeries(values) {
 }
 
 // 月ラベルのヘッダー行（各系列行のグラフとx座標を合わせる）
-function buildTrendMonthHeaderRow(idxList) {
+function buildTrendMonthHeaderRow(slots) {
   const W = 240;
-  const xFor = i => idxList.length > 1 ? i * (W / (idxList.length - 1)) : W / 2;
-  const labels = idxList.map((idx, i) => {
-    if (idxList.length <= 8 || i % 2 === 0 || i === idxList.length - 1) {
-      return `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortPeriodLabel(idx))}</text>`;
-    }
-    return "";
-  }).join("");
-  return `<div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;">
-    <div style="width:76px;flex-shrink:0;"></div>
+  const xFor = i => slots.length > 1 ? i * (W / (slots.length - 1)) : W / 2;
+  const labels = slots.map((slot, i) =>
+    (i % 2 === 0 || i === slots.length - 1)
+      ? `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
+      : ""
+  ).join("");
+  return `<div style="display:flex;align-items:center;gap:4px;padding-bottom:6px;">
+    <div style="width:44px;flex-shrink:0;"></div>
     <svg viewBox="0 0 ${W} 14" style="flex:1;min-width:0;height:14px;display:block;">${labels}</svg>
   </div>`;
 }
@@ -2154,8 +2166,8 @@ function buildTrendSparklineRow(label, pctValues) {
     markers += `<rect x="${(x - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="6" height="6" fill="${color}"/>`;
   });
 
-  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
-    <div style="width:76px;flex-shrink:0;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(label)}</div>
+  return `<div style="display:flex;align-items:center;gap:4px;padding:9px 0;border-bottom:1px solid var(--border);">
+    <div style="width:44px;flex-shrink:0;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(label)}</div>
     <svg viewBox="0 0 ${W} ${H}" style="flex:1;min-width:0;height:36px;display:block;">
       ${dividers}
       <line x1="0" y1="${center}" x2="${W}" y2="${center}" stroke="var(--sub)" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
@@ -2176,26 +2188,23 @@ function renderTrend() {
   const evalBox = document.getElementById("trendEval");
   if (!chartBox || !evalBox) return;
 
-  const periods = ensurePeriods();
-  if (!periods.length) {
+  const slots = buildTrendSlots();
+  if (!slots.length) {
     chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
-
-  // 直近12ヶ月分固定（データがある月のみ描画）
-  const n = Math.min(12, periods.length);
-  const idxList = periods.map((_, i) => i).slice(-n);
+  const n = slots.length; // 常に12
 
   let sectionsHtml, evalSeries;
   if (trendMode === "overview") {
-    const series = buildOverviewSeries(idxList);
-    sectionsHtml = series.length ? series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("") : "";
+    const series = buildOverviewSeries(slots);
+    sectionsHtml = series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
     evalSeries = series;
   } else {
-    const incomeSeries   = buildIncomeDetailSeries(idxList);
-    const expenseSeries  = buildExpenseDetailSeries(idxList);
-    const savingsSeries  = buildSavingsDetailSeries(idxList);
+    const incomeSeries   = buildIncomeDetailSeries(slots);
+    const expenseSeries  = buildExpenseDetailSeries(slots);
+    const savingsSeries  = buildSavingsDetailSeries(slots);
     sectionsHtml =
       buildTrendSectionHtml("収入の内訳", incomeSeries) +
       buildTrendSectionHtml("支出の内訳", expenseSeries) +
@@ -2203,15 +2212,15 @@ function renderTrend() {
     evalSeries = [...incomeSeries, ...expenseSeries, ...savingsSeries];
   }
 
-  if (!sectionsHtml) {
+  if (!sectionsHtml || !evalSeries.length) {
     chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
 
   chartBox.innerHTML = `
-    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;">最初の月（${escHtml(shortPeriodLabel(idxList[0]))}）を基準（0%）とした増減です。<span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
-    ${buildTrendMonthHeaderRow(idxList)}
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;">最初の月（${escHtml(shortSlotLabel(slots[0]))}）を基準（0%）とした増減です。<span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
+    ${buildTrendMonthHeaderRow(slots)}
     ${sectionsHtml}
   `;
 
