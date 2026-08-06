@@ -684,26 +684,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 学習データ管理</div>
-  <div class="export-section" style="padding:14px;">
-    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      レシート取込みで学習された、固定費との紐付け内容を確認・削除できます。
-    </div>
-    <button onclick="showPage('fclearn')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--gray);background:var(--gray-l);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      学習データを見る
-    </button>
-  </div>
-
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M20.59 13.41L13.42 20.58a2 2 0 01-2.83 0L2.59 12.6a2 2 0 010-2.83l7.17-7.17a2 2 0 012.83 0L20.59 10.6a2 2 0 010 2.81z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> カテゴリ整理</div>
-  <div class="export-section" style="padding:14px;">
-    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      自由入力で追加されたカテゴリを一覧表示し、不要なものを削除できます。
-    </div>
-    <button onclick="showPage('customcats')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--gray);background:var(--gray-l);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      カテゴリを整理する
-    </button>
-  </div>
-
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> バージョン情報</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
@@ -1113,7 +1093,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.52.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.52.2"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
