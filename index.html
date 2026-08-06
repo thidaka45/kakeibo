@@ -724,13 +724,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ別推移</span></div>
 
     <div class="budget-card" style="margin-bottom:8px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
         <button id="trendModeOverviewBtn" onclick="setTrendMode('overview')" style="padding:10px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">概況</button>
-        <button id="trendModeDetailBtn" onclick="setTrendMode('detail')" style="padding:10px;border-radius:8px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">詳細</button>
-      </div>
-      <div id="trendSubTabs" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-        <button id="trendDetailIncomeBtn" onclick="setTrendDetailType('income')" style="padding:10px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
-        <button id="trendDetailExpenseBtn" onclick="setTrendDetailType('expense')" style="padding:10px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
+        <button id="trendModeIncomeBtn" onclick="setTrendMode('income')" style="padding:10px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
+        <button id="trendModeExpenseBtn" onclick="setTrendMode('expense')" style="padding:10px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
       </div>
     </div>
   </div>
@@ -1112,7 +1109,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.46.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.47.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1974,33 +1971,20 @@ function newTxEntry(type) {
 // ============================================================
 // カテゴリ別推移
 // ============================================================
-let trendMode = "overview"; // "overview"（概況） または "detail"（詳細）
-let trendDetailType = "expense"; // 詳細モード時："income" または "expense"
+let trendMode = "overview"; // "overview"（概況） / "income"（収入） / "expense"（支出）
 
 function setTrendMode(m) {
   trendMode = m;
   const ovBtn = document.getElementById("trendModeOverviewBtn");
-  const dtBtn = document.getElementById("trendModeDetailBtn");
-  const subTabs = document.getElementById("trendSubTabs");
-  if (ovBtn && dtBtn) {
-    ovBtn.style.background = m === "overview" ? "var(--blue)" : "#fff";
-    ovBtn.style.color      = m === "overview" ? "#fff"        : "var(--blue)";
-    dtBtn.style.background = m === "detail"   ? "var(--blue)" : "#fff";
-    dtBtn.style.color      = m === "detail"   ? "#fff"        : "var(--blue)";
-  }
-  if (subTabs) subTabs.style.display = m === "detail" ? "grid" : "none";
-  renderTrend();
-}
-
-function setTrendDetailType(t) {
-  trendDetailType = t;
-  const incBtn = document.getElementById("trendDetailIncomeBtn");
-  const expBtn = document.getElementById("trendDetailExpenseBtn");
-  if (incBtn && expBtn) {
-    incBtn.style.background = t === "income"  ? "var(--green)" : "#fff";
-    incBtn.style.color      = t === "income"  ? "#fff"         : "var(--green-d)";
-    expBtn.style.background = t === "expense" ? "var(--red)"   : "#fff";
-    expBtn.style.color      = t === "expense" ? "#fff"         : "var(--red)";
+  const incBtn = document.getElementById("trendModeIncomeBtn");
+  const expBtn = document.getElementById("trendModeExpenseBtn");
+  if (ovBtn && incBtn && expBtn) {
+    ovBtn.style.background  = m === "overview" ? "var(--blue)"  : "#fff";
+    ovBtn.style.color       = m === "overview" ? "#fff"         : "var(--blue)";
+    incBtn.style.background = m === "income"   ? "var(--green)" : "#fff";
+    incBtn.style.color      = m === "income"   ? "#fff"         : "var(--green-d)";
+    expBtn.style.background = m === "expense"  ? "var(--red)"   : "#fff";
+    expBtn.style.color      = m === "expense"  ? "#fff"         : "var(--red)";
   }
   renderTrend();
 }
@@ -2170,7 +2154,7 @@ function renderTrend() {
   if (trendMode === "overview") {
     const series = buildOverviewSeries(slots);
     sectionsHtml = series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
-  } else if (trendDetailType === "income") {
+  } else if (trendMode === "income") {
     const incomeSeries = buildIncomeAllSeries(slots);
     sectionsHtml = buildTrendSectionHtml("収入の項目", incomeSeries);
   } else {
