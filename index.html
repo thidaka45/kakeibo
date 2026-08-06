@@ -726,14 +726,27 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>戻る</button><span class="page-name">カテゴリ別推移</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
-    カテゴリを選ぶと、月度ごとの支出（または収入）合計の推移を確認できます。
+    カテゴリを縦、月度を横に並べた表です。金額が大きいほど背景が濃く表示されるので、増減がひと目で分かります。
   </div>
 
   <div class="budget-card" style="margin-bottom:10px;">
-    <select id="trendCatSelect" class="field-select" style="width:100%;font-size:16px;font-weight:700;padding:12px;" onchange="renderTrend()"></select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button id="trendTypeExpenseBtn" onclick="setTrendType('expense')" style="padding:10px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
+      <button id="trendTypeIncomeBtn" onclick="setTrendType('income')" style="padding:10px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
+    </div>
+    <select id="trendMonthCountSelect" class="field-select" style="width:100%;font-size:15px;font-weight:600;padding:10px;" onchange="renderTrend()">
+      <option value="3">直近3ヶ月</option>
+      <option value="6" selected>直近6ヶ月</option>
+      <option value="12">直近12ヶ月</option>
+      <option value="999">すべての月度</option>
+    </select>
   </div>
 
-  <div class="budget-card" id="trendList"></div>
+  <div class="budget-card" id="trendEval" style="margin-bottom:10px;font-size:14px;line-height:1.8;"></div>
+
+  <div class="budget-card" style="padding:10px;overflow-x:auto;">
+    <table id="trendTable" style="border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap;"></table>
+  </div>
 </div>
 </div>
 
@@ -1105,7 +1118,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.39.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.40.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1967,55 +1980,132 @@ function newTxEntry(type) {
 // ============================================================
 // カテゴリ別推移
 // ============================================================
-let trendSelectedCat = null;
+let trendType = "expense"; // "expense" または "income"
 
-function renderTrendCatOptions() {
-  const sel = document.getElementById("trendCatSelect");
-  if (!sel) return;
-  const cats = getAllCats();
-  const prev = trendSelectedCat;
-  sel.innerHTML = cats.map(c =>
-    `<option value="${escHtml(c.id)}">${escHtml(c.emoji || "")} ${escHtml(c.label)}</option>`
-  ).join("");
-  if (prev && cats.some(c => c.id === prev)) {
-    sel.value = prev;
-  } else if (cats.length) {
-    sel.value = cats[0].id;
-    trendSelectedCat = cats[0].id;
+function setTrendType(t) {
+  trendType = t;
+  const expBtn = document.getElementById("trendTypeExpenseBtn");
+  const incBtn = document.getElementById("trendTypeIncomeBtn");
+  if (expBtn && incBtn) {
+    expBtn.style.background = t === "expense" ? "var(--red)"  : "#fff";
+    expBtn.style.color      = t === "expense" ? "#fff"        : "var(--red)";
+    incBtn.style.background = t === "income"  ? "var(--green)": "#fff";
+    incBtn.style.color      = t === "income"  ? "#fff"        : "var(--green-d)";
   }
+  renderTrend();
+}
+
+function shortPeriodLabel(idx) {
+  const periods = ensurePeriods();
+  const d = new Date(periods[idx].start_date);
+  return `${d.getMonth() + 1}月`;
+}
+
+// 直近半分の月平均と、それ以前の半分の月平均を比べて傾向を判定する。
+// 単発の突発的な支出に引っ張られないよう、
+// 「直近半分の月の“ほとんど”が、以前の平均を上回り続けているか（＝一過性でなく持続しているか）」も条件に加える。
+function buildTrendEvaluation(data, n) {
+  if (n < 4) {
+    return `<div style="color:var(--sub);">傾向を判断するには、あと${4 - n}ヶ月分ほどデータが必要です（直近4ヶ月以上で評価します）。</div>`;
+  }
+  const halfLen = Math.floor(n / 2);
+  const results = data.map(d => {
+    const firstHalf  = d.values.slice(0, n - halfLen);
+    const secondHalf = d.values.slice(n - halfLen);
+    const firstAvg  = firstHalf.reduce((s, v) => s + v, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((s, v) => s + v, 0) / secondHalf.length;
+    const diff = secondAvg - firstAvg;
+    const pct = firstAvg > 0 ? diff / firstAvg : (secondAvg > 0 ? 1 : 0);
+    // 直近半分のうち、以前の平均の9割以上を保っている月が半数以上あるか＝一時的な急増ではなく続いているか
+    const sustainedCount = secondHalf.filter(v => v >= firstAvg * 0.9).length;
+    const sustained = sustainedCount >= Math.ceil(secondHalf.length / 2);
+    return { label: d.cat.label, firstAvg, secondAvg, diff, pct, sustained };
+  }).filter(d => d.firstAvg > 0 || d.secondAvg > 0);
+
+  // 「継続的な増加傾向」：直近半分の平均が以前より20%以上・かつ月1,000円以上増え、それが一過性でなく続いている
+  const rising = results
+    .filter(d => d.diff >= 1000 && d.pct >= 0.2 && d.sustained)
+    .sort((a, b) => b.diff - a.diff)
+    .slice(0, 3);
+  const falling = results
+    .filter(d => d.diff <= -1000 && d.pct <= -0.2)
+    .sort((a, b) => a.diff - b.diff)
+    .slice(0, 3);
+
+  if (!rising.length && !falling.length) {
+    return `<div style="color:var(--sub);">直近${n}ヶ月では、家計に影響しそうな継続的な増加傾向は見られません。</div>`;
+  }
+  let html = "";
+  if (rising.length) {
+    html += `<div style="margin-bottom:${falling.length ? "10px" : "0"};">
+      <div style="font-weight:700;color:var(--red);margin-bottom:4px;">⚠️ このペースが続くと家計への影響が大きくなりそうなもの</div>
+      ${rising.map(d => `<div>・${escHtml(d.label)}：直近平均 ${fmt(Math.round(d.secondAvg))}／月（以前は${fmt(Math.round(d.firstAvg))}／月、+${Math.round(d.pct * 100)}%）</div>`).join("")}
+    </div>`;
+  }
+  if (falling.length) {
+    html += `<div>
+      <div style="font-weight:700;color:var(--blue);margin-bottom:4px;">継続的に減っているもの</div>
+      ${falling.map(d => `<div>・${escHtml(d.label)}：直近平均 ${fmt(Math.round(d.secondAvg))}／月（以前は${fmt(Math.round(d.firstAvg))}／月、${Math.round(d.pct * 100)}%）</div>`).join("")}
+    </div>`;
+  }
+  return html;
 }
 
 function renderTrend() {
-  const sel = document.getElementById("trendCatSelect");
-  const container = document.getElementById("trendList");
-  if (!sel || !container) return;
-  const catId = sel.value;
-  trendSelectedCat = catId;
+  const table = document.getElementById("trendTable");
+  const evalBox = document.getElementById("trendEval");
+  if (!table || !evalBox) return;
 
   const periods = ensurePeriods();
-  if (!periods.length || !catId) {
-    container.innerHTML = `<div style="font-size:14px;color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
+  if (!periods.length) {
+    table.innerHTML = "";
+    evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
 
-  const rows = periods.map((p, idx) => {
-    const total = periodTxs(idx)
-      .filter(t => t.cat === catId)
-      .reduce((s, t) => s + t.amount, 0);
-    return { label: periodLabel(idx), total };
-  });
-  const max = Math.max(1, ...rows.map(r => r.total));
+  const countSel = document.getElementById("trendMonthCountSelect");
+  const wantN = countSel ? parseInt(countSel.value, 10) : 6;
+  const idxList = periods.map((_, i) => i).slice(-Math.min(wantN, periods.length));
+  const n = idxList.length;
 
-  container.innerHTML = rows.map(r => `
-    <div style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-bottom:4px;">
-        <span>${escHtml(r.label)}</span><span style="font-weight:700;color:var(--text);">${fmt(r.total)}</span>
-      </div>
-      <div style="background:var(--gray-l);border-radius:6px;overflow:hidden;height:10px;">
-        <div style="background:var(--blue);height:100%;width:${Math.round(r.total / max * 100)}%;"></div>
-      </div>
-    </div>
-  `).join("");
+  const cats = trendType === "expense"
+    ? [...CATS_EXPENSE, ...getFixedCostCatOptions(), ...getSavingsCatOptions(), ...loadCustomCats("expense")]
+    : [...CATS_INCOME, ...loadCustomCats("income"), CARRYOVER_CAT];
+
+  const data = cats.map(c => {
+    const values = idxList.map(idx =>
+      periodTxs(idx).filter(t => t.type === trendType && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    );
+    const total = values.reduce((s, v) => s + v, 0);
+    return { cat: c, values, total };
+  }).filter(d => d.total > 0).sort((a, b) => b.total - a.total);
+
+  if (!data.length) {
+    table.innerHTML = "";
+    evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
+    return;
+  }
+
+  evalBox.innerHTML = buildTrendEvaluation(data, n);
+
+  const header = `<tr>
+    <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:var(--card);">カテゴリ</th>
+    ${idxList.map(idx => `<th style="padding:6px 6px;font-weight:600;color:var(--sub);">${shortPeriodLabel(idx)}</th>`).join("")}
+  </tr>`;
+
+  const rows = data.map(d => {
+    const max = Math.max(1, ...d.values);
+    return `<tr>
+      <td style="padding:6px 8px;position:sticky;left:0;background:var(--card);">${escHtml(d.cat.emoji || "")} ${escHtml(d.cat.label)}</td>
+      ${d.values.map(v => {
+        const ratio = v / max;
+        const bg = v === 0 ? "transparent" : (trendType === "expense" ? `rgba(220,53,69,${0.10 + ratio * 0.55})` : `rgba(29,158,117,${0.10 + ratio * 0.55})`);
+        return `<td style="padding:6px 6px;text-align:right;background:${bg};border-radius:4px;">${v ? fmt(v) : "-"}</td>`;
+      }).join("")}
+    </tr>`;
+  }).join("");
+
+  table.innerHTML = header + rows;
 }
 
 // ============================================================
@@ -2218,7 +2308,7 @@ function showPage(name, isBack) {
   if (name==="utility")    renderAutoTransitionDaySelect();
   if (name==="cashflow")   renderCashflow();
   if (name==="autotransition") renderAutoTransitionDaySelect();
-  if (name==="trend")      { renderTrendCatOptions(); renderTrend(); }
+  if (name==="trend")      renderTrend();
   if (name==="fclearn")    renderFcLearnList();
   if (name==="customcats") renderCustomCatsList();
 }
