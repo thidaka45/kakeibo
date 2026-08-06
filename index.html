@@ -1102,7 +1102,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.45.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.45.3"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1979,13 +1979,13 @@ function setTrendMode(m) {
   renderTrend();
 }
 
-// 直近12ヶ月分の「枠」を必ず用意する。実際のデータが無い月は idx:null（空欄）として扱う。
+// 直近6ヶ月分の「枠」を必ず用意する。実際のデータが無い月は idx:null（空欄）として扱う。
 function buildTrendSlots() {
   const periods = ensurePeriods();
   if (!periods.length) return [];
   const lastStart = new Date(periods[periods.length - 1].start_date);
   const slots = [];
-  for (let i = 11; i >= 0; i--) {
+  for (let i = 5; i >= 0; i--) {
     const d = new Date(lastStart.getFullYear(), lastStart.getMonth() - i, 1);
     const idx = periods.findIndex(p => {
       const ps = new Date(p.start_date);
@@ -2085,13 +2085,16 @@ function buildTrendMonthHeaderRow(slots) {
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const labels = slots.map((slot, i) =>
-    (i % 2 === 0 || i === slots.length - 1)
-      ? `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
-      : ""
+    `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
   ).join("");
+  let dividers = "";
+  for (let i = 0; i <= n; i++) {
+    const gx = spacing * i;
+    dividers += `<line x1="${gx.toFixed(1)}" y1="12" x2="${gx.toFixed(1)}" y2="14" stroke="var(--border)" stroke-width="1"/>`;
+  }
   return `<div style="display:flex;align-items:center;gap:4px;padding-bottom:6px;">
     <div style="width:44px;flex-shrink:0;"></div>
-    <svg viewBox="0 0 ${W} 14" style="flex:1;min-width:0;height:14px;display:block;">${labels}</svg>
+    <svg viewBox="0 0 ${W} 14" style="flex:1;min-width:0;height:14px;display:block;">${dividers}${labels}</svg>
   </div>`;
 }
 
@@ -2109,7 +2112,7 @@ function buildTrendSparklineRow(label, pctValues) {
   let dividers = "";
   for (let i = 0; i <= n; i++) {
     const gx = spacing * i;
-    dividers += `<line x1="${gx.toFixed(1)}" y1="0" x2="${gx.toFixed(1)}" y2="${H}" stroke="var(--border)" stroke-width="0.5" opacity="0.6"/>`;
+    dividers += `<line x1="${gx.toFixed(1)}" y1="0" x2="${gx.toFixed(1)}" y2="${H}" stroke="var(--border)" stroke-width="1" opacity="1"/>`;
   }
 
   let bars = "";
