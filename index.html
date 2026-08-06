@@ -1108,7 +1108,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.41.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.42.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2041,8 +2041,6 @@ function buildTrendEvaluation(data, n) {
   return html;
 }
 
-const TREND_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#EF4444", "#EC4899", "#14B8A6", "#6366F1"];
-
 // 支出用の系列を作る：固定費はまとめて1本、積立もまとめて1本、
 // それ以外の通常カテゴリは合計金額が大きい代表的なものだけを個別の線として表示する
 function buildExpenseSeries(idxList) {
@@ -2079,51 +2077,54 @@ function buildIncomeSeries(idxList) {
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
 }
 
-function buildLineChartSvg(series, idxList) {
-  const W = Math.max(320, idxList.length * 46);
-  const H = 200;
-  const padL = 44, padR = 12, padT = 14, padB = 24;
-  const plotW = W - padL - padR;
-  const plotH = H - padT - padB;
-  const maxV = Math.max(1, ...series.flatMap(s => s.values));
-  const stepX = idxList.length > 1 ? plotW / (idxList.length - 1) : 0;
-  const yFor = v => padT + plotH - (v / maxV) * plotH;
-  const xFor = i => padL + stepX * i;
-
-  let grid = "";
-  for (let g = 0; g <= 3; g++) {
-    const gv = maxV * g / 3;
-    const gy = yFor(gv);
-    grid += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
-    grid += `<text x="${padL - 6}" y="${(gy + 3).toFixed(1)}" font-size="9" fill="var(--sub)" text-anchor="end">${gv >= 1000 ? Math.round(gv / 1000) + "k" : Math.round(gv)}</text>`;
-  }
-
-  let xlabels = "";
-  idxList.forEach((idx, i) => {
-    if (idxList.length <= 8 || i % 2 === 0 || i === idxList.length - 1) {
-      xlabels += `<text x="${xFor(i).toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortPeriodLabel(idx))}</text>`;
-    }
-  });
-
-  let lines = "";
-  series.forEach((s, si) => {
-    const color = TREND_COLORS[si % TREND_COLORS.length];
-    const pts = s.values.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
-    lines += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    s.values.forEach((v, i) => {
-      lines += `<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(v).toFixed(1)}" r="2.5" fill="${color}"/>`;
-    });
-  });
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;">${grid}${lines}${xlabels}</svg>`;
+// 最初の月を基準(0%)にした増減率へ変換する。
+// 基準月が0円の場合は割合を定義できないため、0円→0%・0円以外→+100%として簡易的に扱う。
+function toPctSeries(values) {
+  const baseline = values[0];
+  if (!baseline) return values.map(v => v === 0 ? 0 : 100);
+  return values.map(v => Math.round((v - baseline) / baseline * 100));
 }
 
-function buildLegendHtml(series) {
-  return `<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:12px;">
-    ${series.map((s, i) => `
-      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text);">
-        <span style="width:10px;height:10px;border-radius:3px;background:${TREND_COLORS[i % TREND_COLORS.length]};display:inline-block;flex-shrink:0;"></span>${escHtml(s.label)}
-      </div>`).join("")}
+// 月ラベルのヘッダー行（各系列行のグラフとx座標を合わせる）
+function buildTrendMonthHeaderRow(idxList) {
+  const W = 240;
+  const xFor = i => idxList.length > 1 ? i * (W / (idxList.length - 1)) : W / 2;
+  const labels = idxList.map((idx, i) => {
+    if (idxList.length <= 8 || i % 2 === 0 || i === idxList.length - 1) {
+      return `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortPeriodLabel(idx))}</text>`;
+    }
+    return "";
+  }).join("");
+  return `<div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;">
+    <div style="width:76px;flex-shrink:0;"></div>
+    <svg viewBox="0 0 ${W} 14" style="flex:1;min-width:0;height:14px;display:block;">${labels}</svg>
+  </div>`;
+}
+
+// 項目1つ分の行：中央の点線（0%基準）からの増減を、増加=赤の■・減少=青の■で表す
+function buildTrendSparklineRow(label, pctValues) {
+  const W = 240, H = 40, center = H / 2, ampPx = 15;
+  const n = pctValues.length;
+  const maxAbs = Math.max(1, ...pctValues.map(v => Math.abs(v)));
+  const xFor = i => n > 1 ? i * (W / (n - 1)) : W / 2;
+  const yFor = v => center - (v / maxAbs) * ampPx;
+
+  const pts = pctValues.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
+  let markers = "";
+  pctValues.forEach((v, i) => {
+    if (v === 0) return;
+    const color = v > 0 ? "var(--red)" : "var(--blue)";
+    const x = xFor(i), y = yFor(v);
+    markers += `<rect x="${(x - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="6" height="6" fill="${color}"/>`;
+  });
+
+  return `<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
+    <div style="width:76px;flex-shrink:0;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(label)}</div>
+    <svg viewBox="0 0 ${W} ${H}" style="flex:1;min-width:0;height:36px;display:block;">
+      <line x1="0" y1="${center}" x2="${W}" y2="${center}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+      <polyline points="${pts}" fill="none" stroke="var(--sub)" stroke-width="1" opacity="0.4"/>
+      ${markers}
+    </svg>
   </div>`;
 }
 
@@ -2150,7 +2151,11 @@ function renderTrend() {
     return;
   }
 
-  chartBox.innerHTML = `<div style="overflow-x:auto;">${buildLineChartSvg(series, idxList)}</div>${buildLegendHtml(series)}`;
+  chartBox.innerHTML = `
+    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;">最初の月（${escHtml(shortPeriodLabel(idxList[0]))}）を基準（0%）とした増減です。<span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
+    ${buildTrendMonthHeaderRow(idxList)}
+    ${series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("")}
+  `;
 
   const evalData = series.map(s => ({ cat: { label: s.label }, values: s.values }));
   evalBox.innerHTML = buildTrendEvaluation(evalData, n);
