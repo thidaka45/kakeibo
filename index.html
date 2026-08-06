@@ -575,13 +575,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:15px;color:var(--sub);line-height:2.4;">
       <div style="display:flex;justify-content:space-between;"><span>現在の残高：</span><span id="cfBalancePart" style="font-weight:700;color:var(--text);text-align:right;">¥0</span></div>
-      <div style="display:flex;justify-content:space-between;"><span>未払いの固定費：</span><span id="cfFixedPart" style="font-weight:700;color:var(--text);text-align:right;">¥0</span></div>
-      <div style="display:flex;justify-content:space-between;"><span>積立の貯蓄額：</span><span id="cfSavingsPart" style="font-weight:700;color:var(--text);text-align:right;">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>＋ 積立の貯蓄額：</span><span id="cfSavingsPart" style="font-weight:700;color:var(--text);text-align:right;">¥0</span></div>
     </div>
     <div style="border-top:1px solid var(--border);margin:12px 0;"></div>
     <div style="text-align:center;">
       <div style="font-size:14px;font-weight:700;color:var(--sub);margin-bottom:4px;">保有しているべき金額</div>
       <div style="font-size:34px;font-weight:700;color:var(--green-d);" id="cfShouldHaveTotal">¥0</div>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:12px 0 8px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;color:var(--sub);">
+      <span>（参考）今月の未払いの固定費：</span><span id="cfFixedPart" style="font-weight:600;color:var(--sub);text-align:right;">¥0</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
+      ※ 未払いの固定費はまだ支出していないため「現在の残高」に含まれたままです。合計には含めていません（参考表示）。
     </div>
   </div>
 
@@ -1093,7 +1098,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.58.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.59.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2519,11 +2524,18 @@ function getExportLabel(range) {
 // CSVとは別に、残高・固定費・積立プラン・各種設定を含む全localStorageを
 // 1つのJSONファイルに書き出し／読み込みできるようにする。
 // ============================================================
+// バックアップ対象キーの判定。localStorageのキーは基本 "kakeibo_" プレフィックスで統一しているが、
+// 積立プランのみ歴史的経緯で "savings_plans"（プレフィックス無し）のまま残っているため、
+// ここで明示的に対象へ含める（含め忘れによる積立データの消失を防ぐ）。
+function isBackupKey(key) {
+  return !!key && (key.startsWith("kakeibo_") || key === "savings_plans");
+}
+
 function exportFullBackup() {
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && key.startsWith("kakeibo_")) {
+    if (isBackupKey(key)) {
       data[key] = localStorage.getItem(key);
     }
   }
@@ -2574,11 +2586,11 @@ function importFullBackupFile(event) {
     );
     if (!ok) return;
 
-    // 復元前に既存のkakeibo_キーを一旦すべて削除する
+    // 復元前に既存のバックアップ対象キーを一旦すべて削除する
     // （バックアップ後に廃止されたキーが端末に残り続けるのを防ぐため）
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key && key.startsWith("kakeibo_")) localStorage.removeItem(key);
+      if (isBackupKey(key)) localStorage.removeItem(key);
     }
     keys.forEach(k => localStorage.setItem(k, payload.data[k]));
 
@@ -3392,13 +3404,20 @@ function renderCashflow() {
 
   const now = new Date();
   const cycle = ensureCycle();
+  // 未払いの固定費：まだ支出として記録していない（＝「現在の残高」からまだ差し引かれていない）ため、
+  // その金額は元々「現在の残高」の中に残ったままになっている。よって「保有しているべき金額」の
+  // 合計には加算しない（参考情報として一覧表示のみ行う）。
+  // 過去に「現在の残高＋未払いの固定費＋積立の貯蓄額」を合計に使っていたが、これは未払いの固定費分を
+  // 二重に加算してしまうバグだったため修正した（現在の残高に含まれている分を、もう一度足していた）。
   const unpaidFixed = cycle.fixed_costs
     .filter(i => fcIsPayMonth(i.cycle || "monthly", now) && !i.paid)
     .reduce((s,i)=>s+(i.amount||0),0);
 
+  // 積立の貯蓄額：積立に振り分けた分は「現在の残高」の支出としてすでに差し引かれているが、
+  // 実際には（別口座に移していない限り）まだ同じ財布・口座に残っているお金のため、ここで足し戻す。
   const savingsTotal = loadSavingsPlans().reduce((s,p)=>s+(p.balance||0),0);
 
-  const shouldHave = currentBalance + unpaidFixed + savingsTotal;
+  const shouldHave = currentBalance + savingsTotal;
 
   document.getElementById("cfBalancePart").textContent = fmt(currentBalance);
   document.getElementById("cfFixedPart").textContent    = fmt(unpaidFixed);
