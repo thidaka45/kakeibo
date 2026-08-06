@@ -1113,7 +1113,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.51.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.52.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1995,17 +1995,34 @@ function setTrendMode(m) {
   renderTrend();
 }
 
-// 直近12ヶ月分の「枠」を必ず用意する。実際のデータが無い月は idx:null（空欄）として扱う。
-// 起点は「登録されている最新の月度」ではなく、「実績が確定している直近の月度」
-// （進行中の最新月度は、月の途中で実績が未確定のため1つ前を基準にする）にする。
+// 12ヶ月分の「枠」を用意する。実際のデータが無い月は idx:null（空欄）として扱う。
+//
+// 開始月（1枠目）の決め方：
+// ・実績が確定している直近の月度（進行中の最新月度は未確定のため1つ前を基準にする）を「lastConfirmed」とする
+// ・取引の記録がある一番古い月を「firstDataMonth」とする（＝実績を積み始めた最初の月）
+// ・12ヶ月分がまだ埋まっていない間は、開始月を firstDataMonth に固定して前進表示する
+//   （例：2026年7月から実績を積み始めたら 2026年7月→8月→9月…の順で表示）
+// ・実績が12ヶ月分埋まったら、開始月は自動的に「lastConfirmedの11ヶ月前」に切り替わり、
+//   以降は月が経つごとに開始月がスライドしていく（直近12ヶ月のローリング表示になる）
 function buildTrendSlots() {
   const periods = ensurePeriods();
   if (!periods.length) return [];
   const anchorPeriod = periods.length >= 2 ? periods[periods.length - 2] : periods[periods.length - 1];
-  const lastStart = new Date(anchorPeriod.start_date);
+  const lastConfirmed = new Date(anchorPeriod.start_date);
+
+  const txs = loadTx();
+  let firstDataMonth = new Date(lastConfirmed.getFullYear(), lastConfirmed.getMonth(), 1);
+  if (txs.length) {
+    const firstTxDate = txs.map(t => new Date(t.date)).sort((a, b) => a - b)[0];
+    firstDataMonth = new Date(firstTxDate.getFullYear(), firstTxDate.getMonth(), 1);
+  }
+
+  const rollingStart = new Date(lastConfirmed.getFullYear(), lastConfirmed.getMonth() - 11, 1);
+  const startMonth = rollingStart.getTime() > firstDataMonth.getTime() ? rollingStart : firstDataMonth;
+
   const slots = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(lastStart.getFullYear(), lastStart.getMonth() - i, 1);
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
     const idx = periods.findIndex(p => {
       const ps = new Date(p.start_date);
       return ps.getFullYear() === d.getFullYear() && ps.getMonth() === d.getMonth();
@@ -2092,7 +2109,9 @@ function buildTrendMonthHeaderRow(slots) {
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const labels = slots.map((slot, i) =>
-    `<text x="${xFor(i).toFixed(1)}" y="12" font-size="10" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
+    i % 2 === (n - 1) % 2
+      ? `<text x="${xFor(i).toFixed(1)}" y="12" font-size="11" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
+      : ""
   ).join("");
   let dividers = "";
   for (let i = 0; i <= n; i++) {
