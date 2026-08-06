@@ -607,10 +607,6 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div id="cfDiffLine" style="font-size:24px;font-weight:700;"></div>
     <div id="cfDiffHint" style="font-size:13px;color:var(--sub);margin-top:6px;line-height:1.5;"></div>
   </div>
-
-  <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;text-align:center;">
-    差額はレシートのない出入金や記録漏れが原因の可能性があります。
-  </div>
 </div>
 </div>
 
@@ -726,26 +722,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ別推移</span></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
-    カテゴリを縦、月度を横に並べた表です。金額が大きいほど背景が濃く表示されるので、増減がひと目で分かります。
+    直近12ヶ月分（データがある月のみ）の推移を折れ線グラフで表示します。支出は「固定費」「積立」をそれぞれまとめ、それ以外は金額の大きい代表的な分類のみ表示します。
   </div>
 
   <div class="budget-card" style="margin-bottom:10px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button id="trendTypeExpenseBtn" onclick="setTrendType('expense')" style="padding:10px;border-radius:8px;border:1.5px solid var(--red);background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
       <button id="trendTypeIncomeBtn" onclick="setTrendType('income')" style="padding:10px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
     </div>
-    <select id="trendMonthCountSelect" class="field-select" style="width:100%;font-size:15px;font-weight:600;padding:10px;" onchange="renderTrend()">
-      <option value="3">直近3ヶ月</option>
-      <option value="6" selected>直近6ヶ月</option>
-      <option value="12">直近12ヶ月</option>
-      <option value="999">すべての月度</option>
-    </select>
   </div>
 
-  <div class="budget-card" id="trendEval" style="margin-bottom:10px;font-size:14px;line-height:1.8;"></div>
+  <div class="budget-card" id="trendEval" style="margin-bottom:10px;font-size:14px;line-height:1.8;min-height:24px;"></div>
 
-  <div class="budget-card" style="padding:10px;overflow-x:auto;">
-    <table id="trendTable" style="border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap;"></table>
+  <div class="budget-card" style="padding:10px;">
+    <div id="trendChart"></div>
   </div>
 </div>
 </div>
@@ -1118,7 +1108,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.40.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.41.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2051,61 +2041,119 @@ function buildTrendEvaluation(data, n) {
   return html;
 }
 
+const TREND_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#10B981", "#EF4444", "#EC4899", "#14B8A6", "#6366F1"];
+
+// 支出用の系列を作る：固定費はまとめて1本、積立もまとめて1本、
+// それ以外の通常カテゴリは合計金額が大きい代表的なものだけを個別の線として表示する
+function buildExpenseSeries(idxList) {
+  const fixedValues = idxList.map(idx =>
+    periodTxs(idx).filter(t => t.type === "expense" && String(t.cat).startsWith("fc_")).reduce((s, t) => s + t.amount, 0)
+  );
+  const savingsValues = idxList.map(idx =>
+    periodTxs(idx).filter(t => t.type === "expense" && String(t.cat).startsWith("sv_")).reduce((s, t) => s + t.amount, 0)
+  );
+
+  const normalCats = [...CATS_EXPENSE, ...loadCustomCats("expense")];
+  const normalSeries = normalCats.map(c => {
+    const values = idxList.map(idx =>
+      periodTxs(idx).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    );
+    return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
+  }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 4);
+
+  const series = [];
+  if (fixedValues.some(v => v > 0))   series.push({ label: "固定費", values: fixedValues });
+  if (savingsValues.some(v => v > 0)) series.push({ label: "積立",   values: savingsValues });
+  normalSeries.forEach(d => series.push({ label: d.label, values: d.values }));
+  return series;
+}
+
+// 収入用の系列：合計金額が大きい代表的なカテゴリのみ
+function buildIncomeSeries(idxList) {
+  const cats = [...CATS_INCOME, ...loadCustomCats("income"), CARRYOVER_CAT];
+  return cats.map(c => {
+    const values = idxList.map(idx =>
+      periodTxs(idx).filter(t => t.type === "income" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
+    );
+    return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
+  }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
+}
+
+function buildLineChartSvg(series, idxList) {
+  const W = Math.max(320, idxList.length * 46);
+  const H = 200;
+  const padL = 44, padR = 12, padT = 14, padB = 24;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const maxV = Math.max(1, ...series.flatMap(s => s.values));
+  const stepX = idxList.length > 1 ? plotW / (idxList.length - 1) : 0;
+  const yFor = v => padT + plotH - (v / maxV) * plotH;
+  const xFor = i => padL + stepX * i;
+
+  let grid = "";
+  for (let g = 0; g <= 3; g++) {
+    const gv = maxV * g / 3;
+    const gy = yFor(gv);
+    grid += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" stroke="var(--border)" stroke-width="1"/>`;
+    grid += `<text x="${padL - 6}" y="${(gy + 3).toFixed(1)}" font-size="9" fill="var(--sub)" text-anchor="end">${gv >= 1000 ? Math.round(gv / 1000) + "k" : Math.round(gv)}</text>`;
+  }
+
+  let xlabels = "";
+  idxList.forEach((idx, i) => {
+    if (idxList.length <= 8 || i % 2 === 0 || i === idxList.length - 1) {
+      xlabels += `<text x="${xFor(i).toFixed(1)}" y="${H - 6}" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortPeriodLabel(idx))}</text>`;
+    }
+  });
+
+  let lines = "";
+  series.forEach((s, si) => {
+    const color = TREND_COLORS[si % TREND_COLORS.length];
+    const pts = s.values.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(" ");
+    lines += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s.values.forEach((v, i) => {
+      lines += `<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(v).toFixed(1)}" r="2.5" fill="${color}"/>`;
+    });
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;">${grid}${lines}${xlabels}</svg>`;
+}
+
+function buildLegendHtml(series) {
+  return `<div style="display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:12px;">
+    ${series.map((s, i) => `
+      <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text);">
+        <span style="width:10px;height:10px;border-radius:3px;background:${TREND_COLORS[i % TREND_COLORS.length]};display:inline-block;flex-shrink:0;"></span>${escHtml(s.label)}
+      </div>`).join("")}
+  </div>`;
+}
+
 function renderTrend() {
-  const table = document.getElementById("trendTable");
+  const chartBox = document.getElementById("trendChart");
   const evalBox = document.getElementById("trendEval");
-  if (!table || !evalBox) return;
+  if (!chartBox || !evalBox) return;
 
   const periods = ensurePeriods();
   if (!periods.length) {
-    table.innerHTML = "";
+    chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
 
-  const countSel = document.getElementById("trendMonthCountSelect");
-  const wantN = countSel ? parseInt(countSel.value, 10) : 6;
-  const idxList = periods.map((_, i) => i).slice(-Math.min(wantN, periods.length));
-  const n = idxList.length;
+  // 直近12ヶ月分固定（データがある月のみ描画）
+  const n = Math.min(12, periods.length);
+  const idxList = periods.map((_, i) => i).slice(-n);
 
-  const cats = trendType === "expense"
-    ? [...CATS_EXPENSE, ...getFixedCostCatOptions(), ...getSavingsCatOptions(), ...loadCustomCats("expense")]
-    : [...CATS_INCOME, ...loadCustomCats("income"), CARRYOVER_CAT];
-
-  const data = cats.map(c => {
-    const values = idxList.map(idx =>
-      periodTxs(idx).filter(t => t.type === trendType && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
-    );
-    const total = values.reduce((s, v) => s + v, 0);
-    return { cat: c, values, total };
-  }).filter(d => d.total > 0).sort((a, b) => b.total - a.total);
-
-  if (!data.length) {
-    table.innerHTML = "";
+  const series = trendType === "expense" ? buildExpenseSeries(idxList) : buildIncomeSeries(idxList);
+  if (!series.length) {
+    chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     evalBox.innerHTML = `<div style="color:var(--sub);">表示できるデータがありません。</div>`;
     return;
   }
 
-  evalBox.innerHTML = buildTrendEvaluation(data, n);
+  chartBox.innerHTML = `<div style="overflow-x:auto;">${buildLineChartSvg(series, idxList)}</div>${buildLegendHtml(series)}`;
 
-  const header = `<tr>
-    <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:var(--card);">カテゴリ</th>
-    ${idxList.map(idx => `<th style="padding:6px 6px;font-weight:600;color:var(--sub);">${shortPeriodLabel(idx)}</th>`).join("")}
-  </tr>`;
-
-  const rows = data.map(d => {
-    const max = Math.max(1, ...d.values);
-    return `<tr>
-      <td style="padding:6px 8px;position:sticky;left:0;background:var(--card);">${escHtml(d.cat.emoji || "")} ${escHtml(d.cat.label)}</td>
-      ${d.values.map(v => {
-        const ratio = v / max;
-        const bg = v === 0 ? "transparent" : (trendType === "expense" ? `rgba(220,53,69,${0.10 + ratio * 0.55})` : `rgba(29,158,117,${0.10 + ratio * 0.55})`);
-        return `<td style="padding:6px 6px;text-align:right;background:${bg};border-radius:4px;">${v ? fmt(v) : "-"}</td>`;
-      }).join("")}
-    </tr>`;
-  }).join("");
-
-  table.innerHTML = header + rows;
+  const evalData = series.map(s => ({ cat: { label: s.label }, values: s.values }));
+  evalBox.innerHTML = buildTrendEvaluation(evalData, n);
 }
 
 // ============================================================
