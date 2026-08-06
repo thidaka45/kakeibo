@@ -1113,7 +1113,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.49.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.50.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2084,23 +2084,23 @@ function toPctSeries(values) {
 
 // 月ラベルのヘッダー行（各系列行のグラフとx座標を合わせる）
 function buildTrendMonthHeaderRow(slots) {
-  const W = 240;
+  const W = 240, H = 18;
   const n = slots.length;
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
   const labels = slots.map((slot, i) =>
     (i % 2 === 0 || i === slots.length - 1)
-      ? `<text x="${xFor(i).toFixed(1)}" y="10" font-size="9" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
+      ? `<text x="${xFor(i).toFixed(1)}" y="12" font-size="11" fill="var(--sub)" text-anchor="middle">${escHtml(shortSlotLabel(slot))}</text>`
       : ""
   ).join("");
   let dividers = "";
   for (let i = 0; i <= n; i++) {
     const gx = spacing * i;
-    dividers += `<line x1="${gx.toFixed(1)}" y1="12" x2="${gx.toFixed(1)}" y2="14" stroke="var(--border)" stroke-width="1"/>`;
+    dividers += `<line x1="${gx.toFixed(1)}" y1="${H - 3}" x2="${gx.toFixed(1)}" y2="${H}" stroke="var(--border)" stroke-width="1"/>`;
   }
   return `<div style="display:flex;align-items:center;gap:4px;padding-bottom:6px;">
-    <div style="width:64px;flex-shrink:0;"></div>
-    <svg viewBox="0 0 ${W} 14" style="flex:1;min-width:0;height:14px;display:block;">${dividers}${labels}</svg>
+    <div style="width:68px;flex-shrink:0;"></div>
+    <svg viewBox="0 0 ${W} ${H}" style="flex:1;min-width:0;height:${H}px;display:block;">${dividers}${labels}</svg>
   </div>`;
 }
 
@@ -2131,7 +2131,7 @@ function buildTrendSparklineRow(label, pctValues) {
   });
 
   return `<div style="display:flex;align-items:center;gap:4px;padding:13px 0;border-bottom:1px solid var(--border);">
-    <div style="width:64px;flex-shrink:0;font-size:11px;line-height:1.3;color:var(--text);white-space:normal;word-break:break-all;">${escHtml(label)}</div>
+    <div style="width:68px;flex-shrink:0;font-size:13px;line-height:1.3;color:var(--text);white-space:normal;word-break:break-all;">${escHtml(label)}</div>
     <svg viewBox="0 0 ${W} ${H}" style="flex:1;min-width:0;height:${H}px;display:block;">
       ${dividers}
       <line x1="0" y1="${center}" x2="${W}" y2="${center}" stroke="var(--sub)" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>
@@ -2142,7 +2142,7 @@ function buildTrendSparklineRow(label, pctValues) {
 
 function buildTrendSectionHtml(title, series) {
   if (!series.length) return "";
-  return `<div style="font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 4px;text-decoration:underline;">${escHtml(title)}</div>
+  return `<div style="font-size:15px;font-weight:700;color:var(--sub);margin:14px 0 4px;text-decoration:underline;">${escHtml(title)}</div>
     ${series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("")}`;
 }
 
@@ -2182,7 +2182,7 @@ function renderTrend() {
   }
 
   legendBox.innerHTML = `
-    <div style="font-size:11px;color:var(--sub);margin-bottom:8px;"><span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:8px;"><span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
     ${buildTrendMonthHeaderRow(slots)}
   `;
   chartBox.innerHTML = sectionsHtml;
