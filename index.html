@@ -1093,7 +1093,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.52.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.58.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -1724,8 +1724,74 @@ function inputNum(v) {
 
 // 支出登録時に「固定費から選択」したカテゴリの場合、その入力金額を最新の請求額として
 // 固定費登録の同項目に反映し、支払い済み（□→■）にする
-function updateFixedCostAmountFromTx(type, cat, amt) {
+// 指定した日付が「現在進行中の月度」に属しているかどうかを判定する
+function isCurrentPeriodDate(dateStr) {
+  const periods = ensurePeriods();
+  if (!periods.length) return true; // 月度が未設定な状態（初期状態）では常に許可
+  return findPeriodIndexForDate(dateStr) === periods.length - 1;
+}
+
+// 直前の月度（periods.length-2）の取引が編集され、すでに新しい月度への移行（繰越の自動記録）が
+// 済んでいる場合に、修正後の内容に合わせて繰越の金額を再計算し、利用者に確認の上で反映する。
+// ※ 積立自動計上・固定費の「済」リセットはやり直さない（積立の二重計上を避けるため）。
+function syncCarryoverIfNeeded(editedTxDate) {
+  const periods = ensurePeriods();
+  if (periods.length < 2) return;
+  const editedIdx = findPeriodIndexForDate(editedTxDate);
+  const prevIdx = periods.length - 2; // 直前に確定した月度
+  if (editedIdx !== prevIdx) return; // 「直前の月度」以外の修正は対象外（対応範囲を限定）
+
+  const curIdx = periods.length - 1;
+  const correctBalance = Math.max(
+    0,
+    periodTxs(prevIdx).filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0) -
+    periodTxs(prevIdx).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+  );
+
+  const curTxsAll = loadTx();
+  const carryoverMemo = `${periodLabel(prevIdx)}繰越`;
+  const existing = curTxsAll.find(t => t.source === "carryover" && t.memo === carryoverMemo &&
+    findPeriodIndexForDate(t.date) === curIdx);
+  const existingAmount = existing ? existing.amount : 0;
+
+  if (correctBalance === existingAmount) return; // ズレていなければ何もしない
+
+  const ok = confirm(
+    `${periodLabel(prevIdx)}の修正により、${periodLabel(curIdx)}への繰越金額が\n` +
+    `${fmt(existingAmount)} → ${fmt(correctBalance)} に変わります。\n\n` +
+    `繰越の記録を修正後の金額に更新しますか？\n` +
+    `（「キャンセル」を選ぶと、繰越の記録は今のまま変更されません）`
+  );
+  if (!ok) return;
+
+  if (existing) {
+    if (correctBalance > 0) {
+      existing.amount = correctBalance;
+    } else {
+      const i = curTxsAll.findIndex(t => t === existing);
+      if (i !== -1) curTxsAll.splice(i, 1);
+    }
+    saveTx(curTxsAll);
+  } else if (correctBalance > 0) {
+    curTxsAll.push({
+      id: Date.now(),
+      type: "income",
+      cat: "carryover",
+      amount: correctBalance,
+      memo: carryoverMemo,
+      date: periods[curIdx].start_date,
+      source: "carryover",
+    });
+    saveTx(curTxsAll);
+  }
+  showToast(`繰越の記録を ${fmt(correctBalance)} に更新しました`);
+}
+
+function updateFixedCostAmountFromTx(type, cat, amt, date) {
   if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
+  // 過去の月度への追記（記録漏れの後追い入力など）では、
+  // 今月の固定費一覧の「済」状態を誤って変更しないようにする
+  if (date && !isCurrentPeriodDate(date)) return;
   const fcId = cat.slice(3);
   const cycle = ensureCycle();
   const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
@@ -1738,8 +1804,9 @@ function updateFixedCostAmountFromTx(type, cat, amt) {
 
 // 支出取引が削除された場合、または固定費以外のカテゴリに変更された場合、
 // 元々紐付いていた固定費項目を未払い（□）状態に戻す
-function revertFixedCostPaidFromTx(type, cat) {
+function revertFixedCostPaidFromTx(type, cat, date) {
   if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
+  if (date && !isCurrentPeriodDate(date)) return;
   const fcId = cat.slice(3);
   const cycle = ensureCycle();
   const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
@@ -1772,9 +1839,15 @@ function revertSavingsBalanceFromTx(type, cat, amt) {
 
 function submitTx() {
   const periods = ensurePeriods();
-  if (periods.length && viewPeriodIndex !== null && viewPeriodIndex !== periods.length - 1) {
-    showToast("過去の月度は参照専用のため、記録の追加・更新はできません");
-    return;
+  const dateForCheck = F("dateInput").value || new Date().toISOString().slice(0,10);
+  const checkIdx = periods.length ? findPeriodIndexForDate(dateForCheck) : null;
+  if (periods.length && checkIdx !== periods.length - 1) {
+    const ok = confirm(
+      `入力された日付（${dateForCheck}）は${periodLabel(checkIdx)}に属します。過去の月度です。\n\n` +
+      `記録漏れの追記など、意図的な操作であれば「OK」を選んでください。\n` +
+      `（過去の集計・予算消化率などに影響します）`
+    );
+    if (!ok) return;
   }
   const amt = parseInt(inputAmt || "0");
   if (!amt) { showToast("金額を入力してください"); return; }
@@ -1814,10 +1887,12 @@ function submitTx() {
     adjustBalance(inputType === "expense" ? -amt : amt);
     // カテゴリが変わっていない場合でも、金額だけの編集で積立残高が
     // 二重加算されないよう、必ず旧内容を取り消してから新内容を反映する
-    revertFixedCostPaidFromTx(old.type, old.cat);
+    revertFixedCostPaidFromTx(old.type, old.cat, old.date);
     revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
-    updateFixedCostAmountFromTx(inputType, finalCat, amt);
+    updateFixedCostAmountFromTx(inputType, finalCat, amt, date);
     updateSavingsBalanceFromTx(inputType, finalCat, amt);
+    syncCarryoverIfNeeded(old.date);
+    if (date !== old.date) syncCarryoverIfNeeded(date);
     showToast("取引を更新しました");
     resetEditMode();
   } else {
@@ -1833,8 +1908,9 @@ function submitTx() {
     });
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
-    updateFixedCostAmountFromTx(inputType, finalCat, amt);
+    updateFixedCostAmountFromTx(inputType, finalCat, amt, date);
     updateSavingsBalanceFromTx(inputType, finalCat, amt);
+    syncCarryoverIfNeeded(date);
     showToast(inputType==="expense" ? "支出を登録しました" : "収入を登録しました");
   }
 
@@ -1870,8 +1946,12 @@ function openTxEdit(id) {
   const periods = ensurePeriods();
   const txPeriodIdx = findPeriodIndexForDate(tx.date);
   if (periods.length && txPeriodIdx !== periods.length - 1) {
-    showToast("過去の月度の記録は参照専用のため編集できません");
-    return;
+    const ok = confirm(
+      `${periodLabel(txPeriodIdx)}は過去の月度です。\n\n` +
+      `記録漏れの修正など、意図的な操作であれば「OK」を選んでください。\n` +
+      `（過去の集計・予算消化率などに影響します）`
+    );
+    if (!ok) return;
   }
   editingTxId = id;
 
@@ -1913,8 +1993,9 @@ function deleteTxEdit() {
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
     txs.splice(idx, 1);
     saveTx(txs);
-    revertFixedCostPaidFromTx(old.type, old.cat);
+    revertFixedCostPaidFromTx(old.type, old.cat, old.date);
     revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
+    syncCarryoverIfNeeded(old.date);
   }
   showToast("取引を削除しました");
   resetEditMode();
@@ -1990,11 +2071,17 @@ function buildTrendSlots() {
   const anchorPeriod = periods.length >= 2 ? periods[periods.length - 2] : periods[periods.length - 1];
   const lastConfirmed = new Date(anchorPeriod.start_date);
 
-  const txs = loadTx();
+  // 「実績のある最初の月」は、取引に記録された生の日付ではなく、
+  // その取引が実際に属している月度（ファイル）を基準に判定する。
+  // （例：古いレシートでOCR試験をして、記録上は7月度の取引なのに
+  // 　　レシート印字日が5月だった、というようなケースに影響されないようにするため）
   let firstDataMonth = new Date(lastConfirmed.getFullYear(), lastConfirmed.getMonth(), 1);
-  if (txs.length) {
-    const firstTxDate = txs.map(t => new Date(t.date)).sort((a, b) => a - b)[0];
-    firstDataMonth = new Date(firstTxDate.getFullYear(), firstTxDate.getMonth(), 1);
+  for (let i = 0; i < periods.length; i++) {
+    if (periodTxs(i).length > 0) {
+      firstDataMonth = new Date(periods[i].start_date);
+      firstDataMonth = new Date(firstDataMonth.getFullYear(), firstDataMonth.getMonth(), 1);
+      break;
+    }
   }
 
   const rollingStart = new Date(lastConfirmed.getFullYear(), lastConfirmed.getMonth() - 11, 1);
@@ -3757,6 +3844,23 @@ function receiveFromUrl() {
     return;
   }
 
+  // レシートの日付が今日から極端に離れている（60日以上前）場合、OCRの読み取りミスや
+  // 試験時に古いレシートを使ったなど、意図しない日付である可能性があるため、
+  // 無条件で記録せず一度確認する（「今日の日付」に振り替えるか選べるようにする）。
+  let finalDate = date;
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const daysDiff = Math.round((today - new Date(date)) / (1000 * 60 * 60 * 24));
+  if (daysDiff > 60 || daysDiff < -3) {
+    const useReceiptDate = confirm(
+      `${store} ¥${amount.toLocaleString()}\n\n` +
+      `レシートの日付が「${date}」と、今日（${todayStr}）から大きく離れています。\n\n` +
+      `「OK」→ レシートの日付（${date}）のまま記録します\n` +
+      `「キャンセル」→ 今日の日付（${todayStr}）で記録します`
+    );
+    if (!useReceiptDate) finalDate = todayStr;
+  }
+
   const cycle = ensureCycle();
   const fixedCosts = cycle.fixed_costs || [];
 
@@ -3776,13 +3880,14 @@ function receiveFromUrl() {
       const txs = loadTx();
       txs.push({
         id: Date.now(), type: "expense", cat: "fc_" + learnedFc.id, amount,
-        memo: store || "", date, source: "receipt", receiptRef: rawRef || null
+        memo: store || "", date: finalDate, source: "receipt", receiptRef: rawRef || null
       });
       saveTx(txs);
       adjustBalance(-amount);
-      updateFixedCostAmountFromTx("expense", "fc_" + learnedFc.id, amount);
-      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
-      showToast(`${date} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
+      updateFixedCostAmountFromTx("expense", "fc_" + learnedFc.id, amount, finalDate);
+      syncCarryoverIfNeeded(finalDate);
+      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
+      showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
       return;
     }
     // 学習した固定費IDが「存在しない（削除済み）」または「既に支払済み」の場合は、
@@ -3810,7 +3915,7 @@ function receiveFromUrl() {
 
   if (fcCandidate) {
     const linkToFixed = confirm(
-      `${date} ${store} ¥${amount.toLocaleString()}\n\n` +
+      `${finalDate} ${store} ¥${amount.toLocaleString()}\n\n` +
       `固定費「${fcCandidate.label}」の支払いですか？\n\n` +
       `「OK」→ 固定費「${fcCandidate.label}」の支払いとして記録し、固定費一覧を「済」にします\n` +
       `「キャンセル」→ 通常の支出として記録します（固定費一覧は更新されません）\n\n` +
@@ -3825,16 +3930,17 @@ function receiveFromUrl() {
         cat: "fc_" + fcCandidate.id,
         amount,
         memo: store || "",
-        date,
+        date: finalDate,
         source: "receipt",
         receiptRef: rawRef || null
       });
       saveTx(txs);
       adjustBalance(-amount);
-      updateFixedCostAmountFromTx("expense", "fc_" + fcCandidate.id, amount);
+      updateFixedCostAmountFromTx("expense", "fc_" + fcCandidate.id, amount, finalDate);
+      syncCarryoverIfNeeded(finalDate);
 
-      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
-      showToast(`${date} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
+      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
+      showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
       return;
     }
   }
@@ -3849,20 +3955,21 @@ function receiveFromUrl() {
     cat,
     amount,
     memo: store || "",
-    date,
+    date: finalDate,
     source: "receipt",
     receiptRef: rawRef || null // 画像本体は保存せず、スマホ内の画像を後から呼び出すための識別子のみ保持する
   });
   saveTx(txs);
   adjustBalance(-amount);
+  syncCarryoverIfNeeded(finalDate);
 
-  if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(date);
+  if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
 
 
   showToast(
     matched
-      ? `${date} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
-      : `${date} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
+      ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
+      : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
 }
 
