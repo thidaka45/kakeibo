@@ -1098,7 +1098,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.59.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.60.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2902,6 +2902,16 @@ function openSavingsForm(id) {
     return;
   }
 
+  // IDが指定されたのに対象が見つからない場合（削除済み項目、複数タブ・戻る操作直後の
+  // 古い画面表示など）は、「新規登録」の体裁でフォームを開いてしまうと、保存時にどこにも
+  // 反映されないまま入力内容だけが失われてしまう（サイレントなデータ消失）ため、
+  // ここで確実に処理を中断する。
+  const existingPlan = id ? loadSavingsPlans().find(x => x.id === id) : null;
+  if (id && !existingPlan) {
+    showToast("対象の積立プランが見つかりませんでした（削除済みの可能性があります）。一覧を開き直してください");
+    return;
+  }
+
   editingSavingsId = id || null;
   form.style.display = "block";
   document.getElementById("savingsList").style.display = "none";
@@ -2928,8 +2938,7 @@ function openSavingsForm(id) {
 
   // 既存データ編集の場合
   if (id) {
-    const plans = loadSavingsPlans();
-    const p = plans.find(x => x.id === id);
+    const p = existingPlan;
     if (p) {
       document.getElementById("savingsName").value    = p.name;
       document.getElementById("savingsAmount").value  = "¥" + (p.amount || 0).toLocaleString("ja-JP");
@@ -3559,6 +3568,15 @@ function onFcNameInput() {
 function openFixedCostForm(id = null) {
   const cycle = ensureCycle();
   const item = id ? cycle.fixed_costs.find(i => i.id === id) : null;
+
+  // IDが指定されたのに対象が見つからない場合（削除済み項目、複数タブ・戻る操作直後の
+  // 古い画面表示など）は、「新規登録」の体裁でフォームを開いてしまうと、保存時にどこにも
+  // 反映されないまま入力内容だけが失われてしまう（サイレントなデータ消失）ため、
+  // ここで確実に処理を中断する。
+  if (id && !item) {
+    showToast("対象の固定費が見つかりませんでした（削除済みの可能性があります）。一覧を開き直してください");
+    return;
+  }
 
   if (item && item.paid) {
     showToast("支払い済みの項目です。取引実績から削除・修正してから編集してください");
