@@ -176,6 +176,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .receipt-upload-text{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
 .receipt-upload-sub{font-size:12px;color:var(--muted);}
 #receiptInput{display:none;}
+/* ===== レシート画像ビューア（アプリ内保存・表示用） ===== */
+.receipt-viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:none;flex-direction:column;}
+.receipt-viewer-overlay.show{display:flex;}
+.receipt-viewer-top{display:flex;justify-content:flex-end;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;}
+.receipt-viewer-btn{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:15px;font-weight:600;border-radius:10px;padding:8px 14px;cursor:pointer;font-family:inherit;touch-action:manipulation;}
+.receipt-viewer-btn.danger{background:rgba(226,75,74,.85);}
+.receipt-viewer-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:0 10px 10px;}
+.receipt-viewer-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;}
 .ocr-result{background:var(--green-l);border-radius:var(--radius-s);padding:14px;margin-top:14px;text-align:left;display:none;}
 .ocr-result.show{display:block;}
 .ocr-title{font-size:12px;font-weight:600;color:var(--green-d);margin-bottom:8px;}
@@ -1098,7 +1106,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.60.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.61.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2404,24 +2412,135 @@ function renderCatSummary(idx) {
       ).join("");
 }
 
+// ============================================================
+// レシート画像のアプリ内保存（IndexedDB）
+// ------------------------------------------------------------
+// Shortcuts側でBase64エンコードして送ってきた画像データを、
+// アプリ内のIndexedDBにBlobとして保存する。保存キーは receiptRef
+// （Shortcuts側で組み立てたファイル名識別子、例: "2026-07-15.jpg"）。
+// これにより、以後の画像確認はShortcuts/Quick Lookを経由せず、
+// アプリ内の<img>ビューアだけで完結する。
+// ============================================================
+const RECEIPTS_DB_NAME = "kakeibo_receipts_db";
+const RECEIPTS_STORE = "receipts";
+let receiptsDbPromise = null;
+
+function openReceiptsDB() {
+  if (receiptsDbPromise) return receiptsDbPromise;
+  receiptsDbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(RECEIPTS_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(RECEIPTS_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return receiptsDbPromise;
+}
+
+async function saveReceiptBlob(key, blob) {
+  const db = await openReceiptsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readwrite");
+    tx.objectStore(RECEIPTS_STORE).put(blob, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function getReceiptBlob(key) {
+  const db = await openReceiptsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readonly");
+    const req = tx.objectStore(RECEIPTS_STORE).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteReceiptBlob(key) {
+  const db = await openReceiptsDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECEIPTS_STORE, "readwrite");
+    tx.objectStore(RECEIPTS_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Base64文字列（data:URLのヘッダを含む場合・含まない場合の両方に対応）をBlobに変換する
+function base64ToBlob(base64, mimeType = "image/jpeg") {
+  const cleaned = base64.includes(",") ? base64.split(",").pop() : base64;
+  const byteChars = atob(cleaned);
+  const byteNumbers = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+  return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+}
+
 // 収入・支出の履歴リスト（タップで編集・削除、レシート取込分は📷バッジ表示）
-// レシート画像を表示するためのShortcut名（Shortcutsアプリ側で同名のショートカットを
-// 作成し、テキスト入力（識別子）を受け取ってFilesアプリ内の該当画像を検索・表示するようにする）
+// 過去の記録との互換用：画像データを持たない古い取引（receiptRefのみ）に対しては、
+// 従来通りShortcuts側の表示用ショートカットを呼び出すフォールバックを残しておく。
 const RECEIPT_VIEW_SHORTCUT_NAME = "レシート表示";
 
 // レシート取込みバッジをタップしたときの処理。
-// 画像そのものはアプリに保存せず、スマホ内（Filesアプリ等）に置いたままにしている。
-// 識別子（ファイル名など）をもとに、Shortcuts側の表示用ショートカットを呼び出す。
-function showReceiptInfo(id) {
+// まずアプリ内（IndexedDB）に画像があればそれをその場で表示する。
+// 画像が見つからない場合（改修前に記録した古い取引など）は、
+// 従来通りFilesアプリ内の画像をShortcuts経由で表示する動作にフォールバックする。
+async function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx || !tx.receiptRef) {
     showToast("この取引に紐づく画像の識別子がありません（画像はスマホ内に保存する運用です）");
     return;
   }
-  // ショートカット（別アプリ）を開いて戻ってきたとき、同じ編集画面に復帰できるよう保存しておく
+
+  // ① アプリ内（IndexedDB）に画像があれば、その場で即表示（Shortcutsを一切経由しない）
+  try {
+    const blob = await getReceiptBlob(tx.receiptRef);
+    if (blob) {
+      openReceiptViewer(tx.receiptRef, blob);
+      return;
+    }
+  } catch (e) {
+    // IndexedDB参照に失敗した場合も、下のフォールバックに進む
+  }
+
+  // ② 画像がアプリ内になかった場合（改修前に記録した古い取引など）は、
+  //    従来通りShortcuts側の表示用ショートカットにフォールバックする
   localStorage.setItem("kakeibo_pending_return_tx", JSON.stringify({ id: tx.id, type: tx.type }));
   const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}`;
   location.href = url;
+}
+
+// レシート画像ビューアを開く（アプリ内表示用）
+let receiptViewerKey = null;
+function openReceiptViewer(key, blob) {
+  receiptViewerKey = key;
+  const imgEl = document.getElementById("receiptViewerImg");
+  const url = URL.createObjectURL(blob);
+  imgEl.dataset.prevUrl && URL.revokeObjectURL(imgEl.dataset.prevUrl);
+  imgEl.src = url;
+  imgEl.dataset.prevUrl = url;
+  document.getElementById("receiptViewerOverlay").classList.add("show");
+}
+
+function closeReceiptViewer() {
+  const imgEl = document.getElementById("receiptViewerImg");
+  if (imgEl.dataset.prevUrl) { URL.revokeObjectURL(imgEl.dataset.prevUrl); delete imgEl.dataset.prevUrl; }
+  imgEl.src = "";
+  document.getElementById("receiptViewerOverlay").classList.remove("show");
+  receiptViewerKey = null;
+}
+
+async function deleteCurrentReceiptPhoto() {
+  if (!receiptViewerKey) { closeReceiptViewer(); return; }
+  if (!confirm("この取引に保存されている画像を削除します。よろしいですか？（取引の記録自体は削除されません）")) return;
+  try {
+    await deleteReceiptBlob(receiptViewerKey);
+    showToast("画像を削除しました");
+  } catch (e) {
+    showToast("画像の削除に失敗しました");
+  }
+  closeReceiptViewer();
 }
 
 function renderHistoryTxList(idx) {
@@ -3871,14 +3990,29 @@ function receiveFromUrl() {
     showToast("受け取ったデータの形式が正しくありませんでした");
     return;
   }
-  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（Filesアプリ内のファイル名など）
-  const [rawDate, store, rawAmount, rawCat, rawRef] = parts;
+  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（ファイル名）, [任意]予備, [任意]画像本体（Base64）
+  // ※ 7番目の画像Base64データは、アプリ内（IndexedDB）に画像そのものを保存するために使う。
+  //    Base64の文字セットにカンマは含まれないため、末尾に追加してもカンマ分割を壊さない。
+  const [rawDate, store, rawAmount, rawCat, rawRef, , rawImageBase64] = parts;
 
   const date = normalizeDateStr(rawDate);
   const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(amount)) {
     showToast("受け取ったデータの形式が正しくありませんでした");
     return;
+  }
+
+  // 画像本体（Base64）が付いていれば、アプリ内（IndexedDB）に保存しておく。
+  // キーはrawRef（Shortcuts側で組み立てたファイル名識別子）を使う。
+  // 固定費／通常支出のどの分岐で取引が記録されても同じ画像を参照できるよう、
+  // 取引の登録処理より前にここで保存しておく。
+  if (rawRef && rawImageBase64 && rawImageBase64.length > 100) {
+    try {
+      const blob = base64ToBlob(rawImageBase64, "image/jpeg");
+      saveReceiptBlob(rawRef, blob); // 非同期だが完了を待たずに進めてOK（保存自体は裏で行われる）
+    } catch (e) {
+      // Base64の変換に失敗しても、テキストデータの記録自体は継続する
+    }
   }
 
   // レシートの日付が今日から極端に離れている（60日以上前）場合、OCRの読み取りミスや
@@ -4065,5 +4199,16 @@ function init() {
 
 init();
 </script>
+<!-- レシート画像ビューア（アプリ内IndexedDBに保存した画像を表示する） -->
+<div class="receipt-viewer-overlay" id="receiptViewerOverlay" onclick="if(event.target===this) closeReceiptViewer()">
+  <div class="receipt-viewer-top">
+    <button class="receipt-viewer-btn danger" onclick="deleteCurrentReceiptPhoto()">削除</button>
+    <button class="receipt-viewer-btn" onclick="closeReceiptViewer()">閉じる</button>
+  </div>
+  <div class="receipt-viewer-body">
+    <img id="receiptViewerImg" src="" alt="レシート画像">
+  </div>
+</div>
+
 </body>
 </html>
