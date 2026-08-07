@@ -874,6 +874,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       全データを1ファイルに保存する
     </button>
     <input type="file" id="fullBackupFileInput" accept="application/json,.json" style="display:none;" onchange="importFullBackupFile(event)">
+    <input type="file" id="receiptFileInput" accept="image/*" style="display:none;" onchange="onReceiptFileChosen(event)">
     <button class="export-btn" onclick="document.getElementById('fullBackupFileInput').click()" style="background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       保存したファイルから復元する
     </button>
@@ -1106,7 +1107,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.61.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2009,6 +2010,12 @@ function deleteTxEdit() {
     revertFixedCostPaidFromTx(old.type, old.cat, old.date);
     revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
     syncCarryoverIfNeeded(old.date);
+
+    // 取引に画像が保存されていれば、アプリ内（IndexedDB）の画像も一緒に削除し、
+    // 取引の記録が残っていないのに画像だけがストレージに残り続けるのを防ぐ
+    if (old.receiptRef) {
+      deleteReceiptBlob(old.receiptRef).catch(() => {});
+    }
   }
   showToast("取引を削除しました");
   resetEditMode();
@@ -2478,22 +2485,20 @@ function base64ToBlob(base64, mimeType = "image/jpeg") {
 }
 
 // 収入・支出の履歴リスト（タップで編集・削除、レシート取込分は📷バッジ表示）
-// 過去の記録との互換用：画像データを持たない古い取引（receiptRefのみ）に対しては、
-// 従来通りShortcuts側の表示用ショートカットを呼び出すフォールバックを残しておく。
-const RECEIPT_VIEW_SHORTCUT_NAME = "レシート表示";
-
 // レシート取込みバッジをタップしたときの処理。
-// まずアプリ内（IndexedDB）に画像があればそれをその場で表示する。
-// 画像が見つからない場合（改修前に記録した古い取引など）は、
-// 従来通りFilesアプリ内の画像をShortcuts経由で表示する動作にフォールバックする。
+// ① アプリ内（IndexedDB）にすでに画像があれば、その場で即表示。
+// ② まだ画像がなければ、その場でファイル選択シートを開き、
+//    利用者がiCloud内の画像を選ぶとIndexedDBに保存され、以後は①の経路で即表示される。
+//    （Shortcuts.appを一切経由しないため、アプリ切り替えのチラつきが発生しない）
+let receiptPickTxId = null;
 async function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx || !tx.receiptRef) {
-    showToast("この取引に紐づく画像の識別子がありません（画像はスマホ内に保存する運用です）");
+    showToast("この取引に紐づく画像の識別子がありません");
     return;
   }
 
-  // ① アプリ内（IndexedDB）に画像があれば、その場で即表示（Shortcutsを一切経由しない）
+  // ① アプリ内（IndexedDB）に画像があれば、その場で即表示
   try {
     const blob = await getReceiptBlob(tx.receiptRef);
     if (blob) {
@@ -2501,14 +2506,38 @@ async function showReceiptInfo(id) {
       return;
     }
   } catch (e) {
-    // IndexedDB参照に失敗した場合も、下のフォールバックに進む
+    // 参照に失敗した場合も、下の選択フローに進む
   }
 
-  // ② 画像がアプリ内になかった場合（改修前に記録した古い取引など）は、
-  //    従来通りShortcuts側の表示用ショートカットにフォールバックする
-  localStorage.setItem("kakeibo_pending_return_tx", JSON.stringify({ id: tx.id, type: tx.type }));
-  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(RECEIPT_VIEW_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(tx.receiptRef)}`;
-  location.href = url;
+  // ② 画像がまだない場合は、ファイル選択シートを開く
+  receiptPickTxId = id;
+  const folderHint = tx.date ? tx.date.slice(0, 7) : null; // "2026-07-24" → "2026-07"
+  if (folderHint) {
+    showToast(`「レシート → ${folderHint}」フォルダ内の画像を選んでください`);
+  }
+  document.getElementById("receiptFileInput").value = "";
+  document.getElementById("receiptFileInput").click();
+}
+
+// ファイル選択シートで画像が選ばれたときの処理
+async function onReceiptFileChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  const id = receiptPickTxId;
+  receiptPickTxId = null;
+  if (!file || id === null) return;
+
+  const tx = loadTx().find(t => t.id === id);
+  if (!tx || !tx.receiptRef) { showToast("画像の保存に失敗しました"); return; }
+
+  try {
+    await saveReceiptBlob(tx.receiptRef, file);
+    showToast("画像を保存しました");
+    openReceiptViewer(tx.receiptRef, file);
+    // 履歴一覧・編集画面に画像有無のバッジ等があれば反映されるよう再描画
+    if (typeof renderHome === "function") renderHome();
+  } catch (err) {
+    showToast("画像の保存に失敗しました");
+  }
 }
 
 // レシート画像ビューアを開く（アプリ内表示用）
@@ -3990,29 +4019,17 @@ function receiveFromUrl() {
     showToast("受け取ったデータの形式が正しくありませんでした");
     return;
   }
-  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（ファイル名）, [任意]予備, [任意]画像本体（Base64）
-  // ※ 7番目の画像Base64データは、アプリ内（IndexedDB）に画像そのものを保存するために使う。
-  //    Base64の文字セットにカンマは含まれないため、末尾に追加してもカンマ分割を壊さない。
-  const [rawDate, store, rawAmount, rawCat, rawRef, , rawImageBase64] = parts;
+  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（ファイル名）
+  // ※ 画像本体はURL経由では受け取らない方針（GitHub Pages側のURL長制限に阻まれるため）。
+  //    画像は、取引の「画像」ボタンをタップした際にファイル選択（<input type="file">）で
+  //    その場で選んでもらい、アプリ内（IndexedDB）に保存する運用にしている（showReceiptInfo参照）。
+  const [rawDate, store, rawAmount, rawCat, rawRef] = parts;
 
   const date = normalizeDateStr(rawDate);
   const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(amount)) {
     showToast("受け取ったデータの形式が正しくありませんでした");
     return;
-  }
-
-  // 画像本体（Base64）が付いていれば、アプリ内（IndexedDB）に保存しておく。
-  // キーはrawRef（Shortcuts側で組み立てたファイル名識別子）を使う。
-  // 固定費／通常支出のどの分岐で取引が記録されても同じ画像を参照できるよう、
-  // 取引の登録処理より前にここで保存しておく。
-  if (rawRef && rawImageBase64 && rawImageBase64.length > 100) {
-    try {
-      const blob = base64ToBlob(rawImageBase64, "image/jpeg");
-      saveReceiptBlob(rawRef, blob); // 非同期だが完了を待たずに進めてOK（保存自体は裏で行われる）
-    } catch (e) {
-      // Base64の変換に失敗しても、テキストデータの記録自体は継続する
-    }
   }
 
   // レシートの日付が今日から極端に離れている（60日以上前）場合、OCRの読み取りミスや
