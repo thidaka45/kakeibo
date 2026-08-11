@@ -964,6 +964,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 </div>
 
 
+
+<!-- レシート登録直後、証憑画像の選択を促すプロンプト（実ボタンのタップから直接ファイル選択シートを開くため） -->
+<div class="receipt-prompt-overlay" id="receiptPromptOverlay">
+  <div class="receipt-prompt-card">
+    <p>証憑とする画像を選択してください</p>
+    <div class="receipt-prompt-actions">
+      <button class="receipt-prompt-btn primary" onclick="confirmReceiptPrompt()">選択する</button>
+      <button class="receipt-prompt-btn secondary" onclick="closeReceiptPrompt()">後で選ぶ</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // 定数
@@ -1115,7 +1127,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.6"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -4309,17 +4321,6 @@ init();
   </div>
   <div class="receipt-viewer-body">
     <img id="receiptViewerImg" src="" alt="レシート画像">
-  </div>
-</div>
-
-<!-- レシート登録直後、証憑画像の選択を促すプロンプト（実ボタンのタップから直接ファイル選択シートを開くため） -->
-<div class="receipt-prompt-overlay" id="receiptPromptOverlay">
-  <div class="receipt-prompt-card">
-    <p>証憑とする画像を選択してください</p>
-    <div class="receipt-prompt-actions">
-      <button class="receipt-prompt-btn primary" onclick="confirmReceiptPrompt()">選択する</button>
-      <button class="receipt-prompt-btn secondary" onclick="closeReceiptPrompt()">後で選ぶ</button>
-    </div>
   </div>
 </div>
 
