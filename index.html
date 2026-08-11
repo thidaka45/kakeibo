@@ -1107,7 +1107,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.4"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2524,6 +2524,19 @@ function base64ToBlob(base64, mimeType = "image/jpeg") {
 // 重要：iOS Safariはボタンタップの呼び出しの中で"間を置かず"
 // input.click()しないとファイル選択シートを開けないため、この関数は
 // あえて async にせず、事前に用意した receiptIdSet を同期的に見て判定する。
+// レシート登録直後に、その場で証憑画像の選択を促すためのヘルパー。
+// ------------------------------------------------------------
+// confirm()の「OK」タップは同期的な呼び出しスタックの中で処理されるため、
+// その直後にinput.click()（showReceiptInfo内）を呼んでもiOS Safariの
+// ユーザージェスチャー制約に引っかからず、ファイル選択シートを開ける。
+// receiptRefが無い（画像なしのレシート登録）場合は何もしない。
+function promptReceiptImageSelect(txId, receiptRef) {
+  if (!receiptRef) return;
+  if (confirm("証憑とする画像を選択してください")) {
+    showReceiptInfo(txId);
+  }
+}
+
 let receiptPickTxId = null;
 function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
@@ -4118,7 +4131,7 @@ function receiveFromUrl() {
       syncCarryoverIfNeeded(finalDate);
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
-      openTxEdit(newTxId);
+      promptReceiptImageSelect(newTxId, rawRef);
       return;
     }
     // 学習した固定費IDが「存在しない（削除済み）」または「既に支払済み」の場合は、
@@ -4173,7 +4186,7 @@ function receiveFromUrl() {
 
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
-      openTxEdit(newTxId);
+      promptReceiptImageSelect(newTxId, rawRef);
       return;
     }
   }
@@ -4205,7 +4218,7 @@ function receiveFromUrl() {
       ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
-  openTxEdit(newTxId);
+  promptReceiptImageSelect(newTxId, rawRef);
 }
 
 // ============================================================
