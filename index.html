@@ -1107,7 +1107,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.3"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -4106,9 +4106,10 @@ function receiveFromUrl() {
   } else if (learnedValue) {
     const learnedFc = fixedCosts.find(fc => fc.id === learnedValue && !fc.paid);
     if (learnedFc) {
+      const newTxId = Date.now();
       const txs = loadTx();
       txs.push({
-        id: Date.now(), type: "expense", cat: "fc_" + learnedFc.id, amount,
+        id: newTxId, type: "expense", cat: "fc_" + learnedFc.id, amount,
         memo: store || "", date: finalDate, source: "receipt", receiptRef: rawRef || null
       });
       saveTx(txs);
@@ -4117,6 +4118,7 @@ function receiveFromUrl() {
       syncCarryoverIfNeeded(finalDate);
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
+      openTxEdit(newTxId);
       return;
     }
     // 学習した固定費IDが「存在しない（削除済み）」または「既に支払済み」の場合は、
@@ -4152,9 +4154,10 @@ function receiveFromUrl() {
     );
     fcLearnRemember(store, rawCat, linkToFixed ? fcCandidate.id : "none");
     if (linkToFixed) {
+      const newTxId = Date.now();
       const txs = loadTx();
       txs.push({
-        id: Date.now(),
+        id: newTxId,
         type: "expense",
         cat: "fc_" + fcCandidate.id,
         amount,
@@ -4170,6 +4173,7 @@ function receiveFromUrl() {
 
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
+      openTxEdit(newTxId);
       return;
     }
   }
@@ -4177,9 +4181,10 @@ function receiveFromUrl() {
   const matched = CATS_EXPENSE.find(c => c.label === rawCat);
   const cat = matched ? matched.id : CATS_EXPENSE[0].id;
 
+  const newTxId = Date.now();
   const txs = loadTx();
   txs.push({
-    id: Date.now(),
+    id: newTxId,
     type: "expense",
     cat,
     amount,
@@ -4200,6 +4205,7 @@ function receiveFromUrl() {
       ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
+  openTxEdit(newTxId);
 }
 
 // ============================================================
