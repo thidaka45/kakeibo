@@ -184,6 +184,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .receipt-viewer-btn.danger{background:rgba(226,75,74,.85);}
 .receipt-viewer-body{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:0 10px 10px;}
 .receipt-viewer-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;}
+.receipt-prompt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:none;align-items:center;justify-content:center;padding:20px;}
+.receipt-prompt-overlay.show{display:flex;}
+.receipt-prompt-card{background:var(--card);border-radius:14px;padding:22px 20px;max-width:320px;width:100%;text-align:center;}
+.receipt-prompt-card p{margin:0 0 18px;font-size:15px;line-height:1.6;color:var(--text);}
+.receipt-prompt-actions{display:flex;flex-direction:column;gap:10px;}
+.receipt-prompt-btn{border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation;}
+.receipt-prompt-btn.primary{background:var(--green);color:#fff;}
+.receipt-prompt-btn.secondary{background:rgba(0,0,0,.06);color:var(--text);}
 .ocr-result{background:var(--green-l);border-radius:var(--radius-s);padding:14px;margin-top:14px;text-align:left;display:none;}
 .ocr-result.show{display:block;}
 .ocr-title{font-size:12px;font-weight:600;color:var(--green-d);margin-bottom:8px;}
@@ -1107,7 +1115,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.4"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.5"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2526,15 +2534,31 @@ function base64ToBlob(base64, mimeType = "image/jpeg") {
 // あえて async にせず、事前に用意した receiptIdSet を同期的に見て判定する。
 // レシート登録直後に、その場で証憑画像の選択を促すためのヘルパー。
 // ------------------------------------------------------------
-// confirm()の「OK」タップは同期的な呼び出しスタックの中で処理されるため、
-// その直後にinput.click()（showReceiptInfo内）を呼んでもiOS Safariの
-// ユーザージェスチャー制約に引っかからず、ファイル選択シートを開ける。
+// 【重要】confirm()の「OK」タップ直後にinput.click()を呼んでも、
+// iOS SafariではWebKitのユーザージェスチャー判定が引き継がれず、
+// ファイル選択シートが開かない（実機検証で確認）。
+// そのため、実際のHTML<button>のonclickから直接showReceiptInfo()を
+// 呼ぶ必要がある。ここではカスタムモーダル（実ボタン）を表示し、
+// そのボタンタップ自体を起点にする。
 // receiptRefが無い（画像なしのレシート登録）場合は何もしない。
+let receiptPromptTxId = null;
 function promptReceiptImageSelect(txId, receiptRef) {
   if (!receiptRef) return;
-  if (confirm("証憑とする画像を選択してください")) {
-    showReceiptInfo(txId);
-  }
+  receiptPromptTxId = txId;
+  document.getElementById("receiptPromptOverlay").classList.add("show");
+}
+
+function confirmReceiptPrompt() {
+  const txId = receiptPromptTxId;
+  receiptPromptTxId = null;
+  document.getElementById("receiptPromptOverlay").classList.remove("show");
+  // このonclickハンドラの呼び出しスタック内で、間を置かず実行することが重要
+  if (txId !== null) showReceiptInfo(txId);
+}
+
+function closeReceiptPrompt() {
+  receiptPromptTxId = null;
+  document.getElementById("receiptPromptOverlay").classList.remove("show");
 }
 
 let receiptPickTxId = null;
@@ -4285,6 +4309,17 @@ init();
   </div>
   <div class="receipt-viewer-body">
     <img id="receiptViewerImg" src="" alt="レシート画像">
+  </div>
+</div>
+
+<!-- レシート登録直後、証憑画像の選択を促すプロンプト（実ボタンのタップから直接ファイル選択シートを開くため） -->
+<div class="receipt-prompt-overlay" id="receiptPromptOverlay">
+  <div class="receipt-prompt-card">
+    <p>証憑とする画像を選択してください</p>
+    <div class="receipt-prompt-actions">
+      <button class="receipt-prompt-btn primary" onclick="confirmReceiptPrompt()">選択する</button>
+      <button class="receipt-prompt-btn secondary" onclick="closeReceiptPrompt()">後で選ぶ</button>
+    </div>
   </div>
 </div>
 
