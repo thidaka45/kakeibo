@@ -1138,7 +1138,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.8"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.9"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2681,6 +2681,30 @@ async function deleteCurrentReceiptPhoto() {
     showToast("画像の削除に失敗しました");
   }
   closeReceiptViewer();
+}
+
+// 「選び直す」：誤って選んだ画像を削除し、そのまま道しるべモーダルを表示して
+// 選び直しまで一続きにする。ビューアの実ボタンのタップから始まるため、
+// 道しるべモーダルの「画像を選ぶ」ボタンも問題なくファイル選択シートを開ける。
+async function reselectCurrentReceiptPhoto() {
+  if (!receiptViewerKey) { closeReceiptViewer(); return; }
+  if (!confirm("表示中の画像を削除して、選び直します。よろしいですか？")) return;
+  const key = receiptViewerKey;
+  const tx = loadTx().find(t => t.receiptRef === key);
+  try {
+    await deleteReceiptBlob(key);
+    receiptIdSet.delete(key);
+  } catch (e) {
+    showToast("画像の削除に失敗しました");
+    return;
+  }
+  closeReceiptViewer();
+  if (typeof renderHome === "function") renderHome();
+  if (tx) {
+    openReceiptGuide(tx.id, tx.receiptRef, tx.date);
+  } else {
+    showToast("取引が見つからなかったため、取引詳細から改めて画像ボタンを押してください");
+  }
 }
 
 function renderHistoryTxList(idx) {
@@ -4334,6 +4358,7 @@ init();
 <!-- レシート画像ビューア（アプリ内IndexedDBに保存した画像を表示する） -->
 <div class="receipt-viewer-overlay" id="receiptViewerOverlay" onclick="if(event.target===this) closeReceiptViewer()">
   <div class="receipt-viewer-top">
+    <button class="receipt-viewer-btn" onclick="reselectCurrentReceiptPhoto()">選び直す</button>
     <button class="receipt-viewer-btn danger" onclick="deleteCurrentReceiptPhoto()">削除</button>
     <button class="receipt-viewer-btn" onclick="closeReceiptViewer()">閉じる</button>
   </div>
