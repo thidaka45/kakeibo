@@ -1151,7 +1151,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.18"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.19"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2581,7 +2581,7 @@ let receiptGuideTxId = null;
 function openReceiptGuide(txId, receiptRef, dateStr) {
   receiptGuideTxId = txId;
   // フォルダ構成は「レシート／年月」の2階層のみ（日時ごとのサブフォルダは廃止）。
-  // ファイル名は "MM月dd日_HH時mm分ss秒.jpg" 形式（ショートカット側の変更に合わせる）。
+  // ファイル名は "店名_MM-dd_HH-mm-ss.jpg" 形式（ショートカット側で生成、店名の禁止文字は_に置換済み）。
   const fileName = receiptRef || "";
   let folderPath = "";
   if (dateStr && dateStr.length >= 7) {
