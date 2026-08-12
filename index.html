@@ -197,6 +197,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .receipt-guide-label{font-size:11px;color:var(--sub);margin:0 0 2px;}
 .receipt-guide-path{font-size:14px;font-weight:600;color:var(--text);margin:0 0 10px;word-break:break-all;}
 .receipt-guide-name{font-size:15px;font-weight:700;color:var(--green-d);word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+.receipt-guide-hint{margin:2px 0 4px;font-size:12px;line-height:1.5;color:var(--sub);text-align:center;}
 .ocr-result{background:var(--green-l);border-radius:var(--radius-s);padding:14px;margin-top:14px;text-align:left;display:none;}
 .ocr-result.show{display:block;}
 .ocr-title{font-size:12px;font-weight:600;color:var(--green-d);margin-bottom:8px;}
@@ -887,7 +888,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       全データを1ファイルに保存する
     </button>
     <input type="file" id="fullBackupFileInput" accept="application/json,.json" style="display:none;" onchange="importFullBackupFile(event)">
-    <input type="file" id="receiptFileInput" accept=".jpg,.jpeg" style="display:none;" onchange="onReceiptFileChosen(event)">
+    <input type="file" id="receiptFileInput" accept=".jpg" style="display:none;" onchange="onReceiptFileChosen(event)">
     <button class="export-btn" onclick="document.getElementById('fullBackupFileInput').click()" style="background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       保存したファイルから復元する
     </button>
@@ -982,6 +983,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </div>
     <div class="receipt-prompt-actions">
       <button class="receipt-prompt-btn primary" onclick="receiptGuidePick()">画像を選ぶ</button>
+      <p class="receipt-guide-hint">「画像を選ぶ」を押したあと、<br>「ファイルを選択」からお選びください</p>
       <button class="receipt-prompt-btn secondary" onclick="closeReceiptGuide()">閉じる</button>
     </div>
   </div>
@@ -1138,7 +1140,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.15"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.17"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
