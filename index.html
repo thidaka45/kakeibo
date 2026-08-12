@@ -887,7 +887,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       全データを1ファイルに保存する
     </button>
     <input type="file" id="fullBackupFileInput" accept="application/json,.json" style="display:none;" onchange="importFullBackupFile(event)">
-    <input type="file" id="receiptFileInput" style="display:none;" onchange="onReceiptFileChosen(event)">
+    <input type="file" id="receiptFileInput" accept="image/*" style="display:none;" onchange="onReceiptFileChosen(event)">
     <button class="export-btn" onclick="document.getElementById('fullBackupFileInput').click()" style="background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       保存したファイルから復元する
     </button>
@@ -1138,7 +1138,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.7"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.8"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2567,17 +2567,12 @@ let receiptGuideTxId = null;
 
 function openReceiptGuide(txId, receiptRef, dateStr) {
   receiptGuideTxId = txId;
-  // フォルダパスの推定： receiptRef が "20260811_201234.jpg" の形式なら
-  // レシート/2026-08/20260811_201234/20260811_201234.jpg を案内する
+  // フォルダ構成は「レシート／年月」の2階層のみ（日時ごとのサブフォルダは廃止）。
+  // ファイル名は "MM月dd日_HH時mm分ss秒.jpg" 形式（ショートカット側の変更に合わせる）。
   const fileName = receiptRef || "";
   let folderPath = "";
-  const m = fileName.match(/^(\d{8})_(\d{6})/); // yyyyMMdd_HHmmss
-  if (m) {
-    const ym = `${m[1].slice(0,4)}-${m[1].slice(4,6)}`; // 2026-08
-    const stamp = `${m[1]}_${m[2]}`;                     // 20260811_201234
-    folderPath = `レシート / ${ym} / ${stamp} /`;
-  } else if (dateStr && dateStr.length >= 7) {
-    folderPath = `レシート / ${dateStr.slice(0,7)} /`;
+  if (dateStr && dateStr.length >= 7) {
+    folderPath = `レシート / ${dateStr.slice(0,7)} /`; // 例: レシート / 2026-08 /
   } else {
     folderPath = "レシート フォルダ内";
   }
