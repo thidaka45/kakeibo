@@ -1138,7 +1138,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.11"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.12"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2609,7 +2609,7 @@ function showReceiptInfo(id) {
   // ① アプリ内（IndexedDB）に画像がある場合 → 非同期で取得して表示（クリック起点は不要）
   if (receiptIdSet.has(tx.receiptRef)) {
     getReceiptBlob(tx.receiptRef).then(blob => {
-      if (blob) openReceiptViewer(tx.receiptRef, blob);
+      if (blob) openReceiptViewer(tx.receiptRef, blob, "fromHistory");
       else showToast("画像の読み込みに失敗しました");
     }).catch(() => showToast("画像の読み込みに失敗しました"));
     return;
@@ -2652,13 +2652,25 @@ async function onReceiptFileChosen(e) {
 
 // レシート画像ビューアを開く（アプリ内表示用）
 let receiptViewerKey = null;
-function openReceiptViewer(key, blob) {
+function openReceiptViewer(key, blob, mode) {
   receiptViewerKey = key;
   const imgEl = document.getElementById("receiptViewerImg");
   const url = URL.createObjectURL(blob);
   imgEl.dataset.prevUrl && URL.revokeObjectURL(imgEl.dataset.prevUrl);
   imgEl.src = url;
   imgEl.dataset.prevUrl = url;
+  // mode "fromHistory"（既に紐づいた画像を履歴経由で見るだけの場合）は
+  // 「選び直す」を隠し、「OK」（閉じるだけ）のみにする。
+  // mode省略時（選んだ直後の確認）は「選び直す／決定」の2つを表示する。
+  const reselectBtn = document.getElementById("receiptViewerReselectBtn");
+  const okBtn = document.getElementById("receiptViewerOkBtn");
+  if (mode === "fromHistory") {
+    reselectBtn.style.display = "none";
+    okBtn.textContent = "OK";
+  } else {
+    reselectBtn.style.display = "";
+    okBtn.textContent = "決定";
+  }
   document.getElementById("receiptViewerOverlay").classList.add("show");
 }
 
@@ -4344,8 +4356,8 @@ init();
 <!-- レシート画像ビューア（アプリ内IndexedDBに保存した画像を表示する） -->
 <div class="receipt-viewer-overlay" id="receiptViewerOverlay" onclick="if(event.target===this) closeReceiptViewer()">
   <div class="receipt-viewer-top">
-    <button class="receipt-viewer-btn" onclick="reselectCurrentReceiptPhoto()">選び直す</button>
-    <button class="receipt-viewer-btn" onclick="closeReceiptViewer()">決定</button>
+    <button class="receipt-viewer-btn" id="receiptViewerReselectBtn" onclick="reselectCurrentReceiptPhoto()">選び直す</button>
+    <button class="receipt-viewer-btn" id="receiptViewerOkBtn" onclick="closeReceiptViewer()">決定</button>
   </div>
   <div class="receipt-viewer-body">
     <img id="receiptViewerImg" src="" alt="レシート画像">
