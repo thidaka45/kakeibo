@@ -192,6 +192,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 .receipt-prompt-btn{border:none;border-radius:10px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation;}
 .receipt-prompt-btn.primary{background:var(--green);color:#fff;}
 .receipt-prompt-btn.secondary{background:rgba(0,0,0,.06);color:var(--text);}
+.receipt-guide-lead{margin:0 0 14px;font-size:15px;font-weight:600;}
+.receipt-guide-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 0 18px;text-align:left;}
+.receipt-guide-label{font-size:11px;color:var(--sub);margin:0 0 2px;}
+.receipt-guide-path{font-size:14px;font-weight:600;color:var(--text);margin:0 0 10px;word-break:break-all;}
+.receipt-guide-name{font-size:15px;font-weight:700;color:var(--green-d);word-break:break-all;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
 .ocr-result{background:var(--green-l);border-radius:var(--radius-s);padding:14px;margin-top:14px;text-align:left;display:none;}
 .ocr-result.show{display:block;}
 .ocr-title{font-size:12px;font-weight:600;color:var(--green-d);margin-bottom:8px;}
@@ -965,13 +970,19 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 
 
-<!-- レシート登録直後、証憑画像の選択を促すプロンプト（実ボタンのタップから直接ファイル選択シートを開くため） -->
-<div class="receipt-prompt-overlay" id="receiptPromptOverlay">
+<!-- 証憑画像の「道しるべ」モーダル：探すべきファイル名・フォルダパスを常時表示したまま画像選択を促す -->
+<div class="receipt-prompt-overlay" id="receiptGuideOverlay">
   <div class="receipt-prompt-card">
-    <p>証憑とする画像を選択してください</p>
+    <p class="receipt-guide-lead">証憑とする画像を選んでください</p>
+    <div class="receipt-guide-box">
+      <div class="receipt-guide-label">フォルダ</div>
+      <div class="receipt-guide-path" id="receiptGuideFolder"></div>
+      <div class="receipt-guide-label">ファイル名</div>
+      <div class="receipt-guide-name" id="receiptGuideFile"></div>
+    </div>
     <div class="receipt-prompt-actions">
-      <button class="receipt-prompt-btn primary" onclick="confirmReceiptPrompt()">選択する</button>
-      <button class="receipt-prompt-btn secondary" onclick="closeReceiptPrompt()">後で選ぶ</button>
+      <button class="receipt-prompt-btn primary" onclick="receiptGuidePick()">画像を選ぶ</button>
+      <button class="receipt-prompt-btn secondary" onclick="closeReceiptGuide()">閉じる</button>
     </div>
   </div>
 </div>
@@ -1127,7 +1138,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.6"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.62.7"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2542,35 +2553,54 @@ function base64ToBlob(base64, mimeType = "image/jpeg") {
 //    （Shortcuts.appを一切経由しないため、アプリ切り替えのチラつきが発生しない）
 // ------------------------------------------------------------
 // 重要：iOS Safariはボタンタップの呼び出しの中で"間を置かず"
-// input.click()しないとファイル選択シートを開けないため、この関数は
-// あえて async にせず、事前に用意した receiptIdSet を同期的に見て判定する。
-// レシート登録直後に、その場で証憑画像の選択を促すためのヘルパー。
+// ============================================================
+// 証憑画像の「道しるべ」モーダル
 // ------------------------------------------------------------
-// 【重要】confirm()の「OK」タップ直後にinput.click()を呼んでも、
-// iOS SafariではWebKitのユーザージェスチャー判定が引き継がれず、
-// ファイル選択シートが開かない（実機検証で確認）。
-// そのため、実際のHTML<button>のonclickから直接showReceiptInfo()を
-// 呼ぶ必要がある。ここではカスタムモーダル（実ボタン）を表示し、
-// そのボタンタップ自体を起点にする。
-// receiptRefが無い（画像なしのレシート登録）場合は何もしない。
-let receiptPromptTxId = null;
-function promptReceiptImageSelect(txId, receiptRef) {
-  if (!receiptRef) return;
-  receiptPromptTxId = txId;
-  document.getElementById("receiptPromptOverlay").classList.add("show");
+// 取引詳細で「画像」ボタンを押し、かつまだ画像が未保存の場合に表示する。
+// 探すべきファイル名とフォルダパスを画面に常時表示したまま、
+// 「画像を選ぶ」ボタン（実ボタン）のタップからファイル選択シートを開く。
+// これにより、iOS Safariのユーザージェスチャー制約を満たしつつ、
+// ファイル選択シートを開いている間も道しるべ（ファイル名・パス）が
+// 消えずに残り、利用者がFiles内を辿りやすくなる。
+// ============================================================
+let receiptGuideTxId = null;
+
+function openReceiptGuide(txId, receiptRef, dateStr) {
+  receiptGuideTxId = txId;
+  // フォルダパスの推定： receiptRef が "20260811_201234.jpg" の形式なら
+  // レシート/2026-08/20260811_201234/20260811_201234.jpg を案内する
+  const fileName = receiptRef || "";
+  let folderPath = "";
+  const m = fileName.match(/^(\d{8})_(\d{6})/); // yyyyMMdd_HHmmss
+  if (m) {
+    const ym = `${m[1].slice(0,4)}-${m[1].slice(4,6)}`; // 2026-08
+    const stamp = `${m[1]}_${m[2]}`;                     // 20260811_201234
+    folderPath = `レシート / ${ym} / ${stamp} /`;
+  } else if (dateStr && dateStr.length >= 7) {
+    folderPath = `レシート / ${dateStr.slice(0,7)} /`;
+  } else {
+    folderPath = "レシート フォルダ内";
+  }
+  document.getElementById("receiptGuideFolder").textContent = folderPath;
+  document.getElementById("receiptGuideFile").textContent = fileName || "（ファイル名不明）";
+  document.getElementById("receiptGuideOverlay").classList.add("show");
 }
 
-function confirmReceiptPrompt() {
-  const txId = receiptPromptTxId;
-  receiptPromptTxId = null;
-  document.getElementById("receiptPromptOverlay").classList.remove("show");
-  // このonclickハンドラの呼び出しスタック内で、間を置かず実行することが重要
-  if (txId !== null) showReceiptInfo(txId);
+// 「画像を選ぶ」ボタンのonclickから呼ぶ。
+// このハンドラの呼び出しスタック内で間を置かずinput.click()する必要がある。
+function receiptGuidePick() {
+  const txId = receiptGuideTxId;
+  document.getElementById("receiptGuideOverlay").classList.remove("show");
+  if (txId === null) return;
+  receiptPickTxId = txId;
+  const input = document.getElementById("receiptFileInput");
+  input.value = "";
+  input.click();
 }
 
-function closeReceiptPrompt() {
-  receiptPromptTxId = null;
-  document.getElementById("receiptPromptOverlay").classList.remove("show");
+function closeReceiptGuide() {
+  receiptGuideTxId = null;
+  document.getElementById("receiptGuideOverlay").classList.remove("show");
 }
 
 let receiptPickTxId = null;
@@ -2590,14 +2620,10 @@ function showReceiptInfo(id) {
     return;
   }
 
-  // ② 画像がまだない場合 → タップの直後、間を置かずファイル選択シートを開く
-  receiptPickTxId = id;
-  const folderHint = tx.date ? tx.date.slice(0, 7) : null; // "2026-07-24" → "2026-07"
-  if (folderHint) {
-    showToast(`「レシート → ${folderHint}」フォルダ内の画像を選んでください`);
-  }
-  document.getElementById("receiptFileInput").value = "";
-  document.getElementById("receiptFileInput").click();
+  // ② 画像がまだない場合 → 道しるべモーダルを表示。
+  //    ファイル名・フォルダパスを常時表示したまま、「画像を選ぶ」ボタン
+  //    （実ボタン）のタップからファイル選択シートを開く。
+  openReceiptGuide(id, tx.receiptRef, tx.date);
 }
 
 // ファイル選択シートで画像が選ばれたときの処理
@@ -4167,7 +4193,6 @@ function receiveFromUrl() {
       syncCarryoverIfNeeded(finalDate);
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${learnedFc.label}」の支払いとして記録しました（前回の選択を記憶）`);
-      promptReceiptImageSelect(newTxId, rawRef);
       return;
     }
     // 学習した固定費IDが「存在しない（削除済み）」または「既に支払済み」の場合は、
@@ -4222,7 +4247,6 @@ function receiveFromUrl() {
 
       if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
       showToast(`${finalDate} ${store} ¥${amount.toLocaleString()} を固定費「${fcCandidate.label}」の支払いとして記録しました`);
-      promptReceiptImageSelect(newTxId, rawRef);
       return;
     }
   }
@@ -4254,7 +4278,6 @@ function receiveFromUrl() {
       ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
-  promptReceiptImageSelect(newTxId, rawRef);
 }
 
 // ============================================================
