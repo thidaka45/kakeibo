@@ -1202,7 +1202,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.63.7"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.8"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -3154,17 +3154,17 @@ function exportExcelWithReceipts() {
   }
 
   // 証憑列（F列 = インデックス5）に一致した行だけ、本物のハイパーリンクセルを設定する。
-  // 表示テキストは「家計簿_2026年7月度/images/ファイル名.jpg」のように、
-  // ZIPを展開した際の実際のフォルダ構成に合わせた、この出力の中だけで閉じた
-  // 分かりやすい表記にする。文字色・下線は、SheetJS無料版がセルスタイルの
-  // 書き出しに対応していないため、この後addHyperlinkStyleToXlsx()で
-  // 生成済みxlsxの内部XMLを直接書き換えて付与する。
+  // 表示テキストは「images/ファイル名.jpg」（xlsxファイルから見た相対パス）にする。
+  // 展開後の実フォルダ名（家計簿_2026年7月度、等）は、Windows側の挙動（同名フォルダが
+  // あると末尾に連番が付く等）に左右されアプリ側からは確定できないため、
+  // 表示テキストには含めない（含めると実際のフォルダ名と食い違う場合があり紛らわしい）。
+  // 文字色・下線は、SheetJS無料版がセルスタイルの書き出しに対応していないため、
+  // この後addHyperlinkStyleToXlsx()で生成済みxlsxの内部XMLを直接書き換えて付与する。
   // ※ ZIPを展開せずに開くと、相対パス（images/〇〇.jpg）が解決できず
   //   リンクが機能しない点に注意（アプリ側の案内文でも案内する）。
   linkRows.forEach(({ row, target }) => {
     const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
-    const displayText = `${label}/${target}`;
-    ws[cellRef] = { t: "s", v: displayText, l: { Target: target, Tooltip: "証憑画像を開く" } };
+    ws[cellRef] = { t: "s", v: target, l: { Target: target, Tooltip: "証憑画像を開く" } };
   });
 
   const wb = XLSX.utils.book_new();
