@@ -921,7 +921,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       エクセル＋証憑画像を出力
     </button>
     <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
-      ※ 画像を追加しなかった取引は、ハイパーリンクなしで出力されます。あとから追加し直して再出力することもできます。
+      ※ 画像を追加しなかった取引は、ハイパーリンクなしで出力されます。あとから追加し直して再出力することもできます。<br>
+      ※ ダウンロードしたZIPファイルは、開く前に「展開」（右クリック→すべて展開 等）してからExcelファイルを開いてください。展開せずに開くと、証憑画像へのリンクが機能しません。
     </div>
   </div>
 </div>
@@ -1201,7 +1202,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.63.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.3"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -3126,8 +3127,8 @@ function exportExcelWithReceipts() {
     if (t.receiptRef) {
       receiptCount++;
       if (excelExportImages.has(t.receiptRef)) {
-        receiptCell = ""; // 後でHYPERLINK数式に差し替えるため、この時点では空にしておく
-        linkRows.push({ row: i + 1, target: "images/" + t.receiptRef }); // +1: header行の分
+        receiptCell = ""; // 後で本物のハイパーリンクに差し替えるため、この時点では空にしておく
+        linkRows.push({ row: i + 1, target: "images/" + t.receiptRef, filename: t.receiptRef }); // +1: header行の分
         matchedCount++;
       } else {
         receiptCell = "（画像未追加）";
@@ -3139,13 +3140,21 @@ function exportExcelWithReceipts() {
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 14 }];
 
-  // 証憑列（F列 = インデックス5）に一致した行だけ、HYPERLINK関数のセルを設定する。
-  // セルの.lプロパティによる直接リンクは相対パスに対して環境依存で動作しない
-  // ことが実機検証で判明したため、通常のExcel数式であるHYPERLINK関数を使う
-  // （デスクトップ版・Excel Online等、幅広い環境で一貫して動作する）。
-  linkRows.forEach(({ row, target }) => {
+  // 金額列（D列 = インデックス3）に¥区切り表示の書式を設定する
+  for (let i = 0; i < txs.length; i++) {
+    const cellRef = XLSX.utils.encode_cell({ r: i + 1, c: 3 }); // +1: header行の分
+    if (ws[cellRef]) ws[cellRef].z = "¥#,##0";
+  }
+
+  // 証憑列（F列 = インデックス5）に一致した行だけ、本物のハイパーリンクセルを設定する。
+  // .lプロパティによる方式はExcel標準のハイパーリンク機能で、自動的に
+  // 青文字・下線のスタイルが付く（自前でスタイル指定する必要がない）。
+  // 表示テキストはファイル名そのものにする。
+  // ※ ZIPを展開せずに開くと、相対パス（images/〇〇.jpg）が解決できず
+  //   リンクが機能しない点に注意（アプリ側の案内文でも案内する）。
+  linkRows.forEach(({ row, target, filename }) => {
     const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
-    ws[cellRef] = { t: "str", f: `HYPERLINK("${target}","開く")` };
+    ws[cellRef] = { t: "s", v: filename, l: { Target: target, Tooltip: "証憑画像を開く" } };
   });
 
   const wb = XLSX.utils.book_new();
