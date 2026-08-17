@@ -1198,7 +1198,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.64.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.64.2"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2391,6 +2391,7 @@ function renderTrend() {
 // グラフ描画
 // ============================================================
 let selectedGraphPeriodIdx = null; // 選択中の月度インデックス
+let lastGraphViewPeriodIndex = null; // 前回renderGraph()時点のviewPeriodIndex（変化検知用）
 
 function renderGraph() {
   const periods = ensurePeriods();
@@ -2406,6 +2407,16 @@ function renderGraph() {
   }
 
   if (viewPeriodIndex === null || viewPeriodIndex > periods.length - 1) viewPeriodIndex = periods.length - 1;
+
+  // ホーム画面側の表示月度（viewPeriodIndex）が前回このページを開いた時と
+  // 変わっている場合は、選択中の月度をそれに追従させる。
+  // ※これをしないと、以前クリックして選んでいた月が「直近6か月」の表示範囲に
+  //   まだ収まっているとリセット条件に引っかからず、古い月の実績が
+  //   表示され続けてしまう不具合が起きる。
+  if (lastGraphViewPeriodIndex !== viewPeriodIndex) {
+    selectedGraphPeriodIdx = viewPeriodIndex;
+    lastGraphViewPeriodIndex = viewPeriodIndex;
+  }
 
   // 表示中の月度を最新とみなし、直近最大6件の月度を表示する（作成済みの月度のみ）
   const endIdx = viewPeriodIndex;
