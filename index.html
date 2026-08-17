@@ -1202,7 +1202,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.63.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.5"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -3116,7 +3116,7 @@ function exportExcelWithReceipts() {
   const allCats = getAllCats();
   const header = ["日付", "種別", "カテゴリ", "金額", "メモ", "証憑"];
   const aoa = [header];
-  const linkRows = []; // { row, target }
+  const linkRows = []; // { row, target, filename }
   let receiptCount = 0;
   let matchedCount = 0;
 
@@ -3147,14 +3147,14 @@ function exportExcelWithReceipts() {
   }
 
   // 証憑列（F列 = インデックス5）に一致した行だけ、本物のハイパーリンクセルを設定する。
-  // .lプロパティによる方式はExcel標準のハイパーリンク機能で、自動的に
-  // 青文字・下線のスタイルが付く（自前でスタイル指定する必要がない）。
-  // 表示テキストはファイル名そのものにする。
+  // 表示テキストはファイル名そのものにする。文字色・下線は、SheetJS無料版が
+  // セルスタイルの書き出しに対応していないため、この後addHyperlinkStyleToXlsx()で
+  // 生成済みxlsxの内部XMLを直接書き換えて付与する。
   // ※ ZIPを展開せずに開くと、相対パス（images/〇〇.jpg）が解決できず
   //   リンクが機能しない点に注意（アプリ側の案内文でも案内する）。
   linkRows.forEach(({ row, target, filename }) => {
     const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
-    ws[cellRef] = { t: "s", v: filename, l: { Target: target, Tooltip: "証憑画像を開く" } };
+    ws[cellRef] = { t: "s", v: target, l: { Target: target, Tooltip: "証憑画像を開く" } };
   });
 
   const wb = XLSX.utils.book_new();
@@ -3165,20 +3165,26 @@ function exportExcelWithReceipts() {
     : `家計簿_${periodLabel(Math.min(startIdx, endIdx))}〜${periodLabel(Math.max(startIdx, endIdx))}`;
 
   const xlsxArrayBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-
-  const zip = new JSZip();
-  zip.file(label + ".xlsx", xlsxArrayBuffer);
-  const imgFolder = zip.folder("images");
-  // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
-  const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
-  usedNames.forEach(name => {
-    const file = excelExportImages.get(name);
-    if (file) imgFolder.file(name, file);
-  });
+  const linkedCellRefs = linkRows.map(({ row }) => XLSX.utils.encode_cell({ r: row, c: 5 }));
 
   showToast("ファイルを作成しています…");
 
-  zip.generateAsync({ type: "blob" }).then(async (zipBlob) => {
+  (async () => {
+    const finalXlsxBuffer = linkedCellRefs.length
+      ? await addHyperlinkStyleToXlsx(xlsxArrayBuffer, linkedCellRefs)
+      : xlsxArrayBuffer;
+
+    const zip = new JSZip();
+    zip.file(label + ".xlsx", finalXlsxBuffer);
+    const imgFolder = zip.folder("images");
+    // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
+    const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
+    usedNames.forEach(name => {
+      const file = excelExportImages.get(name);
+      if (file) imgFolder.file(name, file);
+    });
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
     const zipFile = new File([zipBlob], label + ".zip", { type: "application/zip" });
     const summaryMsg = receiptCount > 0
       ? `${receiptCount}件の証憑のうち${matchedCount}件を同梱しました`
@@ -3201,10 +3207,54 @@ function exportExcelWithReceipts() {
     a.click();
     URL.revokeObjectURL(url);
     showToast(summaryMsg + "（ダウンロードしました）");
-  }).catch(err => {
+  })().catch(err => {
     console.error(err);
     showToast("出力に失敗しました");
   });
+}
+
+// 生成済みxlsx（ArrayBuffer）の内部XMLを直接書き換え、指定セルに
+// Excel標準のハイパーリンク色（青・下線）を付与して返す。
+// SheetJS無料版はセルスタイル（フォント色・下線）の書き出しに対応していないため、
+// 生成後のファイルをJSZipで開き、styles.xml・sheet1.xmlを直接編集して対応する。
+async function addHyperlinkStyleToXlsx(xlsxArrayBuffer, cellRefs) {
+  try {
+    const tempZip = await JSZip.loadAsync(xlsxArrayBuffer);
+    let stylesXml = await tempZip.file("xl/styles.xml").async("string");
+
+    const fontsCountMatch   = stylesXml.match(/<fonts count="(\d+)">/);
+    const cellXfsCountMatch = stylesXml.match(/<cellXfs count="(\d+)">/);
+    if (!fontsCountMatch || !cellXfsCountMatch) return xlsxArrayBuffer; // 想定外の構造なら諦めて元のまま返す
+
+    const fontsCount   = parseInt(fontsCountMatch[1], 10);
+    const cellXfsCount = parseInt(cellXfsCountMatch[1], 10);
+    const newFontIndex = fontsCount;   // 新しく追加するフォントのインデックス
+    const newXfIndex   = cellXfsCount; // 新しく追加するセルスタイルのインデックス
+
+    // ハイパーリンク用フォント（青・下線）を追加
+    stylesXml = stylesXml
+      .replace(/<fonts count="(\d+)">/, `<fonts count="${fontsCount + 1}">`)
+      .replace(/<\/fonts>/, `<font><u/><sz val="12"/><color rgb="FF0563C1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font></fonts>`);
+
+    // 上のフォントを参照するセルスタイルを追加
+    stylesXml = stylesXml
+      .replace(/<cellXfs count="(\d+)">/, `<cellXfs count="${cellXfsCount + 1}">`)
+      .replace(/<\/cellXfs>/, `<xf numFmtId="0" fontId="${newFontIndex}" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>`);
+
+    tempZip.file("xl/styles.xml", stylesXml);
+
+    let sheetXml = await tempZip.file("xl/worksheets/sheet1.xml").async("string");
+    cellRefs.forEach(ref => {
+      const re = new RegExp(`<c r="${ref}"`, "g");
+      sheetXml = sheetXml.replace(re, `<c r="${ref}" s="${newXfIndex}"`);
+    });
+    tempZip.file("xl/worksheets/sheet1.xml", sheetXml);
+
+    return await tempZip.generateAsync({ type: "arraybuffer" });
+  } catch (e) {
+    console.error("ハイパーリンクの色付けに失敗しました。色なしのまま続行します。", e);
+    return xlsxArrayBuffer; // 失敗しても出力自体は継続する（見た目が変わらないだけ）
+  }
 }
 
 // ============================================================
