@@ -1201,7 +1201,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.63.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.1"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -3126,7 +3126,7 @@ function exportExcelWithReceipts() {
     if (t.receiptRef) {
       receiptCount++;
       if (excelExportImages.has(t.receiptRef)) {
-        receiptCell = "開く";
+        receiptCell = ""; // 後でHYPERLINK数式に差し替えるため、この時点では空にしておく
         linkRows.push({ row: i + 1, target: "images/" + t.receiptRef }); // +1: header行の分
         matchedCount++;
       } else {
@@ -3139,10 +3139,13 @@ function exportExcelWithReceipts() {
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 14 }];
 
-  // 証憑列（F列 = インデックス5）に一致した行だけハイパーリンクを設定
+  // 証憑列（F列 = インデックス5）に一致した行だけ、HYPERLINK関数のセルを設定する。
+  // セルの.lプロパティによる直接リンクは相対パスに対して環境依存で動作しない
+  // ことが実機検証で判明したため、通常のExcel数式であるHYPERLINK関数を使う
+  // （デスクトップ版・Excel Online等、幅広い環境で一貫して動作する）。
   linkRows.forEach(({ row, target }) => {
     const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
-    if (ws[cellRef]) ws[cellRef].l = { Target: target, Tooltip: "証憑画像を開く" };
+    ws[cellRef] = { t: "str", f: `HYPERLINK("${target}","開く")` };
   });
 
   const wb = XLSX.utils.book_new();
