@@ -1202,7 +1202,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.63.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.6"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -3098,6 +3098,24 @@ function getExcelExportTxs(startIdx, endIdx) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+// receiptRef（"店名_MM-dd_HH-mm-ss.jpg"形式）から、iCloud Drive上での
+// 実際の置き場所（"yyyy-MM"）を推定する。撮影月は必ずファイル名に含まれているが、
+// 年はファイル名に含まれないため、取引日の年を基準に、月の差が大きい場合
+// （12月撮影→1月分の取引、等）だけ年をまたいで補正する。
+// あくまで探しやすくするための「目印」であり、断定的なものではない。
+function guessReceiptFolderHint(receiptRef, txDate) {
+  if (!receiptRef || !txDate) return null;
+  const m = receiptRef.match(/_(\d{2})-(\d{2})_\d{2}-\d{2}-\d{2}\.jpg$/i);
+  if (!m) return null; // 想定外の形式（旧フォーマット等）なら諦める
+  const capMonth = parseInt(m[1], 10);
+  const txYear   = parseInt(txDate.slice(0, 4), 10);
+  const txMonth  = parseInt(txDate.slice(5, 7), 10);
+  let year = txYear;
+  if (capMonth - txMonth > 6) year -= 1;      // 例: 取引1月・撮影12月 → 前年12月
+  else if (txMonth - capMonth > 6) year += 1; // 例: 取引12月・撮影1月 → 翌年1月
+  return `${year}-${m[1]}`;
+}
+
 function exportExcelWithReceipts() {
   if (typeof XLSX === "undefined" || typeof JSZip === "undefined") {
     showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
@@ -3128,7 +3146,12 @@ function exportExcelWithReceipts() {
       receiptCount++;
       if (excelExportImages.has(t.receiptRef)) {
         receiptCell = ""; // 後で本物のハイパーリンクに差し替えるため、この時点では空にしておく
-        linkRows.push({ row: i + 1, target: "images/" + t.receiptRef, filename: t.receiptRef }); // +1: header行の分
+        linkRows.push({
+          row: i + 1, // +1: header行の分
+          target: "images/" + t.receiptRef,
+          filename: t.receiptRef,
+          folderHint: guessReceiptFolderHint(t.receiptRef, t.date)
+        });
         matchedCount++;
       } else {
         receiptCell = "（画像未追加）";
@@ -3152,9 +3175,10 @@ function exportExcelWithReceipts() {
   // 生成済みxlsxの内部XMLを直接書き換えて付与する。
   // ※ ZIPを展開せずに開くと、相対パス（images/〇〇.jpg）が解決できず
   //   リンクが機能しない点に注意（アプリ側の案内文でも案内する）。
-  linkRows.forEach(({ row, target, filename }) => {
+  linkRows.forEach(({ row, target, filename, folderHint }) => {
     const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
-    ws[cellRef] = { t: "s", v: target, l: { Target: target, Tooltip: "証憑画像を開く" } };
+    const displayText = folderHint ? `${folderHint}/${filename}` : filename;
+    ws[cellRef] = { t: "s", v: displayText, l: { Target: target, Tooltip: "証憑画像を開く" } };
   });
 
   const wb = XLSX.utils.book_new();
