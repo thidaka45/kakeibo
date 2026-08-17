@@ -10,6 +10,7 @@
 <title>かんたん家計簿</title>
 <link rel="manifest" href="manifest.json">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -674,6 +675,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> エクセル出力（証憑画像つき）</div>
+  <div class="export-section" style="padding:14px;">
+    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
+      取引データをExcelファイルにまとめ、証憑画像と一緒にZIPで書き出します。PCでの集計・確定申告準備向けです。
+    </div>
+    <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+      エクセル出力を開く
+    </button>
+  </div>
+
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 自動移行日の変更</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
@@ -873,6 +884,45 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       全データをCSVで保存
     </button>
+  </div>
+</div>
+</div>
+
+<!-- ===== エクセル出力（証憑画像つき） ===== -->
+<div class="page" id="page-excelexport" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">エクセル出力</span></div>
+
+  <div class="budget-card">
+    <div style="font-size:15px;color:var(--text);margin-bottom:18px;line-height:1.7;">
+      指定した期間の取引をExcelファイルにまとめ、証憑画像と一緒にZIPファイルとして書き出します。
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">① 期間を選ぶ</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+      <select id="excelExportStartPeriod" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;font-family:inherit;background:var(--card);color:var(--text);"></select>
+      <span style="color:var(--sub);font-size:13px;">〜</span>
+      <select id="excelExportEndPeriod" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;font-family:inherit;background:var(--card);color:var(--text);"></select>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">② 証憑画像をまとめて追加（任意・月ごとに繰り返し可）</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
+      「レシート」フォルダの中の年月フォルダを開き、画像をすべて選択して追加してください。複数月ある場合は、月ごとにこの操作を繰り返せます。
+    </div>
+    <input type="file" id="excelExportImageInput" accept="image/*" multiple style="display:none;" onchange="onExcelExportImagesChosen(event)">
+    <button class="export-btn" onclick="document.getElementById('excelExportImageInput').click()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:14px;font-size:15px;font-weight:700;border-radius:12px;margin-bottom:8px;">
+      画像をまとめて追加
+    </button>
+    <div id="excelExportImageStatus" style="font-size:13px;color:var(--sub);margin-bottom:18px;">まだ画像は追加されていません</div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px;">③ 出力する</div>
+    <button class="export-btn" onclick="exportExcelWithReceipts()" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      エクセル＋証憑画像を出力
+    </button>
+    <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
+      ※ 画像を追加しなかった取引は、ハイパーリンクなしで出力されます。あとから追加し直して再出力することもできます。
+    </div>
   </div>
 </div>
 </div>
@@ -1151,7 +1201,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.62.19"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.63.0"; // ← 更新するたびに番号を上げる
 
 // ============================================================
 // ストレージ
@@ -2769,7 +2819,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","migration","versioninfo","trend","fclearn","customcats","caticonpicker","quickitempicker"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","fclearn","customcats","caticonpicker","quickitempicker"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
@@ -2781,6 +2831,7 @@ function showPage(name, isBack) {
   if (name==="trend")      renderTrend();
   if (name==="fclearn")    renderFcLearnList();
   if (name==="customcats") renderCustomCatsList();
+  if (name==="excelexport") renderExcelExportPeriodSelects();
 }
 
 // 「戻る」ボタン：ひとつ前に表示していた画面へ戻る（履歴が無い場合はホームへ）
@@ -2975,6 +3026,173 @@ function exportExcel(range) {
   // ダウンロード
   XLSX.writeFile(wb, getExportLabel(range) + ".xlsx");
   showToast("Excelファイルを保存しました");
+}
+
+// ============================================================
+// エクセル出力（証憑画像つき・ZIP形式）
+// ------------------------------------------------------------
+// 指定した期間の取引をxlsxにまとめ、利用者がまとめて追加した証憑画像を
+// ファイル名（receiptRef）で突き合わせてZIPに同梱する。
+// 画像はアプリ内（IndexedDB）に保存せず、その場限りのメモリ上（Map）に
+// 保持するだけなので、複数回に分けて画像を追加できる（月ごとの繰り返し等）。
+// ============================================================
+let excelExportImages = new Map(); // ファイル名 → File
+
+function onExcelExportImagesChosen(event) {
+  const files = event.target.files;
+  let added = 0;
+  for (const file of files) {
+    if (!file.type || !file.type.startsWith("image/")) continue;
+    excelExportImages.set(file.name, file);
+    added++;
+  }
+  event.target.value = "";
+  updateExcelExportImageStatus();
+  if (added > 0) {
+    showToast(`${added}件の画像を追加しました（合計${excelExportImages.size}件）`);
+  } else {
+    showToast("画像ファイルが見つかりませんでした");
+  }
+}
+
+function updateExcelExportImageStatus() {
+  const el = document.getElementById("excelExportImageStatus");
+  if (!el) return;
+  const count = excelExportImages.size;
+  el.textContent = count === 0
+    ? "まだ画像は追加されていません"
+    : `${count}件の画像を追加済み`;
+}
+
+// 開始月度〜終了月度のプルダウンを、実際の期間データから組み立てる
+function renderExcelExportPeriodSelects() {
+  const periods = ensurePeriods();
+  const startSel = document.getElementById("excelExportStartPeriod");
+  const endSel = document.getElementById("excelExportEndPeriod");
+  if (!startSel || !endSel) return;
+  if (!periods.length) {
+    startSel.innerHTML = '<option value="">期間データがありません</option>';
+    endSel.innerHTML = '<option value="">期間データがありません</option>';
+    return;
+  }
+  const optionsHtml = periods.map((p, i) => `<option value="${i}">${periodLabel(i)}</option>`).join("");
+  startSel.innerHTML = optionsHtml;
+  endSel.innerHTML = optionsHtml;
+  const defaultIdx = (viewPeriodIndex !== null && periods[viewPeriodIndex]) ? viewPeriodIndex : periods.length - 1;
+  startSel.value = String(defaultIdx);
+  endSel.value = String(defaultIdx);
+  updateExcelExportImageStatus();
+}
+
+// 開始月度〜終了月度（どちらが先でも可）の範囲に属する取引を、日付順で返す
+function getExcelExportTxs(startIdx, endIdx) {
+  const periods = ensurePeriods();
+  if (!periods.length) return [];
+  const lo = Math.min(startIdx, endIdx);
+  const hi = Math.max(startIdx, endIdx);
+  const start = periodRange(lo).start;
+  const end   = periodRange(hi).end; // 最終期間を含む場合はnull（上限なし）
+  return loadTx()
+    .filter(t => (lo === 0 || t.date >= start) && (!end || t.date < end))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function exportExcelWithReceipts() {
+  if (typeof XLSX === "undefined" || typeof JSZip === "undefined") {
+    showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
+    return;
+  }
+  const periods = ensurePeriods();
+  if (!periods.length) { showToast("期間データがありません"); return; }
+
+  const startIdx = parseInt(document.getElementById("excelExportStartPeriod").value, 10);
+  const endIdx   = parseInt(document.getElementById("excelExportEndPeriod").value, 10);
+  if (isNaN(startIdx) || isNaN(endIdx)) { showToast("期間を選択してください"); return; }
+
+  const txs = getExcelExportTxs(startIdx, endIdx);
+  if (!txs.length) { showToast("対象期間にデータがありません"); return; }
+
+  const allCats = getAllCats();
+  const header = ["日付", "種別", "カテゴリ", "金額", "メモ", "証憑"];
+  const aoa = [header];
+  const linkRows = []; // { row, target }
+  let receiptCount = 0;
+  let matchedCount = 0;
+
+  txs.forEach((t, i) => {
+    const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
+    const type = t.type === "income" ? "収入" : "支出";
+    let receiptCell = "";
+    if (t.receiptRef) {
+      receiptCount++;
+      if (excelExportImages.has(t.receiptRef)) {
+        receiptCell = "開く";
+        linkRows.push({ row: i + 1, target: "images/" + t.receiptRef }); // +1: header行の分
+        matchedCount++;
+      } else {
+        receiptCell = "（画像未追加）";
+      }
+    }
+    aoa.push([t.date, type, cat.label, t.amount, t.memo || "", receiptCell]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 14 }];
+
+  // 証憑列（F列 = インデックス5）に一致した行だけハイパーリンクを設定
+  linkRows.forEach(({ row, target }) => {
+    const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
+    if (ws[cellRef]) ws[cellRef].l = { Target: target, Tooltip: "証憑画像を開く" };
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "明細");
+
+  const label = (startIdx === endIdx)
+    ? `家計簿_${periodLabel(startIdx)}`
+    : `家計簿_${periodLabel(Math.min(startIdx, endIdx))}〜${periodLabel(Math.max(startIdx, endIdx))}`;
+
+  const xlsxArrayBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+  const zip = new JSZip();
+  zip.file(label + ".xlsx", xlsxArrayBuffer);
+  const imgFolder = zip.folder("images");
+  // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
+  const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
+  usedNames.forEach(name => {
+    const file = excelExportImages.get(name);
+    if (file) imgFolder.file(name, file);
+  });
+
+  showToast("ファイルを作成しています…");
+
+  zip.generateAsync({ type: "blob" }).then(async (zipBlob) => {
+    const zipFile = new File([zipBlob], label + ".zip", { type: "application/zip" });
+    const summaryMsg = receiptCount > 0
+      ? `${receiptCount}件の証憑のうち${matchedCount}件を同梱しました`
+      : `${txs.length}件を出力しました`;
+
+    if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+      try {
+        await navigator.share({ files: [zipFile], title: label });
+        showToast(summaryMsg);
+        return;
+      } catch (e) {
+        if (e && e.name === "AbortError") return; // 利用者がキャンセルした場合は何もしない
+        // それ以外のエラーはダウンロードにフォールバック
+      }
+    }
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = label + ".zip";
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(summaryMsg + "（ダウンロードしました）");
+  }).catch(err => {
+    console.error(err);
+    showToast("出力に失敗しました");
+  });
 }
 
 // ============================================================
