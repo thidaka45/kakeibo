@@ -1198,7 +1198,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.65.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.65.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -4487,14 +4487,14 @@ function receiveFromUrl() {
     return;
   }
 
-  // レシートの日付が今日から極端に離れている（60日以上前）場合、OCRの読み取りミスや
-  // 試験時に古いレシートを使ったなど、意図しない日付である可能性があるため、
-  // 無条件で記録せず一度確認する（「今日の日付」に振り替えるか選べるようにする）。
+  // 極端に現実離れした日付（OCRの読み取りミスで年を丸ごと誤読した等）だけを
+  // 一度確認する。通常の「振替日」「支払期日」は今の月度より先の日付になる
+  // ことも普通にあるため、単純な日数の遠近では判定しない（月度との比較は後段で行う）。
   let finalDate = date;
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayStr = todayLocalStr();
   const daysDiff = Math.round((today - new Date(date)) / (1000 * 60 * 60 * 24));
-  if (daysDiff > 60 || daysDiff < -3) {
+  if (Math.abs(daysDiff) > 365) {
     const useReceiptDate = confirm(
       `${store} ¥${amount.toLocaleString()}\n\n` +
       `レシートの日付が「${date}」と、今日（${todayStr}）から大きく離れています。\n\n` +
@@ -4504,14 +4504,18 @@ function receiveFromUrl() {
     if (!useReceiptDate) finalDate = todayStr;
   }
 
-  // 日付が既に終了した月度（今の最新月度より前）に属する場合、意図しない
-  // 過去月度への計上を避けるため、登録前に確認する。
-  // （固定費・積立の自動計上や繰越金額には、既存の仕組みで別途対応済み。
-  // 　ここはあくまで「うっかり古い月度に記録してしまう」ことの防止が目的）
+  // 日付を、今の月度（最新の月度）と直接比較して振り分ける。
+  // ①今の月度の範囲内 → 確認なしでそのまま登録
+  // ②今の月度の開始日より前（既に終了した月度） → 確認の上で登録するか選べる
+  // ③今の月度の終了予定日以降（まだ作られていない次の月度） → 登録せず終了する
   const periodsForCheck = ensurePeriods();
   if (periodsForCheck.length) {
-    const dateIdx = findPeriodIndexForDate(finalDate);
-    if (dateIdx !== periodsForCheck.length - 1) {
+    const curIdx = periodsForCheck.length - 1;
+    const curPeriod = periodsForCheck[curIdx];
+
+    if (finalDate < curPeriod.start_date) {
+      // ②既に終了した月度
+      const dateIdx = findPeriodIndexForDate(finalDate);
       const okPastPeriod = confirm(
         `${store} ¥${amount.toLocaleString()}\n\n` +
         `この日付（${finalDate}）は「${periodLabel(dateIdx)}」に属し、既に終了した月度です。\n\n` +
@@ -4519,6 +4523,23 @@ function receiveFromUrl() {
         `「キャンセル」→ 今日の日付（${todayStr}）で、今の月度に記録します`
       );
       if (!okPastPeriod) finalDate = todayStr;
+    } else {
+      // 今の月度の「終了予定日（＝次の月度が始まるはずの日）」を、開始日の1か月後として推定する
+      const nextExpected = new Date(curPeriod.start_date);
+      nextExpected.setMonth(nextExpected.getMonth() + 1);
+      const nextExpectedStr = `${nextExpected.getFullYear()}-${String(nextExpected.getMonth() + 1).padStart(2, "0")}-${String(nextExpected.getDate()).padStart(2, "0")}`;
+
+      if (finalDate >= nextExpectedStr) {
+        // ③まだ作られていない次の月度
+        alert(
+          `${store} ¥${amount.toLocaleString()}\n\n` +
+          `この日付（${finalDate}）は、まだ準備されていない次の月度に属します。\n\n` +
+          `${nextExpectedStr}以降、新しい月度が始まってから改めて登録してください。\n` +
+          `（この取引は登録されていません）`
+        );
+        return; // 登録処理を中断する
+      }
+      // ①今の月度の範囲内 → 何もせずそのまま進む
     }
   }
 
