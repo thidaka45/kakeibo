@@ -1198,7 +1198,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.64.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.65.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1907,9 +1907,9 @@ function syncCarryoverIfNeeded(editedTxDate) {
 
 function updateFixedCostAmountFromTx(type, cat, amt, date) {
   if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
-  // 過去の月度への追記（記録漏れの後追い入力など）では、
-  // 今月の固定費一覧の「済」状態を誤って変更しないようにする
-  if (date && !isCurrentPeriodDate(date)) return;
+  // 固定費一覧は「月度ごとの履歴」を持たず、常に1セットのマスターとして扱う方針のため、
+  // 取引の日付がどの月度に属していても（過去月度への後追い登録でも）、
+  // 紐付いた取引の内容（金額・支払済み）を常にマスターへ反映する。
   const fcId = cat.slice(3);
   const cycle = ensureCycle();
   const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
@@ -1924,7 +1924,7 @@ function updateFixedCostAmountFromTx(type, cat, amt, date) {
 // 元々紐付いていた固定費項目を未払い（□）状態に戻す
 function revertFixedCostPaidFromTx(type, cat, date) {
   if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("fc_")) return;
-  if (date && !isCurrentPeriodDate(date)) return;
+  // updateFixedCostAmountFromTxと同様、月度に関わらず常にマスターへ反映する
   const fcId = cat.slice(3);
   const cycle = ensureCycle();
   const idx = cycle.fixed_costs.findIndex(i => i.id === fcId);
@@ -4502,6 +4502,24 @@ function receiveFromUrl() {
       `「キャンセル」→ 今日の日付（${todayStr}）で記録します`
     );
     if (!useReceiptDate) finalDate = todayStr;
+  }
+
+  // 日付が既に終了した月度（今の最新月度より前）に属する場合、意図しない
+  // 過去月度への計上を避けるため、登録前に確認する。
+  // （固定費・積立の自動計上や繰越金額には、既存の仕組みで別途対応済み。
+  // 　ここはあくまで「うっかり古い月度に記録してしまう」ことの防止が目的）
+  const periodsForCheck = ensurePeriods();
+  if (periodsForCheck.length) {
+    const dateIdx = findPeriodIndexForDate(finalDate);
+    if (dateIdx !== periodsForCheck.length - 1) {
+      const okPastPeriod = confirm(
+        `${store} ¥${amount.toLocaleString()}\n\n` +
+        `この日付（${finalDate}）は「${periodLabel(dateIdx)}」に属し、既に終了した月度です。\n\n` +
+        `「OK」→ このまま${periodLabel(dateIdx)}の記録として登録します\n` +
+        `「キャンセル」→ 今日の日付（${todayStr}）で、今の月度に記録します`
+      );
+      if (!okPastPeriod) finalDate = todayStr;
+    }
   }
 
   const cycle = ensureCycle();
