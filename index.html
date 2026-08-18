@@ -1198,7 +1198,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.65.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.65.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1719,24 +1719,32 @@ function selectQuickCat(id) {
   selectedCatName = c ? c.label : "";
   currentCatIcon = c ? c.emoji : "box";
 
+  // 金額・メモの自動入力（予測値の補完）は、新規登録の時だけ行う。
+  // 既存取引の編集中（editingTxIdがある＝レシート等で既に実績の金額が
+  // 入っている取引）に発動すると、正しい実績値が固定費マスターの
+  // 予測値で上書きされてしまうため、編集時は何もしない。
+  const isNewEntry = editingTxId === null;
+
   if (typeof id === "string" && id.startsWith("fc_")) {
     const fcOpt = getFixedCostCatOptions().find(c => c.id === id);
-    if (fcOpt) F("memoInput").value = `固定（${fcOpt.label}）`;
+    if (fcOpt && isNewEntry) F("memoInput").value = `固定（${fcOpt.label}）`;
 
-    const fcId = id.slice(3);
-    const cycle = ensureCycle();
-    const item = cycle.fixed_costs.find(i => i.id === fcId);
-    if (item && item.amount) {
-      inputAmt = String(item.amount);
-      F("amountDisplay").textContent = "¥" + item.amount.toLocaleString("ja-JP");
+    if (isNewEntry) {
+      const fcId = id.slice(3);
+      const cycle = ensureCycle();
+      const item = cycle.fixed_costs.find(i => i.id === fcId);
+      if (item && item.amount) {
+        inputAmt = String(item.amount);
+        F("amountDisplay").textContent = "¥" + item.amount.toLocaleString("ja-JP");
+      }
     }
   } else if (typeof id === "string" && id.startsWith("sv_")) {
     const svId = id.slice(3);
     const plans = loadSavingsPlans();
     const plan = plans.find(p => p.id === svId);
     if (plan) {
-      F("memoInput").value = `積立振り分け（${plan.name}）`;
-      if (plan.monthly) {
+      if (isNewEntry) F("memoInput").value = `積立振り分け（${plan.name}）`;
+      if (plan.monthly && isNewEntry) {
         inputAmt = String(plan.monthly);
         F("amountDisplay").textContent = "¥" + plan.monthly.toLocaleString("ja-JP");
       }
