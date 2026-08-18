@@ -505,8 +505,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <!-- サマリー -->
   <div style="margin-bottom:10px;">
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--teal);">
-      <div class="balance-label">今月の積立費合計</div>
-      <div class="balance-amount" style="font-size:32px;" id="savingsTotalMonthly">¥0</div>
+      <div style="display:flex;">
+        <div style="flex:1;">
+          <div class="balance-label">今月の積立合計</div>
+          <div class="balance-amount" style="font-size:26px;" id="savingsTotalMonthly">¥0</div>
+        </div>
+        <div style="flex:1;text-align:right;">
+          <div class="balance-label">貯蓄合計</div>
+          <div class="balance-amount" style="font-size:26px;" id="savingsTotalBalance">¥0</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -571,9 +579,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
     </div>
 
-    <!-- 積立ペースに対する貯蓄総額の進み具合の図解 -->
-    <div id="savingsAchievedWrap" style="margin-top:4px;margin-bottom:4px;display:none;">
-      <div id="savingsMonthsVisual" style="display:none;padding:8px 10px;border:1px solid var(--border);background:var(--bg);border-radius:var(--radius-s);"></div>
+    <!-- 積立費引出し（既存プラン編集時のみ表示。指定額を通常の残高へ加算する） -->
+    <div id="savingsWithdrawWrap" style="margin-top:4px;margin-bottom:4px;display:none;">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);background:var(--bg);border-radius:var(--radius-s);">
+        <span style="font-size:15px;font-weight:700;color:var(--sub);white-space:nowrap;">積立費引出し：</span>
+        <input class="field-input" id="savingsWithdrawAmount" type="text" inputmode="numeric" placeholder="¥0" style="flex:1;min-width:0;padding:6px 8px;font-size:16px;">
+        <button type="button" onclick="applySavingsWithdraw()" style="flex-shrink:0;padding:8px 14px;border-radius:8px;border:none;background:var(--teal);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">更新</button>
+      </div>
     </div>
 
     <!-- 1回の積立額（逆算・非表示・内部計算用） -->
@@ -1193,7 +1205,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.67.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.68.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3589,6 +3601,10 @@ function renderSavings() {
   const totalMonthly  = plans.filter(isSavingsDueNext).reduce((s, p) => s + (p.monthly || 0), 0);
   document.getElementById("savingsTotalMonthly").textContent = fmt(totalMonthly);
 
+  // 貯蓄合計：全プランの貯蓄総額（balance）の合計
+  const totalBalance = plans.reduce((s, p) => s + (p.balance || 0), 0);
+  document.getElementById("savingsTotalBalance").textContent = fmt(totalBalance);
+
 
   // プランリスト
   const listEl = document.getElementById("savingsList");
@@ -3632,7 +3648,7 @@ function renderSavings() {
       const icon = p.icon || guessIconEmoji(p.name);
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
       const isOnce = cycle === 0;
-      const amountLabel = isOnce ? "残り" + fmt(Math.max((p.amount||0) - (p.balance||0), 0)) : fmt(p.monthly||0);
+      const amountLabel = `貯蓄額：${fmt(p.balance || 0)}／${fmt(p.amount || 0)}`;
 
       return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;padding:12.6px 14px;${borderStyle}">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -3642,41 +3658,32 @@ function renderSavings() {
           <div style="font-size:13px;font-weight:600;color:${statusColor};margin-top:2px;">${status}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;">${amountLabel}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap;">${amountLabel}</div>
           <div style="font-size:11px;color:var(--muted);white-space:nowrap;margin-top:1px;">${cycleLabel}</div>
         </div>
       </div>
-      ${(p.balance || 0) > 0 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;">
-        <button onclick="event.stopPropagation(); returnSavingsToBalance('${p.id}')" style="border:1px solid var(--teal);background:var(--teal-l);color:var(--teal-d);border-radius:8px;padding:7px 14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">
-          積立を使う
-        </button>
-        <div style="text-align:right;font-size:16px;font-weight:700;color:var(--text);white-space:nowrap;">貯蓄総額：${fmt(p.balance || 0)}</div>
-      </div>` : ""}
     </div>`;
     }).join("") + `</div>`;
 }
 
-// 積立を「使う」ための操作：積立プランの残高の一部または全部を、通常の残高へ収入として
-// 戻す。積立の毎月自動計上（支出）で既に残高から差し引かれているお金を、実際に使う
-// タイミングで元の残高へ引き戻す形。戻した後は、通常の支出登録（レシート読み取りを
-// 含む）で普段通り記録すれば、証憑つきで、二重計上せずに使い道を残せる。
-function returnSavingsToBalance(id) {
+// 積立費引出し：積立プランの貯蓄総額の一部または全部を、通常の残高へ収入として
+// 加算する。積立の毎月自動計上（支出）で既に残高から差し引かれているお金を、実際に
+// 使うタイミングで元の残高へ引き戻す形。戻した後は、通常の支出登録（レシート読み取り
+// を含む）で普段通り記録すれば、証憑つきで、二重計上せずに使い道を残せる。
+// 編集フォーム内の「積立費引出し：」欄・更新ボタンから呼ばれる。
+function applySavingsWithdraw() {
+  const id = editingSavingsId;
+  if (!id) { showToast("対象の積立プランが見つかりませんでした"); return; }
   const plans = loadSavingsPlans();
   const plan = plans.find(p => p.id === id);
   if (!plan) { showToast("対象の積立プランが見つかりませんでした"); return; }
 
   const currentBalance = plan.balance || 0;
-  if (currentBalance <= 0) { showToast("この積立プランの残高は0円です"); return; }
+  if (currentBalance <= 0) { showToast("この積立プランの貯蓄総額は0円です"); return; }
 
-  const input = prompt(
-    `「${plan.name}」から通常の残高へ戻す金額を入力してください（現在の積立残高：${fmt(currentBalance)}）`,
-    String(currentBalance)
-  );
-  if (input === null) return; // キャンセル
-
-  const amount = parseInt(input.replace(/[^\d]/g, ""), 10);
-  if (!amount || amount <= 0) { showToast("正しい金額を入力してください"); return; }
-  if (amount > currentBalance) { showToast(`積立残高（${fmt(currentBalance)}）を超える金額は戻せません`); return; }
+  const amount = parseYenInput("savingsWithdrawAmount");
+  if (!amount || amount <= 0) { showToast("引き出す金額を入力してください"); return; }
+  if (amount > currentBalance) { showToast(`貯蓄総額（${fmt(currentBalance)}）を超える金額は引き出せません`); return; }
 
   const txs = loadTx();
   txs.push({
@@ -3684,15 +3691,20 @@ function returnSavingsToBalance(id) {
     type: "income",
     cat: "sv_" + id,
     amount,
-    memo: `積立「${plan.name}」から残高へ`,
+    memo: `積立「${plan.name}」から引出し`,
     date: todayLocalStr()
   });
   saveTx(txs);
   adjustBalance(amount);
   updateSavingsBalanceFromTx("income", "sv_" + id, amount);
 
-  showToast(`${fmt(amount)}を「${plan.name}」から通常の残高へ戻しました`);
-  renderSavings();
+  showToast(`${fmt(amount)}を「${plan.name}」から引き出し、通常の残高へ加算しました`);
+
+  // フォーム上の貯蓄総額表示・引出し欄を、最新の値にその場で更新する
+  const updatedPlan = loadSavingsPlans().find(p => p.id === id);
+  document.getElementById("savingsBalance").value = "¥" + (updatedPlan ? (updatedPlan.balance || 0) : 0).toLocaleString("ja-JP");
+  document.getElementById("savingsWithdrawAmount").value = "";
+  updateSavingsCalc();
   if (typeof renderHome === "function") renderHome();
 }
 
@@ -3757,6 +3769,8 @@ function openSavingsForm(id) {
       document.getElementById("savingsFormTitle").textContent = "積立プランを編集";
       document.getElementById("savingsSubmitBtn").textContent = "更新";
       document.getElementById("savingsDeleteBtn").style.display = "block";
+      document.getElementById("savingsWithdrawWrap").style.display = "block";
+      document.getElementById("savingsWithdrawAmount").value = "";
       renderSavingsIconSelect(p.icon || guessIconEmoji(p.name));
     }
   } else {
@@ -3770,6 +3784,7 @@ function openSavingsForm(id) {
     document.getElementById("savingsFormTitle").textContent = "新しい積立プラン";
     document.getElementById("savingsSubmitBtn").textContent = "保存";
     document.getElementById("savingsDeleteBtn").style.display = "none";
+    document.getElementById("savingsWithdrawWrap").style.display = "none";
     renderSavingsIconSelect("box");
   }
 
@@ -3902,13 +3917,10 @@ function updateSavingsCalc() {
   const isOnce  = cycle === 0;
   const displayEl = document.getElementById("savingsCalcDisplay");
   const noteEl    = document.getElementById("savingsCalcNote");
-  const achievedWrap = document.getElementById("savingsAchievedWrap");
-  const monthsVisualEl = document.getElementById("savingsMonthsVisual");
   const monthlyFieldsGroup = document.getElementById("savingsMonthlyFieldsGroup");
   const onceInline = document.getElementById("savingsOnceInline");
 
   // 「都度」は自動積立が無いため、同じ枠内で入力欄を案内文に差し替える
-  // （枠自体の高さは常に同じなので、下にある○の図解の開始位置がズレない）
   monthlyFieldsGroup.style.display = isOnce ? "none" : "flex";
   onceInline.style.display = isOnce ? "block" : "none";
 
@@ -3919,37 +3931,6 @@ function updateSavingsCalc() {
   } else {
     displayEl.value = "";
     noteEl.textContent = "";
-  }
-
-  // 進捗の図解（目標金額が入力されている場合のみ表示）
-  if (amount > 0) {
-    const months = (year && month) ? calcRemainingMonths(year, month) : 0;
-    const manualMonthly = parseYenInput("savingsMonthlyManual");
-    const monthly = isOnce ? 0 : (manualMonthly > 0 ? manualMonthly : (year && month ? calcMonthly(amount, balance, year, month, cycle).monthly : 0));
-    const isAchieved = balance >= amount;
-    const isOverdue = !isAchieved && (year && month) && months < 0;
-    const contributions = calcRemainingContributions(months, cycle);
-    const projected = balance + monthly * contributions;
-    // 「都度」はペース判定を行わない（一括入金前提のため、常に未達成表示になるのを避ける）
-    const onTrack = isAchieved || (!isOnce && projected >= amount);
-    let color, lightColor;
-    if (isAchieved)      { color = "var(--blue)";  lightColor = "var(--blue-l)"; }
-    else if (isOverdue)  { color = "var(--red)";   lightColor = "var(--red-l)"; }
-    else if (isOnce)     { color = "var(--teal)";  lightColor = "var(--teal-l)"; }
-    else if (onTrack)    { color = "var(--green)"; lightColor = "var(--green-l)"; }
-    else                 { color = "var(--red)";   lightColor = "var(--red-l)"; }
-    achievedWrap.style.display = "block";
-    // 実績：貯蓄額÷目標金額のシンプルな金額ベースの割合。
-    // 計画（時間ベース、金額を使わない）とは別の物差しなので、必ずしも一致はしないが、
-    // 「実際にいくら貯まっているか」を正直に表す指標として金額ベースのままにする。
-    const actualRatio = amount > 0 ? Math.min(balance / amount, 1) : 0;
-    const visualHtml = (year && month) ? renderMonthsVisual(cycle, actualRatio, isOverdue, isAchieved, months, color, lightColor) : "";
-    monthsVisualEl.innerHTML = visualHtml;
-    monthsVisualEl.style.display = visualHtml ? "block" : "none";
-  } else {
-    achievedWrap.style.display = "none";
-    monthsVisualEl.innerHTML = "";
-    monthsVisualEl.style.display = "none";
   }
 
   // 画面上部の「今月の積立費合計」を、保存前の編集中の値でもリアルタイムに反映する
