@@ -1193,7 +1193,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.66.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.67.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1937,24 +1937,38 @@ function revertFixedCostPaidFromTx(type, cat, date) {
 }
 
 // 支出登録時に「積立に振り分け」カテゴリが選ばれた場合、対象の積立プランの積立残高に加算する
+// 積立への振り分け（支出）で残高が増え、積立から通常残高へ戻す（収入）で残高が減る。
+// 対称的に扱うことで、取引の編集・削除時の取り消し処理（下のrevert関数）とも整合する。
 function updateSavingsBalanceFromTx(type, cat, amt) {
-  if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("sv_")) return;
+  if (typeof cat !== "string" || !cat.startsWith("sv_")) return;
   const svId = cat.slice(3);
   const plans = loadSavingsPlans();
   const idx = plans.findIndex(p => p.id === svId);
   if (idx === -1) return;
-  plans[idx].balance = (plans[idx].balance || 0) + amt;
+  if (type === "expense") {
+    plans[idx].balance = (plans[idx].balance || 0) + amt;
+  } else if (type === "income") {
+    plans[idx].balance = Math.max((plans[idx].balance || 0) - amt, 0);
+  } else {
+    return;
+  }
   saveSavingsPlans(plans);
 }
 
-// 取引の削除・カテゴリ変更時に、積立振り分け分を取り消す（積立残高から差し引く）
+// 取引の削除・カテゴリ変更時に、積立振り分け／積立から戻す分を取り消す
 function revertSavingsBalanceFromTx(type, cat, amt) {
-  if (type !== "expense" || typeof cat !== "string" || !cat.startsWith("sv_")) return;
+  if (typeof cat !== "string" || !cat.startsWith("sv_")) return;
   const svId = cat.slice(3);
   const plans = loadSavingsPlans();
   const idx = plans.findIndex(p => p.id === svId);
   if (idx === -1) return;
-  plans[idx].balance = Math.max((plans[idx].balance || 0) - amt, 0);
+  if (type === "expense") {
+    plans[idx].balance = Math.max((plans[idx].balance || 0) - amt, 0);
+  } else if (type === "income") {
+    plans[idx].balance = (plans[idx].balance || 0) + amt;
+  } else {
+    return;
+  }
   saveSavingsPlans(plans);
 }
 
@@ -3632,8 +3646,53 @@ function renderSavings() {
           <div style="font-size:11px;color:var(--muted);white-space:nowrap;margin-top:1px;">${cycleLabel}</div>
         </div>
       </div>
+      ${(p.balance || 0) > 0 ? `<div style="text-align:right;margin-top:8px;">
+        <button onclick="event.stopPropagation(); returnSavingsToBalance('${p.id}')" style="border:1px solid var(--teal);background:var(--teal-l);color:var(--teal-d);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">
+          積立を使う（残高に戻す）
+        </button>
+      </div>` : ""}
     </div>`;
     }).join("") + `</div>`;
+}
+
+// 積立を「使う」ための操作：積立プランの残高の一部または全部を、通常の残高へ収入として
+// 戻す。積立の毎月自動計上（支出）で既に残高から差し引かれているお金を、実際に使う
+// タイミングで元の残高へ引き戻す形。戻した後は、通常の支出登録（レシート読み取りを
+// 含む）で普段通り記録すれば、証憑つきで、二重計上せずに使い道を残せる。
+function returnSavingsToBalance(id) {
+  const plans = loadSavingsPlans();
+  const plan = plans.find(p => p.id === id);
+  if (!plan) { showToast("対象の積立プランが見つかりませんでした"); return; }
+
+  const currentBalance = plan.balance || 0;
+  if (currentBalance <= 0) { showToast("この積立プランの残高は0円です"); return; }
+
+  const input = prompt(
+    `「${plan.name}」から通常の残高へ戻す金額を入力してください（現在の積立残高：${fmt(currentBalance)}）`,
+    String(currentBalance)
+  );
+  if (input === null) return; // キャンセル
+
+  const amount = parseInt(input.replace(/[^\d]/g, ""), 10);
+  if (!amount || amount <= 0) { showToast("正しい金額を入力してください"); return; }
+  if (amount > currentBalance) { showToast(`積立残高（${fmt(currentBalance)}）を超える金額は戻せません`); return; }
+
+  const txs = loadTx();
+  txs.push({
+    id: Date.now(),
+    type: "income",
+    cat: "sv_" + id,
+    amount,
+    memo: `積立「${plan.name}」から残高へ`,
+    date: todayLocalStr()
+  });
+  saveTx(txs);
+  adjustBalance(amount);
+  updateSavingsBalanceFromTx("income", "sv_" + id, amount);
+
+  showToast(`${fmt(amount)}を「${plan.name}」から通常の残高へ戻しました`);
+  renderSavings();
+  if (typeof renderHome === "function") renderHome();
 }
 
 function openSavingsForm(id) {
