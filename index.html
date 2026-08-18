@@ -373,11 +373,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
-      <button id="receiptAccessBtn_expense" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
+      <button id="receiptAccessBtn_expense" onclick="showReceiptInfo(editingTxId)" title="証憑を見る"
         style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
-        </svg>画像
+        </svg>証憑
       </button>
     </div>
     <!-- 記録ボタン -->
@@ -426,11 +426,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
-      <button id="receiptAccessBtn_income" onclick="showReceiptInfo(editingTxId)" title="レシート画像を見る"
+      <button id="receiptAccessBtn_income" onclick="showReceiptInfo(editingTxId)" title="証憑を見る"
         style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
-        </svg>画像
+        </svg>証憑
       </button>
     </div>
     <!-- 記録ボタン -->
@@ -901,29 +901,29 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <select id="excelExportEndPeriod" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;font-family:inherit;background:var(--card);color:var(--text);"></select>
     </div>
 
-    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">② 証憑画像をまとめて追加（任意・月ごとに繰り返し可）</div>
+    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">② 証憑をまとめて追加（任意・月ごとに繰り返し可）</div>
     <div style="font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
-      「レシート」フォルダの中の年月フォルダを開き、画像をすべて選択して追加してください。複数月ある場合は、月ごとにこの操作を繰り返せます。
+      「レシート」フォルダの中の年月フォルダを開き、証憑（画像）をすべて選択して追加してください。複数月ある場合は、月ごとにこの操作を繰り返せます。
     </div>
     <input type="file" id="excelExportImageInput" accept="image/*" multiple style="display:none;" onchange="onExcelExportImagesChosen(event)">
     <button class="export-btn" onclick="document.getElementById('excelExportImageInput').click()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:14px;font-size:15px;font-weight:700;border-radius:12px;margin-bottom:8px;">
-      画像をまとめて追加
+      証憑をまとめて追加
     </button>
-    <div id="excelExportImageStatus" style="font-size:13px;color:var(--sub);margin-bottom:18px;">まだ画像は追加されていません</div>
+    <div id="excelExportImageStatus" style="font-size:13px;color:var(--sub);margin-bottom:18px;">まだ証憑は追加されていません</div>
 
     <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px;">③ 出力する</div>
     <button class="export-btn" onclick="exportExcelWithReceipts()" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:10px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      エクセル＋証憑画像を出力
+      エクセル＋証憑を出力
     </button>
     <button class="export-btn" onclick="exportCSVWithReceipts()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      CSV＋証憑画像を出力
+      CSV＋証憑を出力
     </button>
     <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
-      ※ 画像を追加しなかった取引は、証憑欄が空欄のまま出力されます。あとから追加し直して再出力することもできます。<br>
+      ※ 証憑を追加しなかった取引は、証憑欄が空欄のまま出力されます。あとから追加し直して再出力することもできます。<br>
       ※ 出力後は共有シートが開きます。「メール」を選ぶと、ZIPファイルが添付された状態でメール作成画面が開きます（AirDropやFiles保存も選べます）。<br>
-      ※ エクセルのハイパーリンクを使う場合は、ダウンロードしたZIPファイルを開く前に「展開」（右クリック→すべて展開 等）してください。展開せずに開くと、証憑画像へのリンクが機能しません。
+      ※ エクセルのハイパーリンクを使う場合は、ダウンロードしたZIPファイルを開く前に「展開」（右クリック→すべて展開 等）してください。展開せずに開くと、証憑へのリンクが機能しません。
     </div>
   </div>
 </div>
@@ -1029,7 +1029,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- 証憑画像の「道しるべ」モーダル：探すべきファイル名・フォルダパスを常時表示したまま画像選択を促す -->
 <div class="receipt-prompt-overlay" id="receiptGuideOverlay">
   <div class="receipt-prompt-card">
-    <p class="receipt-guide-lead">レシート・領収書の画像を選んでください</p>
+    <p class="receipt-guide-lead">レシート・領収書の証憑を選んでください</p>
     <div class="receipt-guide-box">
       <div class="receipt-guide-label">フォルダ</div>
       <div class="receipt-guide-path" id="receiptGuideFolder"></div>
@@ -1037,16 +1037,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div class="receipt-guide-name" id="receiptGuideFile"></div>
     </div>
     <div class="receipt-guide-steps">
-      <div class="receipt-guide-steps-title">画像の選び方</div>
+      <div class="receipt-guide-steps-title">証憑の選び方</div>
       <ol>
-        <li>「画像を選ぶ」を押す</li>
+        <li>「証憑を選ぶ」を押す</li>
         <li>「ファイルを選択」を選ぶ</li>
         <li>「ブラウズ」を選ぶ</li>
-        <li>上のフォルダ・ファイル名を目印に画像を選ぶ</li>
+        <li>上のフォルダ・ファイル名を目印に証憑を選ぶ</li>
       </ol>
     </div>
     <div class="receipt-prompt-actions">
-      <button class="receipt-prompt-btn primary" onclick="receiptGuidePick()">画像を選ぶ</button>
+      <button class="receipt-prompt-btn primary" onclick="receiptGuidePick()">証憑を選ぶ</button>
       <button class="receipt-prompt-btn secondary" onclick="closeReceiptGuide()">閉じる</button>
     </div>
   </div>
@@ -1203,7 +1203,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.66.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.66.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2739,7 +2739,7 @@ let receiptPickTxId = null;
 function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx || !tx.receiptRef) {
-    showToast("この取引に紐づく画像の識別子がありません");
+    showToast("この取引に紐づく証憑の識別子がありません");
     return;
   }
 
@@ -2747,8 +2747,8 @@ function showReceiptInfo(id) {
   if (receiptIdSet.has(tx.receiptRef)) {
     getReceiptBlob(tx.receiptRef).then(blob => {
       if (blob) openReceiptViewer(tx.receiptRef, blob, "fromHistory");
-      else showToast("画像の読み込みに失敗しました");
-    }).catch(() => showToast("画像の読み込みに失敗しました"));
+      else showToast("証憑の読み込みに失敗しました");
+    }).catch(() => showToast("証憑の読み込みに失敗しました"));
     return;
   }
 
@@ -2768,22 +2768,22 @@ async function onReceiptFileChosen(e) {
   // accept属性を外しファイル選択画面を直接開けるようにしたため、
   // 画像以外のファイルが選ばれていないかここで確認する
   if (!file.type || !file.type.startsWith("image/")) {
-    showToast("画像ファイルを選んでください（選ばれたファイルは画像ではありません）");
+    showToast("証憑となる画像ファイルを選んでください（選ばれたファイルは画像ではありません）");
     return;
   }
 
   const tx = loadTx().find(t => t.id === id);
-  if (!tx || !tx.receiptRef) { showToast("画像の保存に失敗しました"); return; }
+  if (!tx || !tx.receiptRef) { showToast("証憑の保存に失敗しました"); return; }
 
   try {
     await saveReceiptBlob(tx.receiptRef, file);
     receiptIdSet.add(tx.receiptRef);
-    showToast("画像を保存しました");
+    showToast("証憑を保存しました");
     openReceiptViewer(tx.receiptRef, file);
     // 履歴一覧・編集画面に画像有無のバッジ等があれば反映されるよう再描画
     if (typeof renderHome === "function") renderHome();
   } catch (err) {
-    showToast("画像の保存に失敗しました");
+    showToast("証憑の保存に失敗しました");
   }
 }
 
@@ -2830,7 +2830,7 @@ async function reselectCurrentReceiptPhoto() {
     await deleteReceiptBlob(key);
     receiptIdSet.delete(key);
   } catch (e) {
-    showToast("画像の削除に失敗しました");
+    showToast("証憑の削除に失敗しました");
     return;
   }
   closeReceiptViewer();
@@ -2838,7 +2838,7 @@ async function reselectCurrentReceiptPhoto() {
   if (tx) {
     openReceiptGuide(tx.id, tx.receiptRef, tx.date);
   } else {
-    showToast("取引が見つからなかったため、取引詳細から改めて画像ボタンを押してください");
+    showToast("取引が見つからなかったため、取引詳細から改めて証憑ボタンを押してください");
   }
 }
 
@@ -2863,7 +2863,7 @@ function renderHistoryTxList(idx) {
         const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
         const displayName = isFcOrSv ? c.label : (t.memo || c.label);
         const receiptMark = t.receiptRef
-          ? `<span title="画像あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.9;">
+          ? `<span title="証憑あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.9;">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                  <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
                  <line x1="9" y1="8" x2="15" y2="8"/>
@@ -3034,7 +3034,7 @@ function exportCSV(range) {
   if (txs.length === 0) { showToast("データがありません"); return; }
 
   const BOM    = "\uFEFF";
-  const header = "日付,種別,カテゴリ,金額,メモ,画像ファイル名\n";
+  const header = "日付,種別,カテゴリ,金額,メモ,証憑\n";
   const rows   = txs.map(t => {
     const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
     const type = t.type === "income" ? "収入" : "支出";
@@ -3131,9 +3131,9 @@ function onExcelExportImagesChosen(event) {
   event.target.value = "";
   updateExcelExportImageStatus();
   if (added > 0) {
-    showToast(`${added}件の画像を追加しました（合計${excelExportImages.size}件）`);
+    showToast(`${added}件の証憑を追加しました（合計${excelExportImages.size}件）`);
   } else {
-    showToast("画像ファイルが見つかりませんでした");
+    showToast("証憑となる画像ファイルが見つかりませんでした");
   }
 }
 
@@ -3142,8 +3142,8 @@ function updateExcelExportImageStatus() {
   if (!el) return;
   const count = excelExportImages.size;
   el.textContent = count === 0
-    ? "まだ画像は追加されていません"
-    : `${count}件の画像を追加済み`;
+    ? "まだ証憑は追加されていません"
+    : `${count}件の証憑を追加済み`;
 }
 
 // 開始月度〜終了月度のプルダウンを、実際の期間データから組み立てる
@@ -3219,7 +3219,7 @@ function exportExcelWithReceipts() {
         });
         matchedCount++;
       } else {
-        receiptCell = "（画像未追加）";
+        receiptCell = "（証憑未追加）";
       }
     }
     aoa.push([t.date, type, cat.label, t.amount, t.memo || "", receiptCell]);
@@ -3316,7 +3316,7 @@ function exportCSVWithReceipts() {
         imageEntries.set(t.receiptRef, excelExportImages.get(t.receiptRef));
         matchedCount++;
       } else {
-        receiptCell = "（画像未追加）";
+        receiptCell = "（証憑未追加）";
       }
     }
     return `${t.date},${type},${cat.label},${t.amount},${memo},${receiptCell}`;
