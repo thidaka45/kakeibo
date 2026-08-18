@@ -668,23 +668,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> CSV書き出し</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> エクセル・CSV出力（証憑つき）</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      取引データをCSV形式で書き出します。Excel等での確認・加工用です。
-    </div>
-    <button onclick="showPage('backup')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      CSV書き出しを開く
-    </button>
-  </div>
-
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> エクセル出力（証憑画像つき）</div>
-  <div class="export-section" style="padding:14px;">
-    <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      取引データをExcelファイルにまとめ、証憑画像と一緒にZIPで書き出します。PCでの集計・確定申告準備向けです。
+      取引データをExcelまたはCSVファイルにまとめ、証憑と一緒にZIPで書き出します。メールなどですぐ持ち出せます。PCでの集計・確定申告準備向けです。
     </div>
     <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      エクセル出力を開く
+      エクセル・CSV出力を開く
     </button>
   </div>
 
@@ -1203,7 +1193,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.66.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.66.5"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3029,7 +3019,7 @@ function importFullBackupFile(event) {
 }
 
 // CSV出力
-function exportCSV(range) {
+async function exportCSV(range) {
   const { txs, allCats } = getExportTxs(range);
   if (txs.length === 0) { showToast("データがありません"); return; }
 
@@ -3043,11 +3033,27 @@ function exportCSV(range) {
     return `${t.date},${type},${cat.label},${t.amount},${memo},${ref}`;
   }).join("\n");
 
-  const blob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
+  const label = getExportLabel(range);
+  const blob  = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
+
+  // エクセル・証憑つきCSV出力と同様、対応環境では共有シート（メール添付等）を
+  // 開く。非対応環境や共有失敗時は、これまで通り直接ダウンロードする。
+  const csvFile = new File([blob], label + ".csv", { type: "text/csv" });
+  if (navigator.canShare && navigator.canShare({ files: [csvFile] })) {
+    try {
+      await navigator.share({ files: [csvFile], title: label });
+      showToast("CSVを共有しました");
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // 利用者がキャンセルした場合は何もしない
+      // それ以外のエラーはダウンロードにフォールバック
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement("a");
   a.href     = url;
-  a.download = getExportLabel(range) + ".csv";
+  a.download = label + ".csv";
   a.click();
   URL.revokeObjectURL(url);
   showToast("CSVを保存しました");
