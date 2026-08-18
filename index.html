@@ -1198,7 +1198,20 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.64.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.64.3"; // ← 更新するたびに番号を上げる
+
+// 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
+// new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
+// 日本時間の午前0時〜9時台は前日の日付になってしまう不具合があった。
+// 「今日の日付」として使う箇所は、必ずこちらを使うこと（タイムスタンプ用途の
+// toISOString()自体はそのままでよい）。
+function todayLocalStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 // ============================================================
 // ストレージ
@@ -1432,7 +1445,7 @@ function renderHome() {
   const { start } = periodRange(viewPeriodIndex);
   const nominalEnd = periodNominalEnd(start);
   const isLatestPeriod = viewPeriodIndex === periods.length - 1;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocalStr();
   const totalDays = daysBetween(start, nominalEnd) + 1;
   const elapsedDaysRaw = daysBetween(start, todayStr) + 1;
   const elapsedDays = isLatestPeriod ? Math.max(Math.min(elapsedDaysRaw, totalDays), 0) : totalDays;
@@ -1944,7 +1957,7 @@ function revertSavingsBalanceFromTx(type, cat, amt) {
 
 function submitTx() {
   const periods = ensurePeriods();
-  const dateForCheck = F("dateInput").value || new Date().toISOString().slice(0,10);
+  const dateForCheck = F("dateInput").value || todayLocalStr();
   const checkIdx = periods.length ? findPeriodIndexForDate(dateForCheck) : null;
   if (periods.length && checkIdx !== periods.length - 1) {
     const ok = confirm(
@@ -1976,7 +1989,7 @@ function submitTx() {
       : resolveCustomCatId(inputType, typedName, currentCatIcon);
   }
 
-  const date = F("dateInput").value || new Date().toISOString().slice(0,10);
+  const date = F("dateInput").value || todayLocalStr();
   const memo = F("memoInput").value || "";
   const txs = loadTx();
 
@@ -2140,7 +2153,7 @@ function newTxEntry(type) {
   // 前回編集していた取引の内容が残らないよう、入力欄を新規状態にクリアする
   inputAmt = "";
   F("amountDisplay").textContent = "¥0";
-  F("dateInput").value = new Date().toISOString().slice(0,10);
+  F("dateInput").value = todayLocalStr();
   syncDateDisplay(inputType);
   F("memoInput").value = "";
 
@@ -3935,7 +3948,7 @@ function fcIsPayMonth(cycleId, date = new Date()) {
 function ensureCycle() {
   let c = loadCycle();
   if (!c) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayLocalStr();
     c = { cycle_id: null, created_by: null, created_at: null, next_income_date: today, fixed_costs: [] };
   }
   let changed = !c.fixed_costs;
@@ -4230,7 +4243,7 @@ function saveFixedCostItem() {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       item: name, icon, amount, due_day, cycle: fcCycle, paid: false,
       source: amount === 0 ? "pending_registration" : "manual",
-      registered_date: new Date().toISOString().slice(0, 10)
+      registered_date: todayLocalStr()
     });
   }
 
@@ -4302,7 +4315,7 @@ function startNewMonth(silent) {
     if (!confirm(confirmMsg)) return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocalStr();
   const prevIdx = periods.length - 1; // 移行前時点でのインデックス＝直前の月度
 
   if (!isFirstTime) {
@@ -4631,7 +4644,7 @@ function init() {
   receiveFromUrl();
   refreshReceiptIdSet(); // レシート画像保存済み一覧を先読みしておく（ファイル選択シートを即座に開くため）
 
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocalStr();
   document.getElementById("dateInput_expense").value = today;
   document.getElementById("dateInput_income").value = today;
   syncDateDisplay("expense");
