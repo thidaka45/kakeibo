@@ -536,7 +536,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div id="savingsIconGrid" class="cat-icon-grid" style="display:none;margin-top:8px;"></div>
     </div>
 
-    <!-- 目標年月＋積立ペース＋目標金額＋現在の貯蓄額＋1回の積立額 -->
+    <!-- 目標年月＋積立ペース＋目標金額＋貯蓄総額＋1回の積立額 -->
     <div style="margin-bottom:4px;">
       <div style="position:relative;margin-bottom:4px;">
         <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>目標年月</span><span>：</span></span>
@@ -557,7 +557,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       </div>
 
       <div style="position:relative;margin-top:4px;">
-        <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>現在の貯蓄額</span><span>：</span></span>
+        <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>貯蓄総額</span><span>：</span></span>
         <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
       </div>
 
@@ -567,11 +567,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
           <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
           <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34%;flex-shrink:0;text-align:right;margin-left:8px;"></div>
         </div>
-        <div id="savingsOnceInline" style="display:none;width:100%;font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">「都度」は自動積立なし。入金時に上の「現在の貯蓄額」を更新してください</div>
+        <div id="savingsOnceInline" style="display:none;width:100%;font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">「都度」は自動積立なし。入金時に上の「貯蓄総額」を更新してください</div>
       </div>
     </div>
 
-    <!-- 積立ペースに対する現在の貯蓄額の進み具合の図解 -->
+    <!-- 積立ペースに対する貯蓄総額の進み具合の図解 -->
     <div id="savingsAchievedWrap" style="margin-top:4px;margin-bottom:4px;display:none;">
       <div id="savingsMonthsVisual" style="display:none;padding:8px 10px;border:1px solid var(--border);background:var(--bg);border-radius:var(--radius-s);"></div>
     </div>
@@ -1193,7 +1193,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.67.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.67.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3648,9 +3648,9 @@ function renderSavings() {
       </div>
       ${(p.balance || 0) > 0 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;">
         <button onclick="event.stopPropagation(); returnSavingsToBalance('${p.id}')" style="border:1px solid var(--teal);background:var(--teal-l);color:var(--teal-d);border-radius:8px;padding:7px 14px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">
-          積立を使う（残高に戻す）
+          積立を使う
         </button>
-        <div style="text-align:right;font-size:16px;font-weight:700;color:var(--text);white-space:nowrap;">${fmt(p.amount || 0)}</div>
+        <div style="text-align:right;font-size:16px;font-weight:700;color:var(--text);white-space:nowrap;">貯蓄総額：${fmt(p.balance || 0)}</div>
       </div>` : ""}
     </div>`;
     }).join("") + `</div>`;
@@ -3828,10 +3828,10 @@ function onSavingsNameInput() {
 
 // 積立ペースに対する進み具合を「進捗ドット」で直感的に表現する。
 // ○の数＝積立ペース（月数、最大24個）。
-// ・塗りつぶし：現在の貯蓄額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
+// ・塗りつぶし：貯蓄総額／目標金額の割合から逆算し、達成できている分だけ内部を塗る
 // ・ふちの色：達成年月から逆算して、現時点がどこまで来ているか（時間の経過）を評価色で縁取る
 // ・遅れている分（本来はもう塗れているはずなのに未達）：中身は白のまま、縁だけを評価色にする
-// 計画（目標年月から逆算した本来のペース）と実績（現在の貯蓄額）を、
+// 計画（目標年月から逆算した本来のペース）と実績（貯蓄総額）を、
 // 2段の横バーメーターで比較できるようにする。1本にすべての情報を詰め込むより、
 // 「計画バー」と「実績バー」を並べて長さを比べるだけで進み具合が伝わるようにする狙い。
 function planActualBarHTML(label, ratio, color, showPct) {
