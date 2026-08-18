@@ -885,13 +885,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== エクセル出力（証憑画像つき） ===== -->
 <div class="page" id="page-excelexport" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex-shrink:0;padding:10px 14px 0;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">エクセル出力</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">エクセル・CSV出力</span></div>
 </div>
 <div style="flex:1;overflow-y:auto;padding:0 14px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
 
   <div class="budget-card">
     <div style="font-size:15px;color:var(--text);margin-bottom:18px;line-height:1.7;">
-      指定した期間の取引をExcelファイルにまとめ、証憑画像と一緒にZIPファイルとして書き出します。
+      指定した期間の取引をExcelまたはCSVファイルにまとめ、証憑画像と一緒にZIPファイルとして書き出します。メールなどですぐに持ち出せます。
     </div>
 
     <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">① 期間を選ぶ</div>
@@ -912,13 +912,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div id="excelExportImageStatus" style="font-size:13px;color:var(--sub);margin-bottom:18px;">まだ画像は追加されていません</div>
 
     <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px;">③ 出力する</div>
-    <button class="export-btn" onclick="exportExcelWithReceipts()" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
+    <button class="export-btn" onclick="exportExcelWithReceipts()" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:10px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       エクセル＋証憑画像を出力
     </button>
+    <button class="export-btn" onclick="exportCSVWithReceipts()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV＋証憑画像を出力
+    </button>
     <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
-      ※ 画像を追加しなかった取引は、ハイパーリンクなしで出力されます。あとから追加し直して再出力することもできます。<br>
-      ※ ダウンロードしたZIPファイルは、開く前に「展開」（右クリック→すべて展開 等）してからExcelファイルを開いてください。展開せずに開くと、証憑画像へのリンクが機能しません。
+      ※ 画像を追加しなかった取引は、証憑欄が空欄のまま出力されます。あとから追加し直して再出力することもできます。<br>
+      ※ 出力後は共有シートが開きます。「メール」を選ぶと、ZIPファイルが添付された状態でメール作成画面が開きます（AirDropやFiles保存も選べます）。<br>
+      ※ エクセルのハイパーリンクを使う場合は、ダウンロードしたZIPファイルを開く前に「展開」（右クリック→すべて展開 等）してください。展開せずに開くと、証憑画像へのリンクが機能しません。
     </div>
   </div>
 </div>
@@ -1198,7 +1203,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.65.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.66.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2610,6 +2615,46 @@ async function getAllReceiptKeys() {
   });
 }
 
+// IndexedDBに保存されている証憑画像のうち、現在の取引データ（kakeibo_tx）の
+// どのreceiptRefとも一致しないもの（＝取り残されたゴミ）を削除する。
+// 取引削除時・選び直し時には個別に掃除しているが、バックアップ復元など
+// それ以外の経路で取り残されたものも、新しい月度が始まるたびにここで
+// まとめて回収する（画面の動作をブロックしないよう非同期・裏側で実行）。
+async function cleanupOrphanedReceiptBlobs() {
+  try {
+    const keys = await getAllReceiptKeys();
+    if (!keys.length) return;
+    const usedRefs = new Set(loadTx().map(t => t.receiptRef).filter(Boolean));
+    const orphanKeys = keys.filter(k => !usedRefs.has(k));
+    for (const key of orphanKeys) {
+      await deleteReceiptBlob(key);
+    }
+    if (orphanKeys.length) {
+      receiptIdSet = new Set(keys.filter(k => usedRefs.has(k)));
+    }
+  } catch (e) {
+    console.error("証憑画像の掃除に失敗しました", e);
+  }
+}
+
+// 証憑画像（IndexedDB）を全て削除する。
+// バックアップには画像自体が含まれないため、復元直後は「まだ何も
+// 紐付いていない」状態が正しい姿。差分計算は不要で、丸ごと空にする。
+async function clearAllReceiptBlobs() {
+  try {
+    const db = await openReceiptsDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(RECEIPTS_STORE, "readwrite");
+      tx.objectStore(RECEIPTS_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    receiptIdSet = new Set();
+  } catch (e) {
+    console.error("証憑画像の初期化に失敗しました", e);
+  }
+}
+
 // 画像が保存済みのreceiptRefを覚えておくメモリ上の集合。
 // ------------------------------------------------------------
 // iOS Safariは「ファイル選択シートを開く」操作を、ボタンタップの
@@ -2971,8 +3016,13 @@ function importFullBackupFile(event) {
     }
     keys.forEach(k => localStorage.setItem(k, payload.data[k]));
 
-    showToast("データを復元しました。再読み込みします…");
-    setTimeout(() => location.reload(), 800);
+    // バックアップには証憑画像自体が含まれないため、復元直後は
+    // IndexedDBを丸ごと空にしておく（取り残しゴミの発生を未然に防ぐ）
+    clearAllReceiptBlobs().finally(() => {
+      showToast("データを復元しました。再読み込みします…");
+      setTimeout(() => location.reload(), 800);
+    });
+    return;
   };
   reader.onerror = () => showToast("ファイルの読み込みに失敗しました");
   reader.readAsText(file);
@@ -3211,43 +3261,119 @@ function exportExcelWithReceipts() {
       ? await addHyperlinkStyleToXlsx(xlsxArrayBuffer, linkedCellRefs)
       : xlsxArrayBuffer;
 
-    const zip = new JSZip();
-    zip.file(label + ".xlsx", finalXlsxBuffer);
-    const imgFolder = zip.folder("images");
     // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
     const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
+    const imageEntries = new Map();
     usedNames.forEach(name => {
       const file = excelExportImages.get(name);
-      if (file) imgFolder.file(name, file);
+      if (file) imageEntries.set(name, file);
     });
 
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-    const zipFile = new File([zipBlob], label + ".zip", { type: "application/zip" });
     const summaryMsg = receiptCount > 0
       ? `${receiptCount}件の証憑のうち${matchedCount}件を同梱しました`
       : `${txs.length}件を出力しました`;
 
-    if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
-      try {
-        await navigator.share({ files: [zipFile], title: label });
-        showToast(summaryMsg);
-        return;
-      } catch (e) {
-        if (e && e.name === "AbortError") return; // 利用者がキャンセルした場合は何もしない
-        // それ以外のエラーはダウンロードにフォールバック
-      }
-    }
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = label + ".zip";
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(summaryMsg + "（ダウンロードしました）");
+    await shareOrDownloadZip(label, label + ".xlsx", finalXlsxBuffer, imageEntries, summaryMsg);
   })().catch(err => {
     console.error(err);
     showToast("出力に失敗しました");
   });
+}
+
+// CSV＋証憑画像をZIPにまとめて出力する。期間・画像収集はエクセル出力と共通の
+// UI（excelExportImages等）をそのまま使う。
+function exportCSVWithReceipts() {
+  if (typeof JSZip === "undefined") {
+    showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
+    return;
+  }
+  const periods = ensurePeriods();
+  if (!periods.length) { showToast("期間データがありません"); return; }
+
+  const startIdx = parseInt(document.getElementById("excelExportStartPeriod").value, 10);
+  const endIdx   = parseInt(document.getElementById("excelExportEndPeriod").value, 10);
+  if (isNaN(startIdx) || isNaN(endIdx)) { showToast("期間を選択してください"); return; }
+
+  const txs = getExcelExportTxs(startIdx, endIdx);
+  if (!txs.length) { showToast("対象期間にデータがありません"); return; }
+
+  const allCats = getAllCats();
+  const BOM = "\uFEFF";
+  const header = "日付,種別,カテゴリ,金額,メモ,証憑\n";
+  const imageEntries = new Map();
+  let receiptCount = 0;
+  let matchedCount = 0;
+
+  const rows = txs.map(t => {
+    const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
+    const type = t.type === "income" ? "収入" : "支出";
+    const memo = (t.memo || "").replace(/,/g, "、");
+    let receiptCell = "";
+    if (t.receiptRef) {
+      receiptCount++;
+      if (excelExportImages.has(t.receiptRef)) {
+        receiptCell = "images/" + t.receiptRef;
+        imageEntries.set(t.receiptRef, excelExportImages.get(t.receiptRef));
+        matchedCount++;
+      } else {
+        receiptCell = "（画像未追加）";
+      }
+    }
+    return `${t.date},${type},${cat.label},${t.amount},${memo},${receiptCell}`;
+  }).join("\n");
+
+  const label = (startIdx === endIdx)
+    ? `家計簿_${periodLabel(startIdx)}`
+    : `家計簿_${periodLabel(Math.min(startIdx, endIdx))}〜${periodLabel(Math.max(startIdx, endIdx))}`;
+
+  const csvBlob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
+
+  showToast("ファイルを作成しています…");
+
+  const summaryMsg = receiptCount > 0
+    ? `${receiptCount}件の証憑のうち${matchedCount}件を同梱しました`
+    : `${txs.length}件を出力しました`;
+
+  shareOrDownloadZip(label, label + ".csv", csvBlob, imageEntries, summaryMsg)
+    .catch(err => {
+      console.error(err);
+      showToast("出力に失敗しました");
+    });
+}
+
+// 本体ファイル（xlsxまたはcsv）と証憑画像をZIPにまとめ、共有シート（Web Share API）で
+// 渡す。共有に対応していない環境ではダウンロードにフォールバックする。
+// ・label: ZIPファイル名のベース（拡張子なし）
+// ・mainFileName: ZIP内に入れる本体ファイルのファイル名（拡張子込み）
+// ・mainFileContent: 本体ファイルの中身（ArrayBufferまたはBlob）
+// ・imageEntries: Map<ファイル名, File> 同梱する証憑画像
+// ・summaryMsg: 完了時に表示するトースト文言
+async function shareOrDownloadZip(label, mainFileName, mainFileContent, imageEntries, summaryMsg) {
+  const zip = new JSZip();
+  zip.file(mainFileName, mainFileContent);
+  const imgFolder = zip.folder("images");
+  imageEntries.forEach((file, name) => imgFolder.file(name, file));
+
+  const zipBlob = await zip.generateAsync({ type: "blob" });
+  const zipFile = new File([zipBlob], label + ".zip", { type: "application/zip" });
+
+  if (navigator.canShare && navigator.canShare({ files: [zipFile] })) {
+    try {
+      await navigator.share({ files: [zipFile], title: label });
+      showToast(summaryMsg);
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // 利用者がキャンセルした場合は何もしない
+      // それ以外のエラーはダウンロードにフォールバック
+    }
+  }
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = label + ".zip";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(summaryMsg + "（ダウンロードしました）");
 }
 
 // 生成済みxlsx（ArrayBuffer）の内部XMLを直接書き換え、指定セルに
@@ -4690,6 +4816,7 @@ function init() {
   migrateTxDates();
   receiveFromUrl();
   refreshReceiptIdSet(); // レシート画像保存済み一覧を先読みしておく（ファイル選択シートを即座に開くため）
+  cleanupOrphanedReceiptBlobs(); // 起動のたびに1回、取り残された証憑画像を裏側で掃除する
 
   const today = todayLocalStr();
   document.getElementById("dateInput_expense").value = today;
