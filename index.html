@@ -373,8 +373,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
-      <button id="receiptAccessBtn_expense" onclick="showReceiptInfo(editingTxId)" title="証憑を見る"
-        style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
+      <button id="receiptAccessBtn_expense" onclick="handleReceiptButtonClick()" title="証憑を選択"
+        style="display:inline-flex;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
         </svg>証憑
@@ -426,8 +426,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="position:relative;margin-bottom:6px;">
       <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
-      <button id="receiptAccessBtn_income" onclick="showReceiptInfo(editingTxId)" title="証憑を見る"
-        style="display:none;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
+      <button id="receiptAccessBtn_income" onclick="handleReceiptButtonClick()" title="証憑を選択"
+        style="display:inline-flex;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
         </svg>証憑
@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.72.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.73.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1602,6 +1602,12 @@ function setType(type) {
   catIsLocked = false;
   currentCatIcon = "box";
   if (type === "expense") expenseCatMode = "other";
+
+  // 新規入力中の証憑仮選択は、別タブに紛れ込まないようここでリセットする
+  // （編集モード中の場合はeditingTxIdが設定されており、この値は使われないため無害）
+  pendingReceiptFile = null;
+  pendingReceiptPickMode = false;
+  updatePendingReceiptButtonUI();
 
   renderCatGrid();
 
@@ -2070,21 +2076,36 @@ function submitTx() {
     resetEditMode();
   } else {
     // 新規入力
-    txs.push({
-      id: Date.now(),
+    const newId = Date.now();
+    const newTx = {
+      id: newId,
       type: inputType,
       cat: finalCat,
       amount: amt,
       memo,
       date,
       source: "manual",
-    });
+    };
+    // 登録前に証憑を仮選択していれば、ここで識別子を発行して取引に紐付ける
+    const fileToSave = pendingReceiptFile;
+    if (fileToSave) newTx.receiptRef = `手動_${date}_${newId}.jpg`;
+
+    txs.push(newTx);
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
     updateFixedCostAmountFromTx(inputType, finalCat, amt, date);
     updateSavingsBalanceFromTx(inputType, finalCat, amt);
     syncCarryoverIfNeeded(date);
     showToast(inputType==="expense" ? "支出を登録しました" : "収入を登録しました");
+
+    if (fileToSave) {
+      pendingReceiptFile = null;
+      saveReceiptBlob(newTx.receiptRef, fileToSave).then(() => {
+        receiptIdSet.add(newTx.receiptRef);
+      }).catch(() => {
+        showToast("証憑の保存に失敗しました（取引自体は登録済みです）");
+      });
+    }
   }
 
   inputAmt = "";
@@ -2092,6 +2113,8 @@ function submitTx() {
   selectedCatName = "";
   catIsLocked = false;
   currentCatIcon = "box";
+  pendingReceiptFile = null;
+  updatePendingReceiptButtonUI();
   F("amountDisplay").textContent = "¥0";
   F("memoInput").value = "";
   const nameInputToClear = document.getElementById("catNameInput_" + inputType);
@@ -2195,7 +2218,11 @@ function resetEditMode() {
   const receiptBtn = F("receiptAccessBtn");
   if (banner) banner.style.display = "none";
   if (delBtn) delBtn.style.display = "none";
-  if (receiptBtn) receiptBtn.style.display = "none";
+  // 新規入力でも証憑を選べるように、非表示にはせず「証憑を選択」の状態に戻す
+  pendingReceiptFile = null;
+  pendingReceiptPickMode = false;
+  updatePendingReceiptButtonUI();
+  if (receiptBtn) receiptBtn.style.display = "inline-flex";
   const btn = F("submitBtn");
   if (btn) btn.textContent = inputType === "expense" ? "支出を登録" : "収入を登録";
   const nameEl = document.getElementById("pageName_" + inputType);
@@ -2781,6 +2808,39 @@ function closeReceiptGuide() {
 }
 
 let receiptPickTxId = null;
+// 新規入力中（まだ取引IDが無い状態）に選んだ証憑を、登録が完了するまで一時的に保持する
+let pendingReceiptFile = null;
+let pendingReceiptPickMode = false;
+// 証憑ボタンのタップ先を振り分ける：編集中の既存取引なら従来通りshowReceiptInfoへ、
+// まだ保存前の新規入力中なら、取引IDが無いのでファイルだけ一旦選んでおき、
+// 登録（submitTx）のタイミングでまとめて保存する。
+function handleReceiptButtonClick() {
+  if (editingTxId !== null) {
+    showReceiptInfo(editingTxId);
+    return;
+  }
+  pendingReceiptPickMode = true;
+  receiptPickTxId = null;
+  const input = document.getElementById("receiptFileInput");
+  input.value = "";
+  input.click();
+}
+
+// 新規入力中に証憑を仮選択した／解除した状態を、ボタンの見た目に反映する
+function updatePendingReceiptButtonUI() {
+  const btn = F("receiptAccessBtn");
+  if (!btn) return;
+  if (pendingReceiptFile) {
+    btn.title = "証憑：選択済み（タップで選び直し）";
+    btn.style.background = "var(--green-l)";
+    btn.style.color = "var(--green-d)";
+  } else {
+    btn.title = "証憑を選択";
+    btn.style.background = "var(--blue-l)";
+    btn.style.color = "var(--blue)";
+  }
+}
+
 function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx) {
@@ -2815,6 +2875,21 @@ function showReceiptInfo(id) {
 // ファイル選択シートで画像が選ばれたときの処理
 async function onReceiptFileChosen(e) {
   const file = e.target.files && e.target.files[0];
+
+  // 新規入力中（まだ取引IDが無い）の仮選択：保存はせず、ファイルだけ一時的に持っておく
+  if (pendingReceiptPickMode) {
+    pendingReceiptPickMode = false;
+    if (!file) return;
+    if (!file.type || !file.type.startsWith("image/")) {
+      showToast("証憑となる画像ファイルを選んでください（選ばれたファイルは画像ではありません）");
+      return;
+    }
+    pendingReceiptFile = file;
+    updatePendingReceiptButtonUI();
+    showToast("証憑を選択しました（登録時に保存されます）");
+    return;
+  }
+
   const id = receiptPickTxId;
   receiptPickTxId = null;
   if (!file || id === null) return;
