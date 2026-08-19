@@ -682,7 +682,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> エクセル・CSV出力（証憑つき）</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      取引データをExcelまたはCSVファイルにまとめ、証憑と一緒にZIPで書き出します。メールなどですぐ持ち出せます。PCでの集計・確定申告準備向けです。
+      取引データをExcel・CSVと証憑をまとめてZIPで書き出します。メールですぐ持ち出せ、PCでの集計・確定申告準備に使えます。
     </div>
     <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       エクセル・CSV出力を開く
@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.70.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.72.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2150,7 +2150,10 @@ function openTxEdit(id) {
 
   F("deleteTxBtn").style.display = "block";
   const receiptBtn = F("receiptAccessBtn");
-  if (receiptBtn) receiptBtn.style.display = tx.receiptRef ? "inline-flex" : "none";
+  if (receiptBtn) {
+    receiptBtn.style.display = "inline-flex"; // 手入力の取引にも証憑を追加できるよう、有無に関わらず常に表示する
+    receiptBtn.title = tx.receiptRef ? "証憑を見る" : "証憑を追加";
+  }
   F("submitBtn").textContent = tx.type === "expense" ? "支出を更新" : "収入を更新";
   document.getElementById("pageName_" + tx.type).textContent = tx.type === "expense" ? "支出履歴更新" : "収入履歴更新";
 }
@@ -2780,13 +2783,13 @@ function closeReceiptGuide() {
 let receiptPickTxId = null;
 function showReceiptInfo(id) {
   const tx = loadTx().find(t => t.id === id);
-  if (!tx || !tx.receiptRef) {
-    showToast("この取引に紐づく証憑の識別子がありません");
+  if (!tx) {
+    showToast("対象の取引が見つかりませんでした");
     return;
   }
 
-  // ① アプリ内（IndexedDB）に画像がある場合 → 非同期で取得して表示（クリック起点は不要）
-  if (receiptIdSet.has(tx.receiptRef)) {
+  // ① アプリ内（IndexedDB）に画像が既にある場合 → 非同期で取得して表示（クリック起点は不要）
+  if (tx.receiptRef && receiptIdSet.has(tx.receiptRef)) {
     getReceiptBlob(tx.receiptRef).then(blob => {
       if (blob) openReceiptViewer(tx.receiptRef, blob, "fromHistory");
       else showToast("証憑の読み込みに失敗しました");
@@ -2794,10 +2797,19 @@ function showReceiptInfo(id) {
     return;
   }
 
-  // ② 画像がまだない場合 → 道しるべモーダルを表示。
-  //    ファイル名・フォルダパスを常時表示したまま、「画像を選ぶ」ボタン
-  //    （実ボタン）のタップからファイル選択シートを開く。
-  openReceiptGuide(id, tx.receiptRef, tx.date);
+  // ② レシート撮影（ショートカット）経由の取引で、まだ画像を選んでいない場合 →
+  //    従来通り、iCloud内の決まったファイル名を探す道しるべモーダルを表示する。
+  if (tx.receiptRef && tx.source === "receipt") {
+    openReceiptGuide(id, tx.receiptRef, tx.date);
+    return;
+  }
+
+  // ③ 手入力の取引など、探すべき決まったファイルが元々存在しない場合は、
+  //    道しるべを出さず、直接ファイル選択シートを開く（任意の画像を証憑として選べる）。
+  receiptPickTxId = id;
+  const input = document.getElementById("receiptFileInput");
+  input.value = "";
+  input.click();
 }
 
 // ファイル選択シートで画像が選ばれたときの処理
@@ -2814,8 +2826,16 @@ async function onReceiptFileChosen(e) {
     return;
   }
 
-  const tx = loadTx().find(t => t.id === id);
-  if (!tx || !tx.receiptRef) { showToast("証憑の保存に失敗しました"); return; }
+  const txs = loadTx();
+  const tx = txs.find(t => t.id === id);
+  if (!tx) { showToast("証憑の保存に失敗しました"); return; }
+
+  // 手入力の取引など、まだ証憑の識別子（receiptRef）が無い場合は、ここで新しく発行する
+  // （レシート撮影経由の取引は、ショートカット側で登録時にファイル名が決まっている）
+  if (!tx.receiptRef) {
+    tx.receiptRef = `手動_${tx.date}_${Date.now()}.jpg`;
+    saveTx(txs);
+  }
 
   try {
     await saveReceiptBlob(tx.receiptRef, file);
@@ -3189,6 +3209,24 @@ function exportExcel(range) {
 // ============================================================
 let excelExportImages = new Map(); // ファイル名 → File
 
+// 「フォルダから選び直した証憑」（excelExportImages）に加え、アプリ内（IndexedDB）に
+// 既に保存済みの証憑も自動的に取り込んだ、統合済みの画像Mapを作る。
+// 手入力の取引で追加した証憑は、iCloud上に対応する実ファイルが無くフォルダから
+// 選び直せないため、この経路（IndexedDB）でしか拾えない。
+async function buildCombinedExportImageMap(txs) {
+  const combined = new Map(excelExportImages);
+  for (const t of txs) {
+    if (!t.receiptRef || combined.has(t.receiptRef)) continue;
+    try {
+      const blob = await getReceiptBlob(t.receiptRef);
+      if (blob) combined.set(t.receiptRef, blob);
+    } catch (e) {
+      // アプリ内に無ければ何もしない（フォルダからの選び直しに委ねる）
+    }
+  }
+  return combined;
+}
+
 function onExcelExportImagesChosen(event) {
   const files = event.target.files;
   let added = 0;
@@ -3248,7 +3286,7 @@ function getExcelExportTxs(startIdx, endIdx) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-function exportExcelWithReceipts() {
+async function exportExcelWithReceipts() {
   if (typeof XLSX === "undefined" || typeof JSZip === "undefined") {
     showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
     return;
@@ -3262,6 +3300,9 @@ function exportExcelWithReceipts() {
 
   const txs = getExcelExportTxs(startIdx, endIdx);
   if (!txs.length) { showToast("対象期間にデータがありません"); return; }
+
+  // フォルダから選び直した証憑に加え、アプリ内保存済みの証憑（手入力分を含む）も取り込む
+  const imageMap = await buildCombinedExportImageMap(txs);
 
   const allCats = getAllCats();
   const header = ["日付", "種別", "カテゴリ", "金額", "メモ", "証憑"];
@@ -3280,7 +3321,7 @@ function exportExcelWithReceipts() {
     let receiptCell = "";
     if (t.receiptRef) {
       receiptCount++;
-      if (excelExportImages.has(t.receiptRef)) {
+      if (imageMap.has(t.receiptRef)) {
         receiptCell = ""; // 後で本物のハイパーリンクに差し替えるため、この時点では空にしておく
         linkRows.push({
           row: i + 1, // +1: header行の分
@@ -3325,7 +3366,7 @@ function exportExcelWithReceipts() {
 
   showToast("ファイルを作成しています…");
 
-  (async () => {
+  try {
     const finalXlsxBuffer = linkedCellRefs.length
       ? await addHyperlinkStyleToXlsx(xlsxArrayBuffer, linkedCellRefs)
       : xlsxArrayBuffer;
@@ -3334,7 +3375,7 @@ function exportExcelWithReceipts() {
     const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
     const imageEntries = new Map();
     usedNames.forEach(name => {
-      const file = excelExportImages.get(name);
+      const file = imageMap.get(name);
       if (file) imageEntries.set(name, file);
     });
 
@@ -3343,15 +3384,15 @@ function exportExcelWithReceipts() {
       : `${txs.length}件を出力しました`;
 
     await shareOrDownloadZip(label, label + ".xlsx", finalXlsxBuffer, imageEntries, summaryMsg);
-  })().catch(err => {
+  } catch (err) {
     console.error(err);
     showToast("出力に失敗しました");
-  });
+  }
 }
 
 // CSV＋証憑画像をZIPにまとめて出力する。期間・画像収集はエクセル出力と共通の
 // UI（excelExportImages等）をそのまま使う。
-function exportCSVWithReceipts() {
+async function exportCSVWithReceipts() {
   if (typeof JSZip === "undefined") {
     showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
     return;
@@ -3365,6 +3406,9 @@ function exportCSVWithReceipts() {
 
   const txs = getExcelExportTxs(startIdx, endIdx);
   if (!txs.length) { showToast("対象期間にデータがありません"); return; }
+
+  // フォルダから選び直した証憑に加え、アプリ内保存済みの証憑（手入力分を含む）も取り込む
+  const imageMap = await buildCombinedExportImageMap(txs);
 
   const allCats = getAllCats();
   const BOM = "\uFEFF";
@@ -3380,9 +3424,9 @@ function exportCSVWithReceipts() {
     let receiptCell = "";
     if (t.receiptRef) {
       receiptCount++;
-      if (excelExportImages.has(t.receiptRef)) {
+      if (imageMap.has(t.receiptRef)) {
         receiptCell = "images/" + t.receiptRef;
-        imageEntries.set(t.receiptRef, excelExportImages.get(t.receiptRef));
+        imageEntries.set(t.receiptRef, imageMap.get(t.receiptRef));
         matchedCount++;
       } else {
         receiptCell = "（証憑未追加）";
@@ -3403,11 +3447,12 @@ function exportCSVWithReceipts() {
     ? `${receiptCount}件の証憑のうち${matchedCount}件を同梱しました`
     : `${txs.length}件を出力しました`;
 
-  shareOrDownloadZip(label, label + ".csv", csvBlob, imageEntries, summaryMsg)
-    .catch(err => {
-      console.error(err);
-      showToast("出力に失敗しました");
-    });
+  try {
+    await shareOrDownloadZip(label, label + ".csv", csvBlob, imageEntries, summaryMsg);
+  } catch (err) {
+    console.error(err);
+    showToast("出力に失敗しました");
+  }
 }
 
 // 本体ファイル（xlsxまたはcsv）と証憑画像をZIPにまとめ、共有シート（Web Share API）で
