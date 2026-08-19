@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.73.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.74.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3361,6 +3361,25 @@ function getExcelExportTxs(startIdx, endIdx) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+// 指定した月度（lo）より前の、全取引の収支合計を「開始時点の残高」として計算する
+function getStartingBalanceForExport(loIdx) {
+  const periods = ensurePeriods();
+  if (!periods.length || loIdx <= 0) return 0;
+  const start = periodRange(loIdx).start;
+  return loadTx()
+    .filter(t => t.date < start)
+    .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
+}
+
+// 日付昇順の取引配列に、開始残高からの累積残高（各取引後の残高）を付与する
+function withRunningBalance(txs, startingBalance) {
+  let balance = startingBalance;
+  return txs.map(t => {
+    balance += (t.type === "income" ? t.amount : -t.amount);
+    return { ...t, runningBalance: balance };
+  });
+}
+
 async function exportExcelWithReceipts() {
   if (typeof XLSX === "undefined" || typeof JSZip === "undefined") {
     showToast("出力ライブラリを読み込み中です。しばらくお待ちください。");
@@ -3379,8 +3398,12 @@ async function exportExcelWithReceipts() {
   // フォルダから選び直した証憑に加え、アプリ内保存済みの証憑（手入力分を含む）も取り込む
   const imageMap = await buildCombinedExportImageMap(txs);
 
+  // 開始月度より前の全取引から「開始時点の残高」を計算し、各取引後の残高を累積する
+  const startingBalance = getStartingBalanceForExport(Math.min(startIdx, endIdx));
+  const txsWithBalance = withRunningBalance(txs, startingBalance);
+
   const allCats = getAllCats();
-  const header = ["日付", "種別", "カテゴリ", "金額", "メモ", "証憑"];
+  const header = ["日付", "種別", "カテゴリ", "金額", "残高", "メモ", "証憑"];
   const aoa = [header];
   const linkRows = []; // { row, target, filename }
   let receiptCount = 0;
@@ -3390,7 +3413,7 @@ async function exportExcelWithReceipts() {
     ? `家計簿_${periodLabel(startIdx)}`
     : `家計簿_${periodLabel(Math.min(startIdx, endIdx))}〜${periodLabel(Math.max(startIdx, endIdx))}`;
 
-  txs.forEach((t, i) => {
+  txsWithBalance.forEach((t, i) => {
     const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
     const type = t.type === "income" ? "収入" : "支出";
     let receiptCell = "";
@@ -3407,16 +3430,18 @@ async function exportExcelWithReceipts() {
         receiptCell = "（証憑未追加）";
       }
     }
-    aoa.push([t.date, type, cat.label, t.amount, t.memo || "", receiptCell]);
+    aoa.push([t.date, type, cat.label, t.amount, t.runningBalance, t.memo || "", receiptCell]);
   });
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 22 }, { wch: 14 }];
+  ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 22 }, { wch: 14 }];
 
-  // 金額列（D列 = インデックス3）に¥区切り表示の書式を設定する
+  // 金額列（D列 = インデックス3）・残高列（E列 = インデックス4）に¥区切り表示の書式を設定する
   for (let i = 0; i < txs.length; i++) {
-    const cellRef = XLSX.utils.encode_cell({ r: i + 1, c: 3 }); // +1: header行の分
-    if (ws[cellRef]) ws[cellRef].z = "¥#,##0";
+    const amtCellRef = XLSX.utils.encode_cell({ r: i + 1, c: 3 }); // +1: header行の分
+    if (ws[amtCellRef]) ws[amtCellRef].z = "¥#,##0";
+    const balCellRef = XLSX.utils.encode_cell({ r: i + 1, c: 4 });
+    if (ws[balCellRef]) ws[balCellRef].z = "¥#,##0";
   }
 
   // 証憑列（F列 = インデックス5）に一致した行だけ、本物のハイパーリンクセルを設定する。
@@ -3429,7 +3454,7 @@ async function exportExcelWithReceipts() {
   // ※ ZIPを展開せずに開くと、相対パス（images/〇〇.jpg）が解決できず
   //   リンクが機能しない点に注意（アプリ側の案内文でも案内する）。
   linkRows.forEach(({ row, target }) => {
-    const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
+    const cellRef = XLSX.utils.encode_cell({ r: row, c: 6 });
     ws[cellRef] = { t: "s", v: target, l: { Target: target, Tooltip: "証憑画像を開く" } };
   });
 
@@ -3437,7 +3462,7 @@ async function exportExcelWithReceipts() {
   XLSX.utils.book_append_sheet(wb, ws, "明細");
 
   const xlsxArrayBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  const linkedCellRefs = linkRows.map(({ row }) => XLSX.utils.encode_cell({ r: row, c: 5 }));
+  const linkedCellRefs = linkRows.map(({ row }) => XLSX.utils.encode_cell({ r: row, c: 6 }));
 
   showToast("ファイルを作成しています…");
 
@@ -3485,14 +3510,18 @@ async function exportCSVWithReceipts() {
   // フォルダから選び直した証憑に加え、アプリ内保存済みの証憑（手入力分を含む）も取り込む
   const imageMap = await buildCombinedExportImageMap(txs);
 
+  // 開始月度より前の全取引から「開始時点の残高」を計算し、各取引後の残高を累積する
+  const startingBalance = getStartingBalanceForExport(Math.min(startIdx, endIdx));
+  const txsWithBalance = withRunningBalance(txs, startingBalance);
+
   const allCats = getAllCats();
   const BOM = "\uFEFF";
-  const header = "日付,種別,カテゴリ,金額,メモ,証憑\n";
+  const header = "日付,種別,カテゴリ,金額,残高,メモ,証憑\n";
   const imageEntries = new Map();
   let receiptCount = 0;
   let matchedCount = 0;
 
-  const rows = txs.map(t => {
+  const rows = txsWithBalance.map(t => {
     const cat  = allCats.find(c => c.id === t.cat) || { label: "その他" };
     const type = t.type === "income" ? "収入" : "支出";
     const memo = (t.memo || "").replace(/,/g, "、");
@@ -3507,7 +3536,7 @@ async function exportCSVWithReceipts() {
         receiptCell = "（証憑未追加）";
       }
     }
-    return `${t.date},${type},${cat.label},${t.amount},${memo},${receiptCell}`;
+    return `${t.date},${type},${cat.label},${t.amount},${t.runningBalance},${memo},${receiptCell}`;
   }).join("\n");
 
   const label = (startIdx === endIdx)
