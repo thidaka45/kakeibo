@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.78.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.78.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3415,21 +3415,28 @@ function getExcelExportTxs(startIdx, endIdx) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-// 指定した月度（lo）より前の、全取引の収支合計を「開始時点の残高」として計算する
+// 指定した月度（lo）より前の、全取引の収支合計を「開始時点の残高」として計算する。
+// 「繰越」取引（source==="carryover"）は、既にその時点までの取引で積み上がった金額を
+// そのまま言い換えただけの記録のため、合算すると二重計上になる。ここでは除外する。
 function getStartingBalanceForExport(loIdx) {
   const periods = ensurePeriods();
   if (!periods.length || loIdx <= 0) return 0;
   const start = periodRange(loIdx).start;
   return loadTx()
-    .filter(t => t.date < start)
+    .filter(t => t.date < start && t.source !== "carryover")
     .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
 }
 
-// 日付昇順の取引配列に、開始残高からの累積残高（各取引後の残高）を付与する
+// 日付昇順の取引配列に、開始残高からの累積残高（各取引後の残高）を付与する。
+// 「繰越」取引は、その時点までの取引で既に積み上がった金額を言い換えただけの記録
+// （二重計上防止のため、既存の取引で積み上がった金額をそのまま繰り越しているだけ）
+// なので、行としては表示するが、累積残高には加算しない。
 function withRunningBalance(txs, startingBalance) {
   let balance = startingBalance;
   return txs.map(t => {
-    balance += (t.type === "income" ? t.amount : -t.amount);
+    if (t.source !== "carryover") {
+      balance += (t.type === "income" ? t.amount : -t.amount);
+    }
     return { ...t, runningBalance: balance };
   });
 }
