@@ -96,7 +96,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
 /* 各画面共通・ホームへ戻るFABボタン */
 /* 各画面共通・ホームへ戻るボタン＋画面名（シンプルなナビバー風） */
-.page-toolbar{display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;background:var(--card);}
+.page-toolbar{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;background:var(--card);}
 .home-btn{display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;
   background:var(--card);border:1px solid var(--border);border-radius:999px;padding:9px 16px;
   font-size:16px;font-weight:700;color:var(--text);
@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.70.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.70.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
