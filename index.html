@@ -679,13 +679,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     </button>
   </div>
 
-  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> EXL・CSV出力（証憑つき）</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> XLS・CSV出力（証憑つき）</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       取引データをExcel・CSVと証憑をまとめてZIPで書き出します。メールですぐ持ち出せ、PCでの集計・確定申告準備に使えます。
     </div>
     <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
-      EXL・CSV出力を開く
+      XLS・CSV出力を開く
     </button>
   </div>
 
@@ -869,7 +869,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <!-- ===== エクセル出力（証憑画像つき） ===== -->
 <div class="page" id="page-excelexport" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex-shrink:0;padding:10px 21px 0;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">EXL・CSV出力</span></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">XLS・CSV出力</span></div>
 </div>
 <div style="flex:1;overflow-y:auto;padding:0 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
 
@@ -898,7 +898,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:10px;">③ 出力する</div>
     <button class="export-btn" onclick="exportExcelWithReceipts()" style="padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:10px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      EXL＋証憑を出力
+      XLS＋証憑を出力
     </button>
     <button class="export-btn" onclick="exportCSVWithReceipts()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -907,7 +907,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
       ※ 証憑を追加しなかった取引は、証憑欄が空欄のまま出力されます。あとから追加し直して再出力することもできます。<br>
       ※ 出力後は共有シートが開きます。「メール」を選ぶと、ZIPファイルが添付された状態でメール作成画面が開きます（AirDropやFiles保存も選べます）。<br>
-      ※ EXLのハイパーリンクを使う場合は、ダウンロードしたZIPファイルを開く前に「展開」（右クリック→すべて展開 等）してください。展開せずに開くと、証憑へのリンクが機能しません。
+      ※ XLSのハイパーリンクを使う場合は、ダウンロードしたZIPファイルを開く前に「展開」（右クリック→すべて展開 等）してください。展開せずに開くと、証憑へのリンクが機能しません。
     </div>
   </div>
 </div>
@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.77.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.77.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
