@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.77.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.77.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3416,7 +3416,7 @@ async function exportExcelWithReceipts() {
   const header = ["日付", "種別", "カテゴリ", "金額", "残高", "メモ", "証憑"];
   const now = new Date();
   const timestamp = `${todayLocalStr()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-  const aoa = [["出力日時：", timestamp, "", "", "", "", ""], header];
+  const aoa = [[`出力日時：${timestamp}`, "", "", "", "", "", ""], header];
   const linkRows = []; // { row, target, filename }
   let receiptCount = 0;
   let matchedCount = 0;
@@ -3447,6 +3447,7 @@ async function exportExcelWithReceipts() {
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws["!cols"] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 46 }];
+  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }]; // 出力日時（1行目）をA〜D列分結合し、全文表示させる
 
   // 金額列（D列 = インデックス3）・残高列（E列 = インデックス4）に¥区切り表示の書式を設定する
   for (let i = 0; i < txs.length; i++) {
