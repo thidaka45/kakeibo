@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.75.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.77.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1232,6 +1232,16 @@ function todayLocalStr() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// 手入力で証憑を追加した際のファイル名を生成する。
+// 「(メモの記載内容)_年月日_時間.jpg」の形式（ショートカット側の禁止文字置換ルールと統一）。
+// メモが空の場合は「証憑」を代わりに使う。
+function buildManualReceiptFileName(memo, dateStr) {
+  const safeMemo = (memo || "").replace(/[\/\\:*?"<>|]/g, "_").trim() || "証憑";
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(now.getSeconds()).padStart(2, "0")}`;
+  return `${safeMemo}_${dateStr}_${timeStr}.jpg`;
 }
 
 // ============================================================
@@ -2088,7 +2098,7 @@ function submitTx() {
     };
     // 登録前に証憑を仮選択していれば、ここで識別子を発行して取引に紐付ける
     const fileToSave = pendingReceiptFile;
-    if (fileToSave) newTx.receiptRef = `手動_${date}_${newId}.jpg`;
+    if (fileToSave) newTx.receiptRef = buildManualReceiptFileName(memo, date);
 
     txs.push(newTx);
     saveTx(txs);
@@ -2908,7 +2918,7 @@ async function onReceiptFileChosen(e) {
   // 手入力の取引など、まだ証憑の識別子（receiptRef）が無い場合は、ここで新しく発行する
   // （レシート撮影経由の取引は、ショートカット側で登録時にファイル名が決まっている）
   if (!tx.receiptRef) {
-    tx.receiptRef = `手動_${tx.date}_${Date.now()}.jpg`;
+    tx.receiptRef = buildManualReceiptFileName(tx.memo, tx.date);
     saveTx(txs);
   }
 
@@ -3404,7 +3414,9 @@ async function exportExcelWithReceipts() {
 
   const allCats = getAllCats();
   const header = ["日付", "種別", "カテゴリ", "金額", "残高", "メモ", "証憑"];
-  const aoa = [header];
+  const now = new Date();
+  const timestamp = `${todayLocalStr()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const aoa = [["出力日時：", timestamp, "", "", "", "", ""], header];
   const linkRows = []; // { row, target, filename }
   let receiptCount = 0;
   let matchedCount = 0;
@@ -3422,7 +3434,7 @@ async function exportExcelWithReceipts() {
       if (imageMap.has(t.receiptRef)) {
         receiptCell = ""; // 後で本物のハイパーリンクに差し替えるため、この時点では空にしておく
         linkRows.push({
-          row: i + 1, // +1: header行の分
+          row: i + 2, // +2: 出力日時行・header行の分
           target: "images/" + t.receiptRef
         });
         matchedCount++;
@@ -3434,13 +3446,13 @@ async function exportExcelWithReceipts() {
   });
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [{ wch: 12 }, { wch: 6 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 22 }, { wch: 14 }];
+  ws["!cols"] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 34 }, { wch: 46 }];
 
   // 金額列（D列 = インデックス3）・残高列（E列 = インデックス4）に¥区切り表示の書式を設定する
   for (let i = 0; i < txs.length; i++) {
-    const amtCellRef = XLSX.utils.encode_cell({ r: i + 1, c: 3 }); // +1: header行の分
+    const amtCellRef = XLSX.utils.encode_cell({ r: i + 2, c: 3 }); // +2: 出力日時行・header行の分
     if (ws[amtCellRef]) ws[amtCellRef].z = "¥#,##0";
-    const balCellRef = XLSX.utils.encode_cell({ r: i + 1, c: 4 });
+    const balCellRef = XLSX.utils.encode_cell({ r: i + 2, c: 4 });
     if (ws[balCellRef]) ws[balCellRef].z = "¥#,##0";
   }
 
@@ -3468,7 +3480,7 @@ async function exportExcelWithReceipts() {
   showToast("ファイルを作成しています…");
 
   try {
-    const finalXlsxBuffer = await styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, aoa.length, header.length, [3, 4]);
+    const finalXlsxBuffer = await styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, aoa.length, header.length, [3, 4], 1);
 
     // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
     const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
@@ -3515,6 +3527,9 @@ async function exportCSVWithReceipts() {
 
   const allCats = getAllCats();
   const BOM = "\uFEFF";
+  const now = new Date();
+  const timestamp = `${todayLocalStr()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const timestampLine = `出力日時：,${timestamp}\n`;
   const header = "日付,種別,カテゴリ,金額,残高,メモ,証憑\n";
   const imageEntries = new Map();
   let receiptCount = 0;
@@ -3542,7 +3557,7 @@ async function exportCSVWithReceipts() {
     ? `家計簿_${periodLabel(startIdx)}`
     : `家計簿_${periodLabel(Math.min(startIdx, endIdx))}〜${periodLabel(Math.max(startIdx, endIdx))}`;
 
-  const csvBlob = new Blob([BOM + header + rows], { type: "text/csv;charset=utf-8;" });
+  const csvBlob = new Blob([BOM + timestampLine + header + rows], { type: "text/csv;charset=utf-8;" });
 
   showToast("ファイルを作成しています…");
 
@@ -3604,7 +3619,8 @@ async function shareOrDownloadZip(label, mainFileName, mainFileContent, imageEnt
 // 　保持したまま罫線だけを追加する（既存のs属性を新しい値で正しく置き換える。
 // 　うっかりs属性を二重に付けると壊れたファイルとしてExcelに拒否されるため注意）
 // ・totalRows / totalCols：スタイルを適用する範囲（ヘッダー行を含む全体の行数・列数）
-async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, totalCols, currencyCols) {
+async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, totalCols, currencyCols, headerRowIndex) {
+  headerRowIndex = (typeof headerRowIndex === "number") ? headerRowIndex : 0;
   try {
     const tempZip = await JSZip.loadAsync(xlsxArrayBuffer);
     let stylesXml = await tempZip.file("xl/styles.xml").async("string");
@@ -3667,7 +3683,7 @@ async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, total
     const currencyStyleIdxByCol = {};
     let extraXfs = "";
     (currencyCols || []).forEach(col => {
-      const ref = XLSX.utils.encode_cell({ r: 1, c: col }); // 2行目（最初のデータ行）で判定
+      const ref = XLSX.utils.encode_cell({ r: headerRowIndex + 1, c: col }); // タイトル行の次＝最初のデータ行で判定
       const m = sheetXml.match(new RegExp(`<c r="${ref}"[^>]*s="(\\d+)"`));
       const numFmtId = m ? getNumFmtId(parseInt(m[1], 10)) : "0";
       const idx = nextXfIdx++;
@@ -3692,7 +3708,7 @@ async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, total
       for (let c = 0; c < totalCols; c++) {
         const ref = XLSX.utils.encode_cell({ r, c });
         let styleIdx;
-        if (r === 0) styleIdx = headerStyleIdx;
+        if (r === headerRowIndex) styleIdx = headerStyleIdx;
         else if (linkedSet.has(ref)) styleIdx = linkStyleIdx;
         else if (currencyStyleIdxByCol.hasOwnProperty(c)) styleIdx = currencyStyleIdxByCol[c];
         else styleIdx = dataStyleIdx;
