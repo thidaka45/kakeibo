@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.75.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.75.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3468,7 +3468,7 @@ async function exportExcelWithReceipts() {
   showToast("ファイルを作成しています…");
 
   try {
-    const finalXlsxBuffer = await styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, aoa.length, header.length);
+    const finalXlsxBuffer = await styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, aoa.length, header.length, [3, 4]);
 
     // 実際にリンクが張られた（＝一致が取れた）画像だけを同梱する
     const usedNames = new Set(linkRows.map(r => r.target.replace("images/", "")));
@@ -3600,8 +3600,11 @@ async function shareOrDownloadZip(label, mainFileName, mainFileContent, imageEnt
 // ・タイトル行（1行目）：白文字・太字・青系の背景色
 // ・全データセル：細い罫線
 // ・証憑リンクセル（linkedCellRefs）：Excel標準のハイパーリンク色（青・下線）＋罫線
+// ・通貨列（currencyCols）：SheetJS側で既に設定済みの通貨書式（numFmtId）を
+// 　保持したまま罫線だけを追加する（既存のs属性を新しい値で正しく置き換える。
+// 　うっかりs属性を二重に付けると壊れたファイルとしてExcelに拒否されるため注意）
 // ・totalRows / totalCols：スタイルを適用する範囲（ヘッダー行を含む全体の行数・列数）
-async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, totalCols) {
+async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, totalCols, currencyCols) {
   try {
     const tempZip = await JSZip.loadAsync(xlsxArrayBuffer);
     let stylesXml = await tempZip.file("xl/styles.xml").async("string");
@@ -3618,6 +3621,16 @@ async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, total
     const fillsCount   = parseInt(fillsCountMatch[1], 10);
     const bordersCount = parseInt(bordersCountMatch[1], 10);
     const cellXfsCount = parseInt(cellXfsCountMatch[1], 10);
+
+    // 既存のcellXfs一覧（順番＝sインデックス）を、通貨列のnumFmtIdを引くために保持しておく
+    const cellXfsSectionMatch = stylesXml.match(/<cellXfs count="\d+">([\s\S]*?)<\/cellXfs>/);
+    const existingXfs = cellXfsSectionMatch ? [...cellXfsSectionMatch[1].matchAll(/<xf [^>]*\/>/g)].map(m => m[0]) : [];
+    function getNumFmtId(sIdx) {
+      const xf = existingXfs[sIdx];
+      if (!xf) return "0";
+      const m = xf.match(/numFmtId="(\d+)"/);
+      return m ? m[1] : "0";
+    }
 
     const hyperlinkFontIdx = fontsCount;     // 証憑リンク用フォント（青・下線）
     const headerFontIdx    = fontsCount + 1; // タイトル行用フォント（白・太字）
@@ -3644,30 +3657,55 @@ async function styleXlsxOutput(xlsxArrayBuffer, linkedCellRefs, totalRows, total
         `<border><left style="thin"><color indexed="64"/></left><right style="thin"><color indexed="64"/></right>` +
         `<top style="thin"><color indexed="64"/></top><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border></borders>`);
 
-    // セルスタイルを3つ追加：①通常データ（罫線のみ）②証憑リンク（青・下線＋罫線）③タイトル行（白太字・背景＋罫線）
-    const dataStyleIdx   = cellXfsCount;
-    const linkStyleIdx   = cellXfsCount + 1;
-    const headerStyleIdx = cellXfsCount + 2;
+    let nextXfIdx = cellXfsCount;
+    const dataStyleIdx   = nextXfIdx++; // 通常データ（罫線のみ）
+    const linkStyleIdx   = nextXfIdx++; // 証憑リンク（青・下線＋罫線）
+    const headerStyleIdx = nextXfIdx++; // タイトル行（白太字・背景＋罫線）
+
+    // 元のsheet1.xmlを先に読み込み、通貨列（currencyCols）の既存numFmtIdを調べておく
+    let sheetXml = await tempZip.file("xl/worksheets/sheet1.xml").async("string");
+    const currencyStyleIdxByCol = {};
+    let extraXfs = "";
+    (currencyCols || []).forEach(col => {
+      const ref = XLSX.utils.encode_cell({ r: 1, c: col }); // 2行目（最初のデータ行）で判定
+      const m = sheetXml.match(new RegExp(`<c r="${ref}"[^>]*s="(\\d+)"`));
+      const numFmtId = m ? getNumFmtId(parseInt(m[1], 10)) : "0";
+      const idx = nextXfIdx++;
+      extraXfs += `<xf numFmtId="${numFmtId}" fontId="0" fillId="0" borderId="${thinBorderIdx}" xfId="0" applyNumberFormat="1" applyBorder="1"/>`;
+      currencyStyleIdxByCol[col] = idx;
+    });
+
     stylesXml = stylesXml
-      .replace(/<cellXfs count="(\d+)">/, `<cellXfs count="${cellXfsCount + 3}">`)
+      .replace(/<cellXfs count="(\d+)">/, `<cellXfs count="${nextXfIdx}">`)
       .replace(/<\/cellXfs>/,
         `<xf numFmtId="0" fontId="0" fillId="0" borderId="${thinBorderIdx}" xfId="0" applyBorder="1"/>` +
         `<xf numFmtId="0" fontId="${hyperlinkFontIdx}" fillId="0" borderId="${thinBorderIdx}" xfId="0" applyFont="1" applyBorder="1"/>` +
         `<xf numFmtId="0" fontId="${headerFontIdx}" fillId="${headerFillIdx}" borderId="${thinBorderIdx}" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>` +
+        extraXfs +
         `</cellXfs>`);
 
     tempZip.file("xl/styles.xml", stylesXml);
 
-    let sheetXml = await tempZip.file("xl/worksheets/sheet1.xml").async("string");
     const linkedSet = new Set(linkedCellRefs);
 
     for (let r = 0; r < totalRows; r++) {
       for (let c = 0; c < totalCols; c++) {
         const ref = XLSX.utils.encode_cell({ r, c });
-        const styleIdx = r === 0 ? headerStyleIdx : (linkedSet.has(ref) ? linkStyleIdx : dataStyleIdx);
-        const re = new RegExp(`<c r="${ref}"(?![\\w-])`, "g");
-        if (re.test(sheetXml)) {
-          sheetXml = sheetXml.replace(re, `<c r="${ref}" s="${styleIdx}"`);
+        let styleIdx;
+        if (r === 0) styleIdx = headerStyleIdx;
+        else if (linkedSet.has(ref)) styleIdx = linkStyleIdx;
+        else if (currencyStyleIdxByCol.hasOwnProperty(c)) styleIdx = currencyStyleIdxByCol[c];
+        else styleIdx = dataStyleIdx;
+
+        // 既にs属性が付いているセル（通貨書式など）は値を置き換え、無ければ新規に付与する。
+        // 誤って二重に付けるとファイルが壊れる（Excelの「内容の一部に問題」エラー）ため、
+        // 必ずどちらか一方だけに一致させる。
+        const withS = new RegExp(`<c r="${ref}" s="\\d+"`);
+        const withoutS = new RegExp(`<c r="${ref}"(?![\\w-])`);
+        if (withS.test(sheetXml)) {
+          sheetXml = sheetXml.replace(withS, `<c r="${ref}" s="${styleIdx}"`);
+        } else if (withoutS.test(sheetXml)) {
+          sheetXml = sheetXml.replace(withoutS, `<c r="${ref}" s="${styleIdx}"`);
         } else {
           // 値が空文字などでセル自体が省略されている場合は、スタイルだけの空セルを挿入する
           const rowRe = new RegExp(`(<row r="${r + 1}"[^>]*>)`);
