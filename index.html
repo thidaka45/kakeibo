@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.77.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.78.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1242,6 +1242,40 @@ function buildManualReceiptFileName(memo, dateStr) {
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(now.getSeconds()).padStart(2, "0")}`;
   return `${safeMemo}_${dateStr}_${timeStr}.jpg`;
+}
+
+// 手動で選んだ証憑画像を、ショートカット側のレシート撮影と同程度（幅600px・JPEG圧縮）に
+// 圧縮してから保存する。スマホのカメラ画像は数MBになることがあり、圧縮しないまま
+// 保存すると、アプリ内ストレージやXLS・CSV出力のZIPサイズを圧迫するため。
+function compressReceiptImage(file, maxWidth, quality) {
+  maxWidth = maxWidth || 600;
+  quality = quality || 0.7;
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round(height * (maxWidth / width));
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error("圧縮に失敗しました"));
+      }, "image/jpeg", quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("画像の読み込みに失敗しました"));
+    };
+    img.src = url;
+  });
 }
 
 // ============================================================
@@ -2886,7 +2920,7 @@ function showReceiptInfo(id) {
 async function onReceiptFileChosen(e) {
   const file = e.target.files && e.target.files[0];
 
-  // 新規入力中（まだ取引IDが無い）の仮選択：保存はせず、ファイルだけ一時的に持っておく
+  // 新規入力中（まだ取引IDが無い）の仮選択：保存はせず、圧縮したファイルを一時的に持っておく
   if (pendingReceiptPickMode) {
     pendingReceiptPickMode = false;
     if (!file) return;
@@ -2894,7 +2928,11 @@ async function onReceiptFileChosen(e) {
       showToast("証憑となる画像ファイルを選んでください（選ばれたファイルは画像ではありません）");
       return;
     }
-    pendingReceiptFile = file;
+    try {
+      pendingReceiptFile = await compressReceiptImage(file);
+    } catch (err) {
+      pendingReceiptFile = file; // 圧縮に失敗しても、元のファイルのまま選択は成立させる
+    }
     updatePendingReceiptButtonUI();
     showToast("証憑を選択しました（登録時に保存されます）");
     return;
@@ -2923,10 +2961,16 @@ async function onReceiptFileChosen(e) {
   }
 
   try {
-    await saveReceiptBlob(tx.receiptRef, file);
+    let toSave = file;
+    try {
+      toSave = await compressReceiptImage(file);
+    } catch (compressErr) {
+      // 圧縮に失敗しても、元のファイルのまま保存は続行する
+    }
+    await saveReceiptBlob(tx.receiptRef, toSave);
     receiptIdSet.add(tx.receiptRef);
     showToast("証憑を保存しました");
-    openReceiptViewer(tx.receiptRef, file);
+    openReceiptViewer(tx.receiptRef, toSave);
     // 履歴一覧・編集画面に画像有無のバッジ等があれば反映されるよう再描画
     if (typeof renderHome === "function") renderHome();
   } catch (err) {
