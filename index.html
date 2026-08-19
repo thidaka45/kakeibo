@@ -242,6 +242,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:12px;color:var(--red);margin-bottom:6px;">新しい月度が自動的に開始されました。収入（給与など）を入力してください。</div>
     <button onclick="dismissIncomePendingBanner()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--amber);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">収入を入力する →</button>
   </div>
+  <!-- 積立プランが目標額に到達した際のお知らせバナー -->
+  <div id="homeSavingsAchievedBanner" style="display:none;background:var(--blue-l);border:1px solid var(--blue);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
+    <div id="homeSavingsAchievedText" style="font-size:13px;color:var(--blue-d);margin-bottom:6px;font-weight:600;"></div>
+    <button onclick="dismissSavingsAchievedBanner()" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">確認しました</button>
+  </div>
   <div class="month-header">
     <button class="month-nav" data-dir="-1" onclick="changePeriod(-1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
     <span class="month-title" id="monthTitle"></span>
@@ -478,6 +483,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 18px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span></div>
+    <input type="text" id="historyTxSearchInput" class="field-input" placeholder="店名・メモ・カテゴリで絞り込み" style="margin-top:6px;font-size:15px;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（9件分の高さに固定し、それ以上はスクロール） -->
   <div style="flex:none;height:596px;overflow-y:scroll;padding:0 18px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -1218,7 +1224,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.69.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.70.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1413,6 +1419,7 @@ function parseYenInput(id) {
 // ホーム描画
 // ============================================================
 function renderHome() {
+  checkSavingsAchievements();
   const periods = ensurePeriods();
 
   // 月度が1件も無い（サービス未開始）場合は空状態を表示する
@@ -2889,12 +2896,24 @@ function renderHistoryTxList(idx) {
   const periods = ensurePeriods();
   if (!periods.length || idx === null || !periods[idx]) { el.innerHTML = ""; return; }
 
-  const txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
+  const searchInput = document.getElementById("historyTxSearchInput");
+  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
+  let txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
   const allCats = getAllCats();
   const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
+  if (keyword) {
+    txs = txs.filter(t => {
+      const c = allCats.find(c=>c.id===t.cat) || {label:"その他"};
+      const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
+      const displayName = isFcOrSv ? c.label : (t.memo || c.label);
+      return displayName.toLowerCase().includes(keyword) || c.label.toLowerCase().includes(keyword);
+    });
+  }
+
   el.innerHTML = txs.length === 0
-    ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">この月度の取引はありません</div>`
+    ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">${keyword ? "該当する取引はありません" : "この月度の取引はありません"}</div>`
     : txs.map(t => {
         const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
@@ -3664,16 +3683,23 @@ function renderSavings() {
     return { p, pct, achievedPct, months, cycle, cycleLabel, status, statusColor, barColor, bgColor, order, isAchieved };
   });
 
-  // 表示順：項目名順（50音・辞書順）
-  enriched.sort((a, b) => a.p.name.localeCompare(b.p.name, "ja"));
+  // 表示順：ピン留め項目を最優先、その中・それ以外はそれぞれ項目名順（50音・辞書順）
+  enriched.sort((a, b) => {
+    if (!!b.p.pinned !== !!a.p.pinned) return (b.p.pinned ? 1 : 0) - (a.p.pinned ? 1 : 0);
+    return a.p.name.localeCompare(b.p.name, "ja");
+  });
 
   listEl.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
     enriched.map(({ p, status, statusColor, bgColor, cycle }, i) => {
       const icon = p.icon || guessIconEmoji(p.name);
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
+      const pinIcon = p.pinned
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 2a5 5 0 00-5 5c0 2.5 1.8 4 2.5 5.5L5 17h14l-4.5-4.5C15.2 11 17 9.5 17 7a5 5 0 00-5-5z"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a5 5 0 00-5 5c0 2.5 1.8 4 2.5 5.5L5 17h14l-4.5-4.5C15.2 11 17 9.5 17 7a5 5 0 00-5-5z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>`;
 
       return `<div onclick="openSavingsForm('${p.id}')" style="cursor:pointer;padding:12.6px 14px;${borderStyle}">
       <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="event.stopPropagation(); toggleSavingsPinned('${p.id}')" title="${p.pinned ? 'ピン留めを外す' : 'ピン留めする'}" style="flex-shrink:0;width:24px;height:24px;border:none;background:none;padding:0;cursor:pointer;color:${p.pinned ? 'var(--teal-d)' : 'var(--muted)'};display:flex;align-items:center;justify-content:center;">${pinIcon}</button>
         <div style="width:40px;height:40px;border-radius:10px;background:${bgColor};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,20)}</div>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
@@ -4047,6 +4073,16 @@ function saveSavingsPlan() {
   }
 }
 
+// ピン留めの切り替え（ピン留めした項目は一覧の最上部に表示される）
+function toggleSavingsPinned(id) {
+  const plans = loadSavingsPlans();
+  const p = plans.find(x => x.id === id);
+  if (!p) return;
+  p.pinned = !p.pinned;
+  saveSavingsPlans(plans);
+  renderSavings();
+}
+
 function deleteSavingsPlan(id) {
   if (!id) return;
   if (!confirm("この積立プランを削除しますか？")) return;
@@ -4231,13 +4267,17 @@ function renderFixedCostList(cycle) {
     return;
   }
 
-  // 表示順：今月未払い → 今月支払い済み → 今月対象外（隔月等で支払い月でない項目）
+  // 表示順：ピン留め項目を最優先、その中・それ以外はそれぞれ
+  // 今月未払い → 今月支払い済み → 今月対象外（隔月等で支払い月でない項目）の順
   const enriched = items.map(item => {
     const isPayMonth = fcIsPayMonth(item.cycle || "monthly", now);
     const order = !isPayMonth ? 2 : (item.paid ? 1 : 0);
     return { item, isPayMonth, order };
   });
-  enriched.sort((a,b) => a.order - b.order);
+  enriched.sort((a, b) => {
+    if (!!b.item.pinned !== !!a.item.pinned) return (b.item.pinned ? 1 : 0) - (a.item.pinned ? 1 : 0);
+    return a.order - b.order;
+  });
 
   el.innerHTML = `<div style="background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.05);">` +
     enriched.map(({ item, isPayMonth }, i) => {
@@ -4249,9 +4289,13 @@ function renderFixedCostList(cycle) {
       const dueColor  = item.paid ? "var(--muted)" : "var(--sub)";
       const amtColor  = item.paid ? "var(--muted)" : "var(--orange-d)";
       const borderStyle = i < enriched.length - 1 ? "border-bottom:1px solid var(--border);" : "";
+      const pinIcon = item.pinned
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><path d="M12 2a5 5 0 00-5 5c0 2.5 1.8 4 2.5 5.5L5 17h14l-4.5-4.5C15.2 11 17 9.5 17 7a5 5 0 00-5-5z"/><line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" stroke-width="2"/></svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2a5 5 0 00-5 5c0 2.5 1.8 4 2.5 5.5L5 17h14l-4.5-4.5C15.2 11 17 9.5 17 7a5 5 0 00-5-5z"/><line x1="12" y1="17" x2="12" y2="22"/></svg>`;
 
       return `<div style="cursor:pointer;padding:12.6px 14px;${borderStyle}opacity:${opacity};" onclick="openFixedCostForm('${item.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="event.stopPropagation(); toggleFixedCostPinned('${item.id}')" title="${item.pinned ? 'ピン留めを外す' : 'ピン留めする'}" style="flex-shrink:0;width:22px;height:22px;border:none;background:none;padding:0;cursor:pointer;color:${item.pinned ? 'var(--orange-d)' : 'var(--muted)'};display:flex;align-items:center;justify-content:center;">${pinIcon}</button>
         <div style="width:30px;height:30px;border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${catIconSvg(icon,20)}</div>
         <div style="flex:1;min-width:0;font-size:16px;font-weight:600;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.item}<span style="font-size:13px;font-weight:400;color:${dueColor};">（${dueLabel}）</span></div>
         <span style="font-size:17px;font-weight:700;color:${amtColor};white-space:nowrap;flex-shrink:0;">${fmt(item.amount||0)}</span>
@@ -4397,6 +4441,16 @@ function saveFixedCostItem() {
   renderFixedCostsPage();
   renderHome();
   showToast(amount === 0 ? `「${name}」を仮登録しました（金額は後で入力できます）` : `「${name}」を保存しました`);
+}
+
+// ピン留めの切り替え（ピン留めした項目は一覧の最上部に表示される）
+function toggleFixedCostPinned(id) {
+  const cycle = ensureCycle();
+  const item = cycle.fixed_costs.find(i => i.id === id);
+  if (!item) return;
+  item.pinned = !item.pinned;
+  saveCycle(cycle);
+  renderFixedCostsPage();
 }
 
 function deleteFixedCostItem(id) {
@@ -4571,6 +4625,43 @@ function dismissIncomePendingBanner() {
   newMonthFlowStep = "income";
   setType("income");
   showPage("income");
+}
+
+// 積立プランが目標額に到達したら、ホーム画面にお知らせバナーを1回だけ表示する。
+// 達成済みとして通知した後は、残高が目標を下回れば再び通知できるようリセットする
+// （引出し後、改めて貯めて再達成した場合にも通知されるようにするため）。
+function checkSavingsAchievements() {
+  const plans = loadSavingsPlans();
+  if (!plans.length) return;
+
+  const newlyAchieved = [];
+  let changed = false;
+  plans.forEach(p => {
+    const isAchieved = (p.amount || 0) > 0 && (p.balance || 0) >= p.amount;
+    if (isAchieved && !p.achievedNotified) {
+      p.achievedNotified = true;
+      newlyAchieved.push(p.name);
+      changed = true;
+    } else if (!isAchieved && p.achievedNotified) {
+      p.achievedNotified = false;
+      changed = true;
+    }
+  });
+  if (changed) saveSavingsPlans(plans);
+
+  if (newlyAchieved.length) {
+    const textEl = document.getElementById("homeSavingsAchievedText");
+    if (textEl) {
+      textEl.textContent = newlyAchieved.length === 1
+        ? `🎉 積立「${newlyAchieved[0]}」が目標額に達成しました！`
+        : `🎉 積立「${newlyAchieved.join("」「")}」が目標額に達成しました！`;
+    }
+    toggleFlowBanner("homeSavingsAchievedBanner", true);
+  }
+}
+
+function dismissSavingsAchievedBanner() {
+  toggleFlowBanner("homeSavingsAchievedBanner", false);
 }
 
 // 積立タブから固定費タブへ（新しい月を開始フローの一部）
