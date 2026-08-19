@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.78.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.79.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1944,19 +1944,19 @@ function syncCarryoverIfNeeded(editedTxDate) {
 
   for (let p = editedIdx; p <= periods.length - 2; p++) {
     const nextIdx = p + 1;
-    const correctBalance = Math.max(
-      0,
+    // 符号付きの残高（プラス・マイナスどちらもありうる。0円未満に切り詰めない）
+    const correctBalance =
       periodTxs(p).filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0) -
-      periodTxs(p).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
-    );
+      periodTxs(p).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
     const allTxs = loadTx();
     const carryoverMemo = `${periodLabel(p)}繰越`;
     const existing = allTxs.find(t => t.source === "carryover" && t.memo === carryoverMemo &&
       findPeriodIndexForDate(t.date) === nextIdx);
-    const existingAmount = existing ? existing.amount : 0;
+    // 既存の繰越取引を符号付きの値に直す（収入＝プラス、支出＝マイナス）
+    const existingSigned = existing ? (existing.type === "income" ? existing.amount : -existing.amount) : 0;
 
-    if (correctBalance === existingAmount) continue; // このステップはズレなし。次の月度へ進む
+    if (correctBalance === existingSigned) continue; // このステップはズレなし。次の月度へ進む
 
     if (!confirmed) {
       const ok = confirm(
@@ -1969,19 +1969,20 @@ function syncCarryoverIfNeeded(editedTxDate) {
     }
 
     if (existing) {
-      if (correctBalance > 0) {
-        existing.amount = correctBalance;
+      if (correctBalance !== 0) {
+        existing.type = correctBalance > 0 ? "income" : "expense";
+        existing.amount = Math.abs(correctBalance);
       } else {
         const i = allTxs.findIndex(t => t === existing);
         if (i !== -1) allTxs.splice(i, 1);
       }
       saveTx(allTxs);
-    } else if (correctBalance > 0) {
+    } else if (correctBalance !== 0) {
       allTxs.push({
         id: Date.now() + p, // 同一ループ内で複数生成されうるため、月度インデックス分ずらしてID衝突を避ける
-        type: "income",
+        type: correctBalance > 0 ? "income" : "expense",
         cat: "carryover",
-        amount: correctBalance,
+        amount: Math.abs(correctBalance),
         memo: carryoverMemo,
         date: periods[nextIdx].start_date,
         source: "carryover",
@@ -4803,18 +4804,21 @@ function startNewMonth(silent) {
   const prevIdx = periods.length - 1; // 移行前時点でのインデックス＝直前の月度
 
   if (!isFirstTime) {
-    // 前月度の残高（収入－支出）がプラスの場合、繰越として自動的に取引履歴へ記録する（収入合計には影響させない）
+    // 前月度の残高（収入－支出）を、プラスでもマイナスでも繰越として自動的に
+    // 取引履歴へ記録する（資金が減っている事実は、プラスかマイナスかに関わらず
+    // 引き継がれるべきため）。金額は常に正の値で持ち、プラスは収入・マイナスは
+    // 支出として記録する（他の取引と同じ「金額は常に正」という約束を保つため）。
     const prevTxs = periodTxs(prevIdx);
     const prevIncome  = prevTxs.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
     const prevExpense = prevTxs.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
     const prevBalance = prevIncome - prevExpense;
-    if (prevBalance > 0) {
+    if (prevBalance !== 0) {
       const txs = loadTx();
       txs.push({
         id: Date.now(),
-        type: "income",
+        type: prevBalance > 0 ? "income" : "expense",
         cat: "carryover",
-        amount: prevBalance,
+        amount: Math.abs(prevBalance),
         memo: `${periodLabel(prevIdx)}繰越`,
         date: today,
         source: "carryover",
