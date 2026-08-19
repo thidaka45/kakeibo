@@ -507,7 +507,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="balance-card" style="margin-bottom:0;padding:10px 12px;background:var(--teal);">
       <div style="display:flex;">
         <div style="flex:1;">
-          <div class="balance-label">今月の積立合計</div>
+          <div class="balance-label">今月の積立費合計</div>
           <div class="balance-amount" style="font-size:32px;" id="savingsTotalMonthly">¥0</div>
         </div>
         <div style="flex:1;text-align:right;">
@@ -1000,7 +1000,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <button onclick="closeFixedCostForm()" style="padding:10px;border-radius:8px;border:0.5px solid var(--border);background:transparent;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--sub);">キャンセル</button>
-      <button onclick="saveFixedCostItem()" style="padding:10px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;" id="fcSubmitBtn">登録</button>
+      <button onclick="saveFixedCostItem()" style="padding:10px;border-radius:8px;border:none;background:var(--orange);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;" id="fcSubmitBtn">保存</button>
     </div>
     <button id="fcDeleteBtn" onclick="deleteFixedCostItem(editingFixedCostId)" style="display:none;width:100%;padding:10px;border-radius:8px;border:0.5px solid var(--red);background:var(--red-l);color:var(--red);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;">この項目を削除</button>
   </div>
@@ -1218,7 +1218,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.69.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.69.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3678,7 +3678,7 @@ function renderSavings() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
             <div style="font-size:16px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</div>
-            <div style="display:flex;justify-content:space-between;width:150px;flex-shrink:0;font-size:15px;font-weight:700;color:var(--teal-d);white-space:nowrap;"><span>貯蓄額：</span><span>${fmt(p.balance || 0)}</span></div>
+            <div style="display:flex;justify-content:space-between;width:150px;flex-shrink:0;font-size:17px;font-weight:700;color:var(--teal-d);white-space:nowrap;"><span>貯蓄額：</span><span>${fmt(p.balance || 0)}</span></div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:2px;">
             <div style="font-size:13px;font-weight:600;color:${statusColor};">${status}</div>
@@ -4346,7 +4346,7 @@ function openFixedCostForm(id = null) {
     document.getElementById("fcName").value = "";
     document.getElementById("fcAmount").value = "";
     document.getElementById("fcDueDay").value = "";
-    document.getElementById("fcSubmitBtn").textContent = "登録";
+    document.getElementById("fcSubmitBtn").textContent = "保存";
     document.getElementById("fcDeleteBtn").style.display = "none";
     renderFcIconSelect("📦");
   }
