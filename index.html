@@ -1219,7 +1219,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.79.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.81.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3428,14 +3428,17 @@ function getStartingBalanceForExport(loIdx) {
     .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
 }
 
-// 日付昇順の取引配列に、開始残高からの累積残高（各取引後の残高）を付与する。
-// 「繰越」取引は、その時点までの取引で既に積み上がった金額を言い換えただけの記録
-// （二重計上防止のため、既存の取引で積み上がった金額をそのまま繰り越しているだけ）
-// なので、行としては表示するが、累積残高には加算しない。
+// 日付昇順の取引配列に、各取引後の残高を付与する。
+// アプリのホーム画面の「現在の残高」と考え方を揃えるため、「繰越」取引
+// （source==="carryover"）の行では、それまでの累積を引き継がず、繰越額
+// そのものを新しい起点としてリセットする（＝月度が変わるたびに、その
+// 月度の収支だけで残高を数え直す、という考え方に統一する）。
 function withRunningBalance(txs, startingBalance) {
   let balance = startingBalance;
   return txs.map(t => {
-    if (t.source !== "carryover") {
+    if (t.source === "carryover") {
+      balance = t.type === "income" ? t.amount : -t.amount;
+    } else {
       balance += (t.type === "income" ? t.amount : -t.amount);
     }
     return { ...t, runningBalance: balance };
@@ -4803,6 +4806,24 @@ function startNewMonth(silent) {
   const today = todayLocalStr();
   const prevIdx = periods.length - 1; // 移行前時点でのインデックス＝直前の月度
 
+  // 新しい月度の開始日・繰越や積立自動計上の記録日には、「実際に操作が行われた日
+  // （today）」ではなく、「設定されている切り替え日」を使う。こうすることで、
+  // 切り替え日（18日）を過ぎてから数日後（例：20日）に初めて操作して月度が
+  // 切り替わった場合でも、その間（18日・19日）の日付で後から登録するレシート等が、
+  // 正しく新しい月度の範囲に収まるようになる（過去月度の確認が誤って出るのを防ぐ）。
+  // 初回セットアップ時（前の月度が無い）は、比較対象が無いため今日の日付をそのまま使う。
+  let periodStartDate = today;
+  if (!isFirstTime) {
+    const setupForDay = loadSetup();
+    if (setupForDay.auto_transition_day) {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(setupForDay.auto_transition_day).padStart(2, "0");
+      periodStartDate = `${y}-${m}-${d}`;
+    }
+  }
+
   if (!isFirstTime) {
     // 前月度の残高（収入－支出）を、プラスでもマイナスでも繰越として自動的に
     // 取引履歴へ記録する（資金が減っている事実は、プラスかマイナスかに関わらず
@@ -4820,7 +4841,7 @@ function startNewMonth(silent) {
         cat: "carryover",
         amount: Math.abs(prevBalance),
         memo: `${periodLabel(prevIdx)}繰越`,
-        date: today,
+        date: periodStartDate,
         source: "carryover",
       });
       saveTx(txs);
@@ -4843,7 +4864,7 @@ function startNewMonth(silent) {
           cat: "sv_" + p.id,
           amount: p.monthly,
           memo: `積立自動計上（${p.name}）`,
-          date: today,
+          date: periodStartDate,
           source: "auto_savings",
         });
       }
@@ -4863,7 +4884,7 @@ function startNewMonth(silent) {
   }
 
   // 新しい月度を開始し、表示もその月度に切り替える
-  viewPeriodIndex = startNewPeriod(today);
+  viewPeriodIndex = startNewPeriod(periodStartDate);
   renderHome();
 
   if (silent) {
