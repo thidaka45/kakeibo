@@ -55,7 +55,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
 /* ページ */
 .page{display:none;padding:10px 21px calc(34px + env(safe-area-inset-bottom));max-width:430px;margin:0 auto;height:100dvh;overflow-y:auto;}
 .page.active{display:block;}
-#page-savings.active,#page-fixedcosts.active,#page-graph.active,#page-cashflow.active,#page-initsetup.active,#page-autotransition.active,#page-shortcutsguide.active,#page-backup.active,#page-excelexport.active,#page-migration.active,#page-versioninfo.active,#page-trend.active,#page-customcats.active,#page-caticonpicker.active,#page-quickitempicker.active,#page-utility.active{display:flex;}
+#page-savings.active,#page-fixedcosts.active,#page-graph.active,#page-cashflow.active,#page-initsetup.active,#page-autotransition.active,#page-shortcutsguide.active,#page-backup.active,#page-excelexport.active,#page-migration.active,#page-versioninfo.active,#page-trend.active,#page-expensebreakdown.active,#page-customcats.active,#page-caticonpicker.active,#page-quickitempicker.active,#page-utility.active{display:flex;}
 #page-home.active{display:flex;flex-direction:column;}
 
 /* ===== ホーム ===== */
@@ -740,7 +740,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
         <button id="trendModeOverviewBtn" onclick="setTrendMode('overview')" style="padding:12px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">概況</button>
         <button id="trendModeIncomeBtn" onclick="setTrendMode('income')" style="padding:12px;border-radius:8px;border:1.5px solid var(--green);background:#fff;color:var(--green-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">収入</button>
-        <button id="trendModeExpenseBtn" onclick="setTrendMode('expense')" style="padding:12px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">支出</button>
+        <button id="trendModeExpenseBtn" onclick="openExpenseBreakdown()" style="padding:12px;border-radius:8px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">支出の内訳 ›</button>
       </div>
     </div>
 
@@ -753,6 +753,24 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="budget-card" style="padding:0 10px 10px;margin-top:8px;">
       <div id="trendChart"></div>
     </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ===== 支出の内訳（固定費・積立費・その他、専用画面） ===== -->
+<div class="page" id="page-expensebreakdown" style="flex-direction:column;padding:0;overflow:hidden;background:var(--red-l);">
+<div style="flex:1;display:flex;flex-direction:column;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden;">
+
+  <div style="padding:10px 21px 0;flex-shrink:0;">
+    <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">支出の内訳</span></div>
+    <div class="budget-card" style="padding:10px 14px;margin-bottom:0;text-align:center;">
+      <span id="expenseBreakdownPeriodLabel" style="font-size:14px;font-weight:700;color:var(--sub);"></span>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:12px 21px calc(20px + env(safe-area-inset-bottom));">
+    <div id="expenseBreakdownBody"></div>
   </div>
 
 </div>
@@ -1217,7 +1235,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.92.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.93.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2308,7 +2326,7 @@ function newTxEntry(type) {
 // ============================================================
 // カテゴリ別推移
 // ============================================================
-let trendMode = "overview"; // "overview"（概況） / "income"（収入） / "expense"（支出）
+let trendMode = "overview"; // "overview"（概況） / "income"（収入）。支出は別画面（支出の内訳）に分離した。
 
 function setTrendMode(m) {
   trendMode = m;
@@ -2371,51 +2389,25 @@ function buildTrendSlots() {
 function slotTxs(slot) { return slot.idx === null ? [] : periodTxs(slot.idx); }
 function shortSlotLabel(slot) { return `${slot.date.getMonth() + 1}月`; }
 
-// 概況：収入・支出・繰越（貯蓄）の3項目を必ず表示する
-function buildOverviewSeries(slots) {
+// 概況：収入・支出・繰越（貯蓄）を実額（円）でそのまま返す。
+// ・収入／支出のどちらも、月またぎの資金移動である「繰越」取引（cat==="carryover"）は除外する
+//   （以前は支出側でこの除外が漏れており、マイナス繰越＝赤字の繰り越しが通常の支出に
+//   紛れ込んで実際より支出が多く見えるバグがあった）。
+// ・繰越は、プラス（収入として記録）とマイナス（支出として記録）の両方をここで符号付きの
+//   1つの値にまとめる（マイナス繰越は startNewMonth/syncCarryoverIfNeeded 側で
+//   type:"expense" として記録される設計のため）。
+function buildOverviewAmounts(slots) {
   const incomeValues = slots.map(slot =>
     slotTxs(slot).filter(t => t.type === "income" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
   );
   const expenseValues = slots.map(slot =>
-    slotTxs(slot).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0)
+    slotTxs(slot).filter(t => t.type === "expense" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
   );
   const carryoverValues = slots.map(slot =>
-    slotTxs(slot).filter(t => t.type === "income" && t.cat === "carryover").reduce((s, t) => s + t.amount, 0)
+    slotTxs(slot).filter(t => t.cat === "carryover")
+      .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0)
   );
-  return [
-    { label: "収入", values: incomeValues },
-    { label: "支出", values: expenseValues },
-    { label: "繰越", values: carryoverValues }
-  ];
-}
-
-// 詳細（支出）：固定費は全項目、積立は全項目を個別に表示。それ以外（通常カテゴリ）は代表的な項目のみ
-function buildFixedCostAllSeries(slots) {
-  return getFixedCostCatOptions().map(c => {
-    const values = slots.map(slot =>
-      slotTxs(slot).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
-    );
-    return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
-  }).sort((a, b) => b.total - a.total);
-}
-
-function buildSavingsAllSeries(slots) {
-  return getSavingsCatOptions().map(c => {
-    const values = slots.map(slot =>
-      slotTxs(slot).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
-    );
-    return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
-  }).sort((a, b) => b.total - a.total);
-}
-
-function buildOtherRepresentativeSeries(slots) {
-  const normalCats = [...CATS_EXPENSE, ...loadCustomCats("expense")];
-  return normalCats.map(c => {
-    const values = slots.map(slot =>
-      slotTxs(slot).filter(t => t.type === "expense" && t.cat === c.id).reduce((s, t) => s + t.amount, 0)
-    );
-    return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
-  }).filter(d => d.total > 0).sort((a, b) => b.total - a.total).slice(0, 6);
+  return { incomeValues, expenseValues, carryoverValues };
 }
 
 // 詳細（収入）：記録されている収入項目をすべて表示（繰越を含む）
@@ -2427,6 +2419,136 @@ function buildIncomeAllSeries(slots) {
     );
     return { label: c.label, values, total: values.reduce((s, v) => s + v, 0) };
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total);
+}
+
+// ============================================================
+// 概況グラフ（実額表示）
+// ============================================================
+// 金額を「○万」表記に短縮する（軸目盛りや折れ線の始点・終点ラベル用。
+// ランキング等、金額そのものの正確さが大事な箇所では使わず fmt() を使う）。
+function formatManYen(v) {
+  const man = v / 10000;
+  const rounded = Math.round(man * 10) / 10;
+  return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + "万";
+}
+
+// 軸目盛りの間隔を、金額の規模に応じてキリの良い値（1・2・5・10…×10のべき乗）に丸める
+function pickNiceAxisStep(maxAbs) {
+  const rough = maxAbs / 3; // 目盛りをだいたい3本くらいにする
+  const pow10 = Math.pow(10, Math.floor(Math.log10(Math.max(rough, 1))));
+  const candidates = [1, 2, 5, 10].map(m => m * pow10);
+  return candidates.find(c => c >= rough) || candidates[candidates.length - 1];
+}
+
+// 収入・支出を、基準線から上（緑・収入）／下（赤・支出）に伸びる棒で、実額のまま表示する。
+// カテゴリ別推移の反省（%表示は単位が伝わらない）を踏まえ、金額の軸目盛りを併記する。
+function buildDivergingAmountChart(slots, incomeValues, expenseValues) {
+  const W = 300, H = 190, padBottom = 16;
+  const midY = (H - padBottom) / 2 + 6;
+  const n = slots.length;
+  const spacing = n > 0 ? W / n : W;
+  const xFor = i => spacing * i + spacing / 2;
+  const barW = Math.max(3, spacing * 0.42);
+
+  const maxAbsRaw = Math.max(0, ...incomeValues, ...expenseValues);
+  const maxAbs = Math.max(1, maxAbsRaw);
+  const amp = midY - 14; // 上下の余白を確保
+  const scale = amp / maxAbs;
+
+  let grid = "";
+  if (maxAbsRaw > 0) {
+    const step = pickNiceAxisStep(maxAbsRaw);
+    for (let v = step; v <= maxAbsRaw; v += step) {
+      const yUp = midY - v * scale;
+      const yDown = midY + v * scale;
+      grid += `<line x1="0" y1="${yUp.toFixed(1)}" x2="${W}" y2="${yUp.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,3"/>`;
+      grid += `<text x="${W}" y="${(yUp - 3).toFixed(1)}" font-size="9" text-anchor="end" fill="var(--muted)">${formatManYen(v)}</text>`;
+      grid += `<line x1="0" y1="${yDown.toFixed(1)}" x2="${W}" y2="${yDown.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,3"/>`;
+    }
+  }
+
+  const maxIncomeIdx = incomeValues.indexOf(Math.max(...incomeValues));
+  const maxExpenseIdx = expenseValues.indexOf(Math.max(...expenseValues));
+
+  let bars = "", labels = "";
+  for (let i = 0; i < n; i++) {
+    const x = xFor(i);
+    const incH = incomeValues[i] * scale;
+    const expH = expenseValues[i] * scale;
+    if (incomeValues[i] > 0) bars += `<rect x="${(x - barW / 2).toFixed(1)}" y="${(midY - incH).toFixed(1)}" width="${barW.toFixed(1)}" height="${incH.toFixed(1)}" rx="2.5" fill="var(--green)"/>`;
+    if (expenseValues[i] > 0) bars += `<rect x="${(x - barW / 2).toFixed(1)}" y="${midY.toFixed(1)}" width="${barW.toFixed(1)}" height="${expH.toFixed(1)}" rx="2.5" fill="var(--red)"/>`;
+    if (i === maxIncomeIdx && incomeValues[i] > 0) {
+      labels += `<text x="${x.toFixed(1)}" y="${(midY - incH - 5).toFixed(1)}" font-size="9" text-anchor="middle" fill="var(--green-d)" font-weight="700">${formatManYen(incomeValues[i])}</text>`;
+    }
+    if (i === maxExpenseIdx && expenseValues[i] > 0) {
+      labels += `<text x="${x.toFixed(1)}" y="${(midY + expH + 11).toFixed(1)}" font-size="9" text-anchor="middle" fill="var(--red)" font-weight="700">${formatManYen(expenseValues[i])}</text>`;
+    }
+    if (i % 2 === (n - 1) % 2) {
+      labels += `<text x="${x.toFixed(1)}" y="${H - 3}" font-size="9" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
+    }
+  }
+
+  return `<div style="padding:4px 2px 8px;">
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;">
+      ${grid}
+      <line x1="0" y1="${midY.toFixed(1)}" x2="${W}" y2="${midY.toFixed(1)}" stroke="var(--sub)" stroke-width="1"/>
+      ${bars}${labels}
+    </svg>
+  </div>`;
+}
+
+// 繰越残高の推移を、実額の折れ線＋面グラフで表示する。
+// 繰越はプラス・マイナスどちらもありうる（マイナス＝赤字の繰り越し）ため、
+// 0円のラインを基準線として描き、マイナスに沈んでいる期間が分かるようにする。
+function buildAmountLineChart(slots, values) {
+  const W = 300, H = 130, padTop = 16, padBottom = 22;
+  const n = values.length;
+  if (n < 2) return `<div style="color:var(--sub);text-align:center;padding:16px 0;font-size:13px;">表示できるデータがありません。</div>`;
+
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const span = (max - min) || 1;
+  const innerH = H - padTop - padBottom;
+  const spacing = W / (n - 1);
+  const yFor = v => padTop + innerH - ((v - min) / span) * innerH;
+
+  const pts = values.map((v, i) => [spacing * i, yFor(v)]);
+  const line = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const zeroY = yFor(0);
+  const area = line + ` L ${pts[n - 1][0].toFixed(1)} ${zeroY.toFixed(1)} L ${pts[0][0].toFixed(1)} ${zeroY.toFixed(1)} Z`;
+
+  const first = pts[0], last = pts[n - 1];
+  const firstColor = values[0] < 0 ? "var(--red)" : "var(--sub)";
+  const lastColor = values[n - 1] < 0 ? "var(--red)" : "var(--green-d)";
+
+  let monthLabels = "";
+  slots.forEach((slot, i) => {
+    if (i % 2 === (n - 1) % 2) {
+      monthLabels += `<text x="${(spacing * i).toFixed(1)}" y="${H - 4}" font-size="9" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slot))}</text>`;
+    }
+  });
+
+  return `<div style="padding:4px 2px 8px;">
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;">
+      <defs><linearGradient id="carryoverFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--green)" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+      </linearGradient></defs>
+      ${min < 0 ? `<line x1="0" y1="${zeroY.toFixed(1)}" x2="${W}" y2="${zeroY.toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,3"/>` : ""}
+      <path d="${area}" fill="url(#carryoverFill)"/>
+      <path d="${line}" fill="none" stroke="var(--green)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${first[0].toFixed(1)}" cy="${first[1].toFixed(1)}" r="2.5" fill="var(--green)"/>
+      <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3.5" fill="var(--card)" stroke="var(--green)" stroke-width="2"/>
+      <text x="${first[0].toFixed(1)}" y="${(first[1] - 8).toFixed(1)}" font-size="9.5" fill="${firstColor}" text-anchor="start" font-weight="600">${formatManYen(values[0])}</text>
+      <text x="${last[0].toFixed(1)}" y="${(last[1] - 8).toFixed(1)}" font-size="9.5" fill="${lastColor}" text-anchor="end" font-weight="700">${formatManYen(values[n - 1])}</text>
+      ${monthLabels}
+    </svg>
+  </div>`;
+}
+
+// セクション見出し（濃紺のチップ）。カテゴリ別推移の各パネルで共通して使う。
+function trendSectionChip(title) {
+  return `<div style="display:inline-block;font-size:14px;font-weight:700;color:#fff;background:#1E3A5F;padding:4px 12px;border-radius:6px;margin:14px 0 6px;">${escHtml(title)}</div>`;
 }
 
 // 各月の実額を、その月より前・直近6か月（無ければあるだけ）の平均と比較した
@@ -2527,12 +2649,6 @@ function buildTrendSparklineRow(label, series) {
   </div>`;
 }
 
-function buildTrendSectionHtml(title, series) {
-  if (!series.length) return "";
-  return `<div style="display:inline-block;font-size:14px;font-weight:700;color:#fff;background:#1E3A5F;padding:4px 12px;border-radius:6px;margin:14px 0 6px;">${escHtml(title)}</div>
-    ${series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("")}`;
-}
-
 function renderTrend() {
   const chartBox = document.getElementById("trendChart");
   const legendBox = document.getElementById("trendLegendHeader");
@@ -2545,22 +2661,23 @@ function renderTrend() {
     return;
   }
 
-  let sectionsHtml;
+  // 概況：実額グラフ（収支の棒グラフ＋繰越の折れ線）。%表示はやめ、金額をそのまま見せる。
   if (trendMode === "overview") {
-    const series = buildOverviewSeries(slots);
-    sectionsHtml = series.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
-  } else if (trendMode === "income") {
-    const incomeSeries = buildIncomeAllSeries(slots);
-    sectionsHtml = incomeSeries.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
-  } else {
-    const fixedSeries   = buildFixedCostAllSeries(slots);
-    const savingsSeries = buildSavingsAllSeries(slots);
-    const otherSeries   = buildOtherRepresentativeSeries(slots);
-    sectionsHtml =
-      buildTrendSectionHtml("固定費", fixedSeries) +
-      buildTrendSectionHtml("積立費", savingsSeries) +
-      buildTrendSectionHtml("その他", otherSeries);
+    const { incomeValues, expenseValues, carryoverValues } = buildOverviewAmounts(slots);
+    legendBox.innerHTML = `
+      <div style="font-size:13px;color:var(--sub);"><span style="color:var(--green);font-weight:700;">■収入</span>　<span style="color:var(--red);font-weight:700;">■支出</span></div>
+    `;
+    chartBox.innerHTML =
+      trendSectionChip("収支") +
+      buildDivergingAmountChart(slots, incomeValues, expenseValues) +
+      trendSectionChip("繰越の推移") +
+      buildAmountLineChart(slots, carryoverValues);
+    return;
   }
+
+  // 収入：カテゴリごとに、直近6か月平均に対する増減率（%）のスパークラインで表示
+  const incomeSeries = buildIncomeAllSeries(slots);
+  const sectionsHtml = incomeSeries.map(s => buildTrendSparklineRow(s.label, toPctSeries(s.values))).join("");
 
   if (!sectionsHtml) {
     legendBox.innerHTML = "";
@@ -2574,6 +2691,139 @@ function renderTrend() {
     ${buildTrendMonthHeaderRow(slots)}
   `;
   chartBox.innerHTML = sectionsHtml;
+}
+
+// ============================================================
+// 支出の内訳（固定費・積立費・その他の3分類、タップで展開）
+// ============================================================
+let expenseBreakdownPeriodIdx = null;
+let expenseBreakdownExpanded = { fixed: false, savings: false, other: false };
+
+// カテゴリ別推移の「支出」ボタンから遷移。ホーム画面が表示している月度に合わせて開く。
+function openExpenseBreakdown() {
+  expenseBreakdownPeriodIdx = viewPeriodIndex;
+  expenseBreakdownExpanded = { fixed: false, savings: false, other: false };
+  showPage("expensebreakdown");
+}
+
+// 指定した月度の支出を「固定費（cat が fc_ で始まる）」「積立費（sv_ で始まる）」
+// 「その他（それ以外の通常カテゴリ）」の3分類に振り分け、分類ごとに項目別の内訳も作る。
+// 分類はマスター（固定費・積立プランの一覧）ではなく取引自体のカテゴリIDで判定するため、
+// マスターから削除済みの項目の過去実績も、正しい分類のまま残る。
+function buildExpenseBreakdownGroups(periodIdx) {
+  const allCats = getAllCats();
+  const txs = periodTxs(periodIdx).filter(t => t.type === "expense" && t.cat !== "carryover");
+
+  const buckets = { fixed: {}, savings: {}, other: {} };
+  txs.forEach(t => {
+    const key = t.cat.startsWith("fc_") ? "fixed" : t.cat.startsWith("sv_") ? "savings" : "other";
+    buckets[key][t.cat] = (buckets[key][t.cat] || 0) + t.amount;
+  });
+
+  function toItems(bucket) {
+    return Object.keys(bucket).map(id => {
+      const c = allCats.find(x => x.id === id);
+      return { id, label: c ? c.label : id, amount: bucket[id] };
+    }).sort((a, b) => b.amount - a.amount);
+  }
+
+  const fixedItems   = toItems(buckets.fixed);
+  const savingsItems = toItems(buckets.savings);
+  const otherItems   = toItems(buckets.other);
+  const sum = items => items.reduce((s, x) => s + x.amount, 0);
+
+  return {
+    fixed:   { total: sum(fixedItems),   items: fixedItems },
+    savings: { total: sum(savingsItems), items: savingsItems },
+    other:   { total: sum(otherItems),   items: otherItems }
+  };
+}
+
+// ラベルが長すぎて横棒の右側とぶつからないよう、必要なら省略する
+function truncateLabel(s, maxLen) {
+  s = String(s);
+  return s.length > maxLen ? s.slice(0, maxLen - 1) + "…" : s;
+}
+
+// 横棒ランキング（金額の多い順）。items は呼び出し側で降順ソート済みを想定。
+// options.max を指定すると、複数のチャート間で棒の長さの基準を揃えられる
+// （例：固定費・積立費・その他の3本を同じ基準で比較させたい場合）。
+function buildRankingBarChart(items, options) {
+  options = options || {};
+  if (!items.length) {
+    return `<div style="color:var(--sub);font-size:12.5px;padding:6px 4px 2px;">登録がありません</div>`;
+  }
+  const barColor   = options.barColor   || "var(--red)";
+  const trackColor = options.trackColor || "var(--red-l)";
+  const labelWidth = options.labelWidth || 84;
+  const rowH = options.rowH || 30;
+  const gap  = options.gap  || 8;
+  const W = options.width || 272;
+  const barAreaW = W - labelWidth - 54;
+  const max = options.max || Math.max(1, ...items.map(it => it.amount));
+  const H = items.length * (rowH + gap) - gap;
+
+  let rows = "";
+  items.forEach((it, i) => {
+    const y = i * (rowH + gap);
+    const w = Math.max(3, (it.amount / max) * barAreaW);
+    rows += `<text x="0" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="12" fill="var(--text)" font-weight="600">${escHtml(truncateLabel(it.label, 9))}</text>`;
+    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${barAreaW}" height="${rowH - 12}" rx="4" fill="${trackColor}"/>`;
+    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${w.toFixed(1)}" height="${rowH - 12}" rx="4" fill="${barColor}"/>`;
+    rows += `<text x="${W}" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="11" fill="var(--sub)" text-anchor="end" font-weight="600">${escHtml(fmt(it.amount))}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;">${rows}</svg>`;
+}
+
+function toggleExpenseBreakdownGroup(key) {
+  expenseBreakdownExpanded[key] = !expenseBreakdownExpanded[key];
+  renderExpenseBreakdown();
+}
+
+function buildExpenseBreakdownGroupBlock(key, label, group, maxTotal) {
+  const expanded = expenseBreakdownExpanded[key];
+  const hasItems = group.items.length > 0;
+  const chevron = hasItems ? (expanded ? "▾" : "▸") : "";
+
+  let html = `<div class="budget-card" style="padding:14px 12px;">
+    <div onclick="${hasItems ? `toggleExpenseBreakdownGroup('${key}')` : ""}" style="display:flex;align-items:center;justify-content:space-between;cursor:${hasItems ? "pointer" : "default"};padding-bottom:8px;">
+      <span style="font-size:15px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
+      <span style="font-size:15px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
+    </div>
+    ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 26 })}`;
+
+  if (expanded && hasItems) {
+    html += `<div style="margin-top:10px;padding:10px 8px 2px;background:var(--bg);border-radius:10px;">
+      ${buildRankingBarChart(group.items, { rowH: 26 })}
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderExpenseBreakdown() {
+  const box = document.getElementById("expenseBreakdownBody");
+  const labelBox = document.getElementById("expenseBreakdownPeriodLabel");
+  if (!box) return;
+
+  const periods = ensurePeriods();
+  if (!periods.length) {
+    if (labelBox) labelBox.textContent = "";
+    box.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
+    return;
+  }
+  if (expenseBreakdownPeriodIdx === null || expenseBreakdownPeriodIdx > periods.length - 1) {
+    expenseBreakdownPeriodIdx = viewPeriodIndex !== null ? viewPeriodIndex : periods.length - 1;
+  }
+  if (labelBox) labelBox.textContent = periodLabel(expenseBreakdownPeriodIdx);
+
+  const groups = buildExpenseBreakdownGroups(expenseBreakdownPeriodIdx);
+  const maxTotal = Math.max(1, groups.fixed.total, groups.savings.total, groups.other.total);
+
+  box.innerHTML =
+    buildExpenseBreakdownGroupBlock("fixed",   "固定費", groups.fixed,   maxTotal) +
+    buildExpenseBreakdownGroupBlock("savings", "積立費", groups.savings, maxTotal) +
+    buildExpenseBreakdownGroupBlock("other",   "その他", groups.other,   maxTotal);
 }
 
 // ============================================================
@@ -3146,7 +3396,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","customcats","caticonpicker","quickitempicker"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","expensebreakdown","customcats","caticonpicker","quickitempicker"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
@@ -3160,6 +3410,7 @@ function showPage(name, isBack) {
   if (name==="cashflow")   renderCashflow();
   if (name==="autotransition") renderAutoTransitionDaySelect();
   if (name==="trend")      renderTrend();
+  if (name==="expensebreakdown") renderExpenseBreakdown();
   if (name==="customcats") renderCustomCatsList();
   if (name==="excelexport") renderExcelExportPeriodSelects();
 }
