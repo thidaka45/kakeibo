@@ -1217,7 +1217,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.92.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.92.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2439,15 +2439,22 @@ function buildIncomeAllSeries(slots) {
 //   発生しない項目で、支出の無い月まで軒並み「-100%（大きな減少）」と
 //   表示されてしまい、グラフが実際の変動と関係なく毎月大きな棒だらけになる
 //   不具合があった。
+// 戻り値は { v, pct, noBaseline } の配列。
+// ・v: その月の実額（0円かどうかの判定に使う）
+// ・pct: 増減率（%）。表示できない場合は便宜上0
+// ・noBaseline: 実績はある（v!==0）のに、比較できる過去の実績が1件も無いため
+//   増減率が算出できない月かどうか（＝データを取り始めた最初の月など）。
+//   pctが0の場合、それが「本当に平均通りだった」のか「そもそも比較対象が無い」
+//   のか区別がつかなくなるため、呼び出し側（描画側）で別扱いできるようにする。
 function toPctSeries(values) {
   return values.map((v, i) => {
-    if (v === 0) return 0; // 今月分が0円なら「発生なし」として変化率を出さない
+    if (v === 0) return { v, pct: 0, noBaseline: false }; // 今月分が0円なら「発生なし」として変化率を出さない
     const priorValues = values.slice(Math.max(0, i - 6), i); // i自身は含めない、直近最大6件
     const nonZeroPrior = priorValues.filter(x => x !== 0);
-    if (nonZeroPrior.length === 0) return 0;
+    if (nonZeroPrior.length === 0) return { v, pct: 0, noBaseline: true };
     const baseline = nonZeroPrior.reduce((s, x) => s + x, 0) / nonZeroPrior.length;
-    if (baseline === 0) return 0;
-    return Math.round((v - baseline) / baseline * 100);
+    if (baseline === 0) return { v, pct: 0, noBaseline: true };
+    return { v, pct: Math.round((v - baseline) / baseline * 100), noBaseline: false };
   });
 }
 
@@ -2474,9 +2481,10 @@ function buildTrendMonthHeaderRow(slots) {
 }
 
 // 項目1つ分の行：中央の点線（0%基準）からの増減を棒グラフで表す（増加=赤・減少=青）
-function buildTrendSparklineRow(label, pctValues) {
+// series は toPctSeries() が返す { v, pct, noBaseline } の配列。
+function buildTrendSparklineRow(label, series) {
   const W = 240, H = 56, center = H / 2, ampPx = 22;
-  const n = pctValues.length;
+  const n = series.length;
   // 行ごとの相対値ではなく、固定の基準値（±50%）でスケールする。
   // こうすることで、通常月同士のわずかな差は小さい棒のまま表示され、
   // 大きく外れた月だけがはっきり目立つようになる（±50%を超える場合は
@@ -2495,11 +2503,17 @@ function buildTrendSparklineRow(label, pctValues) {
   }
 
   let bars = "";
-  pctValues.forEach((v, i) => {
-    if (v === 0) return;
-    const color = v > 0 ? "var(--red)" : "var(--blue)";
-    const y = Math.min(center, yFor(v));
-    const h = Math.abs(yFor(v) - center);
+  series.forEach((s, i) => {
+    // 実績はあるのに比較できる過去データが無い月（データを取り始めた最初の月など）は、
+    // 「変化なし」と紛らわしくならないよう、棒の代わりに灰色の点（比較対象なし）を打つ。
+    if (s.noBaseline && s.v !== 0) {
+      bars += `<circle cx="${xFor(i).toFixed(1)}" cy="${center.toFixed(1)}" r="2.5" fill="var(--muted)"/>`;
+      return;
+    }
+    if (s.pct === 0) return;
+    const color = s.pct > 0 ? "var(--red)" : "var(--blue)";
+    const y = Math.min(center, yFor(s.pct));
+    const h = Math.abs(yFor(s.pct) - center);
     bars += `<rect x="${(xFor(i) - barW / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" rx="1"/>`;
   });
 
@@ -2555,7 +2569,8 @@ function renderTrend() {
   }
 
   legendBox.innerHTML = `
-    <div style="font-size:13px;color:var(--sub);margin-bottom:8px;"><span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span></div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">■増加</span>　<span style="color:var(--blue);font-weight:700;">■減少</span>　<span style="color:var(--muted);font-weight:700;">●比較対象なし</span></div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">棒の高さは金額そのものではなく、直近6か月平均と比べた増減率（％）です。振れ幅は±50%を超えると頭打ちになります。実績が0円の月と、データを取り始めたばかりで比較対象がまだ無い月（●）は棒を表示しません。</div>
     ${buildTrendMonthHeaderRow(slots)}
   `;
   chartBox.innerHTML = sectionsHtml;
