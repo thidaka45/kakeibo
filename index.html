@@ -1217,7 +1217,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.90.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.91.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2429,14 +2429,20 @@ function buildIncomeAllSeries(slots) {
   }).filter(d => d.total > 0).sort((a, b) => b.total - a.total);
 }
 
-// 最初の月を基準(0%)にした増減率へ変換する。
-// 表示期間内で、実際にデータが存在する最初の月を基準（0%）にする。
-// それより前（データがまだ無い月）は比較のしようがないため0%として扱う。
+// 各月の実額を、その月より前・直近6か月（無ければあるだけ）の平均と比較した
+// 増減率に変換する。「表示期間の最初の月」ではなく「直近の普段の状態」を基準に
+// することで、臨時出費など通常月からのズレが分かりやすくなるようにする。
+// ・比較対象がまだ無い月（直近6か月に実績が1件も無い）は0%として扱う
+// ・実績が無い（0円の）月は「まだ始まっていない」とみなし、平均の計算対象からは除く
 function toPctSeries(values) {
-  const baseIdx = values.findIndex(v => v !== 0);
-  if (baseIdx === -1) return values.map(() => 0);
-  const baseline = values[baseIdx];
-  return values.map((v, i) => i < baseIdx ? 0 : Math.round((v - baseline) / baseline * 100));
+  return values.map((v, i) => {
+    const priorValues = values.slice(Math.max(0, i - 6), i); // i自身は含めない、直近最大6件
+    const nonZeroPrior = priorValues.filter(x => x !== 0);
+    if (nonZeroPrior.length === 0) return 0;
+    const baseline = nonZeroPrior.reduce((s, x) => s + x, 0) / nonZeroPrior.length;
+    if (baseline === 0) return 0;
+    return Math.round((v - baseline) / baseline * 100);
+  });
 }
 
 // 月ラベルのヘッダー行（各系列行のグラフとx座標を合わせる）
