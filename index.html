@@ -621,20 +621,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="border-top:1px solid var(--border);margin:12px 0 8px;padding-top:8px;display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--sub);">
       <span>今月の未払いの固定費を含む：</span><span id="cfFixedPart" style="font-size:17px;font-weight:700;color:var(--sub);text-align:right;">¥0</span>
     </div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
-      ※ 未払いの固定費はまだ支出していないため「現在の残高」に含まれたままです。合計には含めていません（参考表示）。
-    </div>
   </div>
 
   <div class="budget-card" style="margin-bottom:10px;">
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px;">実際の総残高（口座＋手持ち）</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
       <div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">銀行口座</div>
+        <div style="font-size:15px;font-weight:700;color:var(--sub);margin-bottom:4px;">銀行口座</div>
         <input class="field-input" id="cfBankInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
       </div>
       <div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">手持ち</div>
+        <div style="font-size:15px;font-weight:700;color:var(--sub);margin-bottom:4px;">手持ち</div>
         <input class="field-input" id="cfCashInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
       </div>
     </div>
@@ -1215,7 +1212,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.85.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.85.7"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
