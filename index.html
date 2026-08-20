@@ -885,13 +885,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
       <select id="excelExportEndPeriod" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);font-size:14px;font-family:inherit;background:var(--card);color:var(--text);"></select>
     </div>
 
-    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">② 証憑をまとめて追加（任意・月ごとに繰り返し可）</div>
+    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:6px;">② 証憑をまとめて追加（任意）</div>
     <div style="font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
-      「レシート」フォルダの中の年月フォルダを開き、証憑（画像）をすべて選択して追加してください。複数月ある場合は、月ごとにこの操作を繰り返せます。
+      「レシートフォルダを選択」なら、「レシート」フォルダを1回選ぶだけで、中の年月フォルダを問わずまとめて取り込めます（対応していない場合は、下の個別選択をお使いください）。
     </div>
+    <input type="file" id="excelExportFolderInput" accept="image/*" webkitdirectory directory multiple style="display:none;" onchange="onExcelExportImagesChosen(event)">
+    <button class="export-btn" onclick="document.getElementById('excelExportFolderInput').click()" style="background:var(--blue-l);border:1.5px solid var(--blue);color:var(--blue);padding:14px;font-size:15px;font-weight:700;border-radius:12px;margin-bottom:8px;">
+      レシートフォルダを選択（一括）
+    </button>
     <input type="file" id="excelExportImageInput" accept="image/*" multiple style="display:none;" onchange="onExcelExportImagesChosen(event)">
     <button class="export-btn" onclick="document.getElementById('excelExportImageInput').click()" style="background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:14px;font-size:15px;font-weight:700;border-radius:12px;margin-bottom:8px;">
-      証憑をまとめて追加
+      画像を個別に選択（年月フォルダを開いて選ぶ）
     </button>
     <div id="excelExportImageStatus" style="font-size:13px;color:var(--sub);margin-bottom:18px;">まだ証憑は追加されていません</div>
 
@@ -1219,7 +1223,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.84.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.85.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3402,6 +3406,10 @@ function updateExcelExportImageStatus() {
 
 // 開始月度〜終了月度のプルダウンを、実際の期間データから組み立てる
 function renderExcelExportPeriodSelects() {
+  // 画面を開くたびに、証憑の選択状態をリセットする（前回の選択が残ったままにならないようにし、
+  // 新しく選んだ操作が反映されたかどうかを、毎回はっきり確認できるようにするため）
+  excelExportImages = new Map();
+
   const periods = ensurePeriods();
   const startSel = document.getElementById("excelExportStartPeriod");
   const endSel = document.getElementById("excelExportEndPeriod");
