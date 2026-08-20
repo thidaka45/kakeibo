@@ -272,7 +272,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div class="bar-track" style="display:none;"><div class="bar-fill bar-ok" id="budgetBar" style="width:0%"></div></div>
     <!-- 健全状況（評価行） -->
     <div id="budgetStatus" style="display:flex;align-items:center;gap:6px;min-width:0;">
-      <span id="budgetStatusIcon" style="font-size:26px;flex-shrink:0;"></span>
+      <span id="budgetStatusIcon" style="font-size:26px;flex-shrink:0;display:flex;align-items:center;"></span>
       <span id="budgetStatusText" style="font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;"></span>
     </div>
   </div>
@@ -387,20 +387,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   </div>
 
   <!-- テンキー -->
-  <div class="input-card" style="padding:8px;">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('1')">1</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('2')">2</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('3')">3</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('4')">4</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('5')">5</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('6')">6</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('7')">7</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('8')">8</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('9')">9</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('000')">000</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('0')">0</button>
-      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:26px;font-weight:800;color:var(--red);padding:14px 10px;" onclick="inputNum('del')">⌫</button>
+  <div class="input-card" style="padding:6px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('1')">1</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('2')">2</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('3')">3</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('4')">4</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('5')">5</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('6')">6</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('7')">7</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('8')">8</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('9')">9</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('000')">000</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('0')">0</button>
+      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:26px;font-weight:800;color:var(--red);padding:10px 10px;" onclick="inputNum('del')">⌫</button>
     </div>
   </div>
 </div>
@@ -440,20 +440,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
   </div>
 
   <!-- テンキー -->
-  <div class="input-card" style="padding:8px;">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('1')">1</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('2')">2</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('3')">3</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('4')">4</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('5')">5</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('6')">6</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('7')">7</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('8')">8</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('9')">9</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('000')">000</button>
-      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:14px 10px;" onclick="inputNum('0')">0</button>
-      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:26px;font-weight:800;color:var(--red);padding:14px 10px;" onclick="inputNum('del')">⌫</button>
+  <div class="input-card" style="padding:6px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('1')">1</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('2')">2</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('3')">3</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('4')">4</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('5')">5</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('6')">6</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('7')">7</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('8')">8</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('9')">9</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('000')">000</button>
+      <button class="cat-btn" style="border:none;background:var(--bg);font-size:26px;font-weight:800;padding:10px 10px;" onclick="inputNum('0')">0</button>
+      <button class="cat-btn" style="border:none;background:var(--red-l);font-size:26px;font-weight:800;color:var(--red);padding:10px 10px;" onclick="inputNum('del')">⌫</button>
     </div>
   </div>
 </div>
@@ -671,7 +671,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       カテゴリごとに、月度をまたいだ支出・収入の増減を確認できます。
     </div>
-    <button onclick="showPage('trend')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+    <button onclick="showPage('trend')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--teal);background:var(--teal-l);color:var(--teal-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       推移を見る
     </button>
   </div>
@@ -681,7 +681,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       取引データをExcel・CSVと証憑をまとめてZIPで書き出します。メールですぐ持ち出せ、PCでの集計・確定申告準備に使えます。
     </div>
-    <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+    <button onclick="showPage('excelexport')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--orange);background:var(--orange-l);color:var(--orange-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       XLS・CSV出力を開く
     </button>
   </div>
@@ -711,7 +711,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       初めて家計簿を始める方向けの案内です。収入・固定費・積立費を順番に登録します。
     </div>
-    <button onclick="showPage('initsetup')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--green);background:var(--green-l);color:var(--green-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+    <button onclick="showPage('initsetup')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--amber);background:var(--amber-l);color:var(--amber);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       初期設定を開く
     </button>
   </div>
@@ -721,7 +721,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;paddin
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
       このアプリの現在のバージョンを確認できます。
     </div>
-    <button onclick="showPage('versioninfo')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--gray);background:var(--gray-l);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+    <button onclick="showPage('versioninfo')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--muted);background:var(--gray-l);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       バージョン情報を見る
     </button>
   </div>
@@ -1218,7 +1218,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.86.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.88.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
