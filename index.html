@@ -1217,7 +1217,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.91.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.92.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2471,10 +2471,14 @@ function buildTrendMonthHeaderRow(slots) {
 function buildTrendSparklineRow(label, pctValues) {
   const W = 240, H = 56, center = H / 2, ampPx = 22;
   const n = pctValues.length;
-  const maxAbs = Math.max(1, ...pctValues.map(v => Math.abs(v)));
+  // 行ごとの相対値ではなく、固定の基準値（±50%）でスケールする。
+  // こうすることで、通常月同士のわずかな差は小さい棒のまま表示され、
+  // 大きく外れた月だけがはっきり目立つようになる（±50%を超える場合は
+  // 棒の高さを±50%相当で頭打ちにし、極端な値1つに引っ張られないようにする）。
+  const FIXED_SCALE = 50;
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2; // 各月セルの中央
-  const yFor = v => center - (v / maxAbs) * ampPx;
+  const yFor = v => center - (Math.max(-FIXED_SCALE, Math.min(FIXED_SCALE, v)) / FIXED_SCALE) * ampPx;
   const barW = Math.max(2, spacing * 0.55);
 
   // 月ごとの仕切り線（セルの境界）
