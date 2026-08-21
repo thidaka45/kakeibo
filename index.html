@@ -1231,7 +1231,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.97.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.97.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2720,13 +2720,6 @@ let expenseBreakdownPeriodIdx = null;
 let expenseBreakdownExpandedKey = null; // "fixed" | "savings" | "other" | null（同時に開けるのは1つだけ）
 
 const EXPENSE_BREAKDOWN_GROUP_LABELS = { fixed: "固定費", savings: "積立費", other: "その他" };
-// 概況グラフと同じように、分類ごとに背景色を変えてメリハリを付ける（固定費＝オレンジ系、
-// 積立費＝青系、その他＝紫系）。未払いの固定費バーの色は分類色とは独立に扱う。
-const EXPENSE_BREAKDOWN_GROUP_COLORS = {
-  fixed:   { bg: "var(--orange-l)", border: "var(--orange-d)", bar: "var(--orange-d)" },
-  savings: { bg: "var(--blue-l)",   border: "var(--blue)",     bar: "var(--blue)" },
-  other:   { bg: "var(--gray-l)",   border: "var(--purple)",   bar: "var(--purple)" }
-};
 
 // カテゴリ別推移の「支出」ボタンから遷移。ホーム画面が表示している月度に合わせて開く。
 function openExpenseBreakdown() {
@@ -2845,29 +2838,31 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal, solo) {
   const expanded = expenseBreakdownExpandedKey === key;
   const hasItems = group.items.length > 0;
   const chevron = hasItems ? (expanded ? "▾" : "▸") : "";
-  const colors = EXPENSE_BREAKDOWN_GROUP_COLORS[key] || EXPENSE_BREAKDOWN_GROUP_COLORS.other;
 
   let detailHtml = "";
   if (expanded) {
     const detailWrapStyle = solo
       ? "flex:1;min-height:0;overflow-y:auto;touch-action:pan-y;"
       : "max-height:62vh;overflow-y:auto;touch-action:pan-y;";
-    detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.12);${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;" : ""}">
+    detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;" : ""}">
       <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;flex-shrink:0;">${escHtml(label)}の内訳（多い順）</div>
       <div style="${detailWrapStyle}">
-        ${buildRankingBarChart(group.items, { rowH: 24, gap: 7, barColor: colors.bar, trackColor: "#fff" })}
+        ${buildRankingBarChart(group.items, { rowH: 24, gap: 7 })}
       </div>
     </div>`;
   }
 
-  const cardStyle = `padding:10px 12px;margin-bottom:8px;background:${colors.bg};${expanded ? `border:1.5px solid ${colors.border};` : ""}${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;" : ""}`;
+  const cardStyle = `padding:10px 12px;margin-bottom:8px;${expanded ? "border:1.5px solid var(--red);" : ""}${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;" : ""}`;
   return `<div class="budget-card" style="${cardStyle}">
     <div style="flex-shrink:0;">
       <div onclick="${hasItems ? `toggleExpenseBreakdownGroup('${key}')` : ""}" style="display:flex;align-items:center;justify-content:space-between;cursor:${hasItems ? "pointer" : "default"};padding-bottom:6px;">
-        <span style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
-        <span style="font-size:14px;font-weight:700;color:${colors.border};">${escHtml(fmt(group.total))}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          ${trendSectionChip(label)}
+          <span style="font-size:11px;color:var(--sub);">${chevron}</span>
+        </span>
+        <span style="font-size:14px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
       </div>
-      ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 28, gap: 0, barColor: colors.bar, trackColor: "#fff" })}
+      ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 28, gap: 0 })}
     </div>
     ${detailHtml}
   </div>`;
