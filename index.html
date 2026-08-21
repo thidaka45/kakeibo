@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.6"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.7"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2529,7 +2529,7 @@ function buildPeriodNavRow(idx, periods, prevFn, nextFn) {
 // ・棒の並び全体の左右の余白（SIDE_PAD）は左右で同じ値にする。
 const TREND_CHART_AXIS_PAD = 40; // 左側：軸の目盛り数字のための余白
 const TREND_CHART_SIDE_PAD = 10; // 棒の並びの左右の余白（左右で同じ）
-const TREND_CHART_MIN_COL_W = 34; // 1か月あたりの最小幅
+const TREND_CHART_MIN_COL_W = 45; // 1か月あたりの最小幅（枠内に一度に約6か月分が収まる幅。以前は約8か月分で、金額が近い隣月同士のラベルが重なっていたため広げた）
 const TREND_CHART_PAD_BOTTOM = 18; // 下側：月ラベルのための余白
 function trendChartLayout(containerW, n) {
   const plotW = Math.max(0, containerW - TREND_CHART_AXIS_PAD - TREND_CHART_SIDE_PAD * 2);
