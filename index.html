@@ -751,7 +751,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 </div>
 
 <!-- ===== 支出の内訳（固定費・積立費・その他、専用画面） ===== -->
-<div class="page" id="page-expensebreakdown" style="flex-direction:column;padding:0;overflow:hidden;background:var(--red-l);">
+<div class="page" id="page-expensebreakdown" style="flex-direction:column;padding:0;overflow:hidden;background:var(--red-l);touch-action:pan-y;">
 <div style="flex:1;display:flex;flex-direction:column;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden;min-height:0;">
 
   <!-- 固定領域：戻る・カテゴリ別推移・概況/収入/支出ボタン、年月度は常に表示したまま -->
@@ -763,7 +763,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   </div>
 
   <!-- スクロール領域：固定費・積立費・その他の3分類。タップすると各項目の直下に内訳が展開する（同時に開けるのは1つ） -->
-  <div style="flex:1;overflow-y:auto;min-height:0;padding:0 21px calc(12px + env(safe-area-inset-bottom));">
+  <div style="flex:1;overflow-y:auto;min-height:0;padding:0 21px calc(12px + env(safe-area-inset-bottom));touch-action:pan-y;">
     <div id="expenseBreakdownGroups"></div>
   </div>
 
@@ -1229,7 +1229,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.94.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.95.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2447,15 +2447,34 @@ function trendSectionChip(title) {
   return `<div style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#1E3A5F;padding:2px 9px;border-radius:6px;margin:0 0 3px;flex-shrink:0;">${escHtml(title)}</div>`;
 }
 
+// 月ごとの棒グラフ（収支の推移・繰越の推移で共通）の横方向レイアウトを決める。
+// ・軸の目盛り数字は左側に置く（右端の棒＝直近月と重ならないようにするため）
+// ・1か月あたりの幅が狭くなりすぎないよう下限（MIN_COL_W）を設け、コンテナ幅に
+// 　収まらない場合は全体の横幅がコンテナより大きくなる → 呼び出し側を横スクロール
+// 　可能にしておくことで、グラフ枠内を横にスライドして12か月分が見られるようにする。
+// ・棒の並び全体の左右の余白（SIDE_PAD）は左右で同じ値にする。
+const TREND_CHART_AXIS_PAD = 40; // 左側：軸の目盛り数字のための余白
+const TREND_CHART_SIDE_PAD = 10; // 棒の並びの左右の余白（左右で同じ）
+const TREND_CHART_MIN_COL_W = 34; // 1か月あたりの最小幅
+function trendChartLayout(containerW, n) {
+  const plotW = Math.max(0, containerW - TREND_CHART_AXIS_PAD - TREND_CHART_SIDE_PAD * 2);
+  const colW = Math.max(TREND_CHART_MIN_COL_W, n > 0 ? plotW / n : plotW);
+  const totalW = TREND_CHART_AXIS_PAD + TREND_CHART_SIDE_PAD * 2 + colW * n;
+  const xFor = i => TREND_CHART_AXIS_PAD + TREND_CHART_SIDE_PAD + colW * i + colW / 2;
+  return { colW, totalW, xFor };
+}
+
 // 収支の推移：収入(上・緑)と支出(下・赤)を実額のまま基準線から上下に伸びる棒で表示する。
-function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
+// containerWは呼び出し側（横スクロール可能な枠）の実際に見えている幅。データ量に対して
+// 狭ければ、実際に描くWはcontainerWより大きくなり、枠の中を横スクロールして見る形になる。
+function buildDivergingAmountChart(slots, incomeValues, expenseValues, containerW, H) {
   const padBottom = 18;
   const usableH = H - padBottom;
   const midY = usableH / 2;
   const n = slots.length;
-  const spacing = n > 0 ? W / n : W;
-  const xFor = i => spacing * i + spacing / 2;
-  const barW = Math.max(3, spacing * 0.42);
+  const { colW, totalW, xFor } = trendChartLayout(containerW, n);
+  const W = totalW;
+  const barW = Math.max(3, colW * 0.5);
 
   const maxAbsRaw = Math.max(0, ...incomeValues, ...expenseValues);
   const maxAbs = Math.max(1, maxAbsRaw);
@@ -2473,7 +2492,7 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
       const yUp = midY - v * scale;
       const yDown = midY + v * scale;
       grid += `<line x1="0" y1="${yUp.toFixed(1)}" x2="${W}" y2="${yUp.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="${W}" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="end" fill="var(--sub)">${formatManYen(v)}</text>`;
+      grid += `<text x="4" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">${formatManYen(v)}</text>`;
       grid += `<line x1="0" y1="${yDown.toFixed(1)}" x2="${W}" y2="${yDown.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
     }
   }
@@ -2494,9 +2513,7 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
     if (i === maxExpenseIdx && expenseValues[i] > 0) {
       labels += `<text x="${x.toFixed(1)}" y="${(midY + expH + 13).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--red)" font-weight="700">${formatManYen(expenseValues[i])}</text>`;
     }
-    if (i % 2 === (n - 1) % 2) {
-      labels += `<text x="${x.toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
-    }
+    labels += `<text x="${x.toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
   }
 
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;">
@@ -2508,7 +2525,7 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
 
 // 1系列の実額を、基準線（0円）から上（プラス）／下（マイナス）に伸びる棒で表示する。
 // 繰越の推移のように、プラス・マイナスどちらもありうる系列に使う。
-function buildSignedBarChart(slots, values, W, H, opts) {
+function buildSignedBarChart(slots, values, containerW, H, opts) {
   opts = opts || {};
   const positiveColor = opts.positiveColor || "var(--green)";
   const negativeColor = opts.negativeColor || "var(--red)";
@@ -2516,9 +2533,9 @@ function buildSignedBarChart(slots, values, W, H, opts) {
   const usableH = H - padBottom;
   const midY = usableH / 2;
   const n = values.length;
-  const spacing = n > 0 ? W / n : W;
-  const xFor = i => spacing * i + spacing / 2;
-  const barW = Math.max(3, spacing * 0.5);
+  const { colW, totalW, xFor } = trendChartLayout(containerW, n);
+  const W = totalW;
+  const barW = Math.max(3, colW * 0.55);
 
   const maxAbsRaw = Math.max(0, ...values.map(v => Math.abs(v)));
   const maxAbs = Math.max(1, maxAbsRaw);
@@ -2536,9 +2553,9 @@ function buildSignedBarChart(slots, values, W, H, opts) {
       const yUp = midY - v * scale;
       const yDown = midY + v * scale;
       grid += `<line x1="0" y1="${yUp.toFixed(1)}" x2="${W}" y2="${yUp.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="${W}" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="end" fill="var(--sub)">${formatManYen(v)}</text>`;
+      grid += `<text x="4" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">${formatManYen(v)}</text>`;
       grid += `<line x1="0" y1="${yDown.toFixed(1)}" x2="${W}" y2="${yDown.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="${W}" y="${(yDown + 13).toFixed(1)}" font-size="12" text-anchor="end" fill="var(--sub)">-${formatManYen(v)}</text>`;
+      grid += `<text x="4" y="${(yDown + 13).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">-${formatManYen(v)}</text>`;
     }
   }
 
@@ -2550,9 +2567,7 @@ function buildSignedBarChart(slots, values, W, H, opts) {
       const y = v >= 0 ? midY - h : midY;
       bars += `<rect x="${(xFor(i) - barW / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
     }
-    if (i % 2 === (n - 1) % 2) {
-      labels += `<text x="${xFor(i).toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
-    }
+    labels += `<text x="${xFor(i).toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
   });
 
   // 値のラベルは、最新月（今の繰越がいくらか）に加えて、プラスの最大月・マイナスの最大月にも表示する
@@ -2627,9 +2642,11 @@ function renderTrend() {
   }
 
   // 概況：収支の推移（実額の棒グラフ）＋繰越の推移（実額の棒グラフ、マイナスもあり）
+  // 12か月分を無理に押し込めず、1か月あたりの幅を保ったまま、枠内を横スライドして見る形にする
+  // （上下方向は動かないよう touch-action は横方向のみ許可する）。
   if (trendMode === "overview") {
     chartCard.style.overflow = "hidden";
-    chartCard.style.touchAction = "none";
+    chartCard.style.touchAction = "pan-x";
     chartBox.style.cssText = "flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;";
 
     const { incomeValues, expenseValues, carryoverValues } = buildOverviewAmounts(slots);
@@ -2637,11 +2654,11 @@ function renderTrend() {
     chartBox.innerHTML = `
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
         ${trendSectionChip("収支の推移")}
-        <div id="trendChartA" style="flex:1;min-height:0;"></div>
+        <div id="trendChartA" style="flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
       </div>
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
         ${trendSectionChip("繰越の推移")}
-        <div id="trendChartB" style="flex:1;min-height:0;"></div>
+        <div id="trendChartB" style="flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
       </div>
     `;
     fillChart("trendChartA", (w, h) => buildDivergingAmountChart(slots, incomeValues, expenseValues, w, h));
@@ -2745,7 +2762,7 @@ function buildRankingBarChart(items, options) {
   }
   const barColor    = options.barColor    || "var(--red)";
   const trackColor  = options.trackColor  || "var(--red-l)";
-  const unpaidColor = options.unpaidColor || "var(--orange)";
+  const unpaidColor = options.unpaidColor || "#F0A868"; // 支払済みより少し薄いオレンジ
   const labelWidth = options.labelWidth || 84;
   const rowH = options.rowH || 30;
   const gap  = options.gap  || 8;
@@ -2757,12 +2774,17 @@ function buildRankingBarChart(items, options) {
   let rows = "";
   items.forEach((it, i) => {
     const y = i * (rowH + gap);
+    const barH = rowH - 12;
     const w = Math.max(3, (it.amount / max) * barAreaW);
     const color = it.unpaid ? unpaidColor : barColor;
     rows += `<text x="0" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="12" fill="var(--text)" font-weight="600">${escHtml(truncateLabel(it.label, 9))}</text>`;
-    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${barAreaW}" height="${rowH - 12}" rx="4" fill="${trackColor}"/>`;
-    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${w.toFixed(1)}" height="${rowH - 12}" rx="4" fill="${color}"/>`;
-    rows += `<text x="${W}" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="11" fill="var(--sub)" text-anchor="end" font-weight="600">${escHtml(fmt(it.amount))}${it.unpaid ? "・未払" : ""}</text>`;
+    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${barAreaW}" height="${barH}" rx="4" fill="${trackColor}"/>`;
+    rows += `<rect x="${labelWidth}" y="${y + 6}" width="${w.toFixed(1)}" height="${barH}" rx="4" fill="${color}"/>`;
+    // 未払いの項目は、金額の右寄せ表記ではなく棒の中に左詰めで「未払」の文字を入れる
+    if (it.unpaid && w >= 26) {
+      rows += `<text x="${labelWidth + 5}" y="${(y + rowH / 2 + 3.5).toFixed(1)}" font-size="10" fill="#fff" font-weight="700">未払</text>`;
+    }
+    rows += `<text x="${W}" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="11" fill="var(--sub)" text-anchor="end" font-weight="600">${escHtml(fmt(it.amount))}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;">${rows}</svg>`;
 }
@@ -2783,12 +2805,8 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal) {
 
   let detailHtml = "";
   if (expanded) {
-    const unpaidNote = key === "fixed" && group.items.some(it => it.unpaid)
-      ? `<div style="font-size:11px;color:var(--orange-d);margin:8px 0 6px;">■は未払いの固定費です（今月度のみ表示）</div>`
-      : "";
     detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
       <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;">${escHtml(label)}の内訳（多い順）</div>
-      ${unpaidNote}
       ${buildRankingBarChart(group.items, { rowH: 28 })}
     </div>`;
   }
