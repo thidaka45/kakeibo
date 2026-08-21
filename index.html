@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.7"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.8"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2940,7 +2940,14 @@ function buildRankingBarChart(items, options) {
     }
     rows += `<text x="${W}" y="${(y + rowH / 2 + 4).toFixed(1)}" font-size="11" fill="var(--sub)" text-anchor="end" font-weight="600">${escHtml(fmt(it.amount))}</text>`;
   });
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;display:block;">${rows}</svg>`;
+  // preserveAspectRatio="none"：viewBoxの幅（W、既定値272）はあくまで名目上の基準値で、
+  // 実際に描画されるカードの横幅（CSSのwidth:100%で決まる）とは一致しない。
+  // これを指定しないと、SVGは既定の「xMidYMid meet」で縦横比を保ったまま中央寄せで
+  // 縮小表示され、実際のカード幅いっぱいには広がらない（左右に余白ができる）。
+  // その結果、棒の長さが実際の横幅に対して短く見えたり、右端の金額がカードの右端まで
+  // 届かない（右詰めに見えない）原因になっていたため、横方向だけ実際の幅に合わせて
+  // 引き伸ばすようにする（縦方向のスケールは変わらないため、文字や棒の高さは歪まない）。
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:${H}px;display:block;">${rows}</svg>`;
 }
 
 // 分類名タップ：同じ分類をもう一度タップすると閉じる。他の分類が開いていた場合は
