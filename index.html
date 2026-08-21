@@ -1229,7 +1229,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.95.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.95.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2803,20 +2803,26 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal) {
   const hasItems = group.items.length > 0;
   const chevron = hasItems ? (expanded ? "▾" : "▸") : "";
 
+  // 展開時：見出し・合計・全体の1本棒（「全体部分」）はカードの上部に固定したまま、
+  // 項目別の内訳リストだけをカード内の決まった高さの中でスクロールさせる。
   let detailHtml = "";
   if (expanded) {
     detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-      <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;">${escHtml(label)}の内訳（多い順）</div>
-      ${buildRankingBarChart(group.items, { rowH: 28 })}
+      <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;flex-shrink:0;">${escHtml(label)}の内訳（多い順）</div>
+      <div style="max-height:34vh;overflow-y:auto;touch-action:pan-y;">
+        ${buildRankingBarChart(group.items, { rowH: 28 })}
+      </div>
     </div>`;
   }
 
   return `<div class="budget-card" style="padding:10px 12px;margin-bottom:8px;${expanded ? "border:1.5px solid var(--red);" : ""}">
-    <div onclick="${hasItems ? `toggleExpenseBreakdownGroup('${key}')` : ""}" style="display:flex;align-items:center;justify-content:space-between;cursor:${hasItems ? "pointer" : "default"};padding-bottom:6px;">
-      <span style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
-      <span style="font-size:14px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
+    <div style="flex-shrink:0;">
+      <div onclick="${hasItems ? `toggleExpenseBreakdownGroup('${key}')` : ""}" style="display:flex;align-items:center;justify-content:space-between;cursor:${hasItems ? "pointer" : "default"};padding-bottom:6px;">
+        <span style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
+        <span style="font-size:14px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
+      </div>
+      ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 22, gap: 0 })}
     </div>
-    ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 22, gap: 0 })}
     ${detailHtml}
   </div>`;
 }
