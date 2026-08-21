@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.6"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2500,8 +2500,8 @@ function trendSectionChip(title) {
 // ラベル（"収入合計："/"支出合計："）は左詰め、金額は右詰めで表示する。
 function buildBreakdownTotalCard(label, total, color) {
   return `<div class="budget-card" style="padding:14px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-    <span style="font-size:16px;font-weight:700;color:var(--text);flex-shrink:0;">${escHtml(label)}</span>
-    <span style="font-size:26px;font-weight:700;color:${color};font-variant-numeric:tabular-nums;text-align:right;">${escHtml(fmt(total))}</span>
+    <span style="font-size:18px;font-weight:700;color:var(--text);flex-shrink:0;">${escHtml(label)}</span>
+    <span style="font-size:30px;font-weight:700;color:${color};font-variant-numeric:tabular-nums;text-align:right;">${escHtml(fmt(total))}</span>
   </div>`;
 }
 
@@ -2805,7 +2805,7 @@ function renderTrend() {
   `;
   chartBox.innerHTML = `
     <div class="budget-card" style="padding:10px 12px;">
-      ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90 })}
+      ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90, max: incomeTotal })}
     </div>`;
 }
 
@@ -2967,7 +2967,7 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal, solo) {
       : "max-height:62vh;overflow-y:auto;touch-action:pan-y;";
     detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;" : ""}">
       <div style="${detailWrapStyle}">
-        ${buildRankingBarChart(group.items, { rowH: 24, gap: 7 })}
+        ${buildRankingBarChart(group.items, { rowH: 24, gap: 7, max: group.total })}
       </div>
     </div>`;
   }
