@@ -673,7 +673,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 収支レポート</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      月度ごとの収支・繰越の推移をグラフで確認できます。<br>収入・支出の内訳も、それぞれ月度別に確認できます。
+      月度ごとの収支・繰越の推移及び、収入・支出の内訳をグラフで確認できます。
     </div>
     <button onclick="openTrend()" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--teal);background:var(--teal-l);color:var(--teal-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       推移を見る
@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.4"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2561,6 +2561,16 @@ function buildTrendChartAxisSvg(maxAbsRaw, H, negativeLabels) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;"><rect x="0" y="0" width="${W}" height="${H}" fill="var(--card)"/>${ticks}</svg>`;
 }
 
+// 12ヶ月の枠のうち、実際にデータが入っている最後の月（＝進行中の今月）のインデックスを返す。
+// 枠は将来の未作成月も含めて12個分用意されるため、単純に配列の末尾（n-1）を「今月」とみなすと、
+// 今月がまだ12枠の途中（末尾ではない）位置にある場合に、今月の金額ラベルが表示されないバグになる。
+function lastDataSlotIdx(slots) {
+  for (let i = slots.length - 1; i >= 0; i--) {
+    if (slots[i].idx !== null) return i;
+  }
+  return slots.length - 1;
+}
+
 // 収支の推移：収入(上・緑)と支出(下・赤)を実額のまま基準線から上下に伸びる棒で表示する。
 // containerWは呼び出し側（横スクロール可能な枠）の実際に見えている幅。データ量に対して
 // 狭ければ、実際に描くWはcontainerWより大きくなり、枠の中を横スクロールして見る形になる。
@@ -2592,7 +2602,7 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, container
 
   const maxIncomeIdx = incomeValues.indexOf(Math.max(...incomeValues));
   const maxExpenseIdx = expenseValues.indexOf(Math.max(...expenseValues));
-  const lastIdx = n - 1; // 最新月（今月）は、最大値でなくても常に金額を表示する（繰越の推移と同じ扱い）
+  const lastIdx = lastDataSlotIdx(slots); // 最新月（今月）は、最大値でなくても常に金額を表示する（繰越の推移と同じ扱い）
 
   let bars = "", labels = "";
   for (let i = 0; i < n; i++) {
@@ -2666,7 +2676,7 @@ function buildSignedBarChart(slots, values, containerW, H, opts) {
     const y = isPos ? midY - h - 6 : midY + h + 13;
     labels += `<text x="${xFor(i).toFixed(1)}" y="${y.toFixed(1)}" font-size="11" text-anchor="middle" fill="${isPos ? "var(--green-d)" : "var(--red)"}" font-weight="700">${formatManYen(v)}</text>`;
   }
-  const lastIdx = n - 1;
+  const lastIdx = lastDataSlotIdx(slots);
   const shown = new Set();
   let maxPosIdx = -1, maxNegIdx = -1;
   values.forEach((v, i) => {
