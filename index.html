@@ -351,7 +351,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 
 <!-- ===== 支出入力 ===== -->
 <div class="page" id="page-expense" style="background:var(--red-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_expense">支出登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_expense">支出登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_expense" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -420,7 +420,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 
 <!-- ===== 収入入力 ===== -->
 <div class="page" id="page-income" style="background:var(--amber-l);">
-  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_income">収入登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="resetEditMode(); goBack()">戻る</button><span class="page-name" id="pageName_income">収入登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
   <!-- 金額表示 -->
   <div class="input-card" style="padding:8px 14px;margin-bottom:6px;">
     <div class="amount-display" id="amountDisplay_income" style="font-size:28px;padding:6px 0;min-height:44px;">¥0</div>
@@ -474,7 +474,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== アイコン選択（専用サブ画面） ===== -->
 <div class="page" id="page-caticonpicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">アイコンを選ぶ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">アイコンを選ぶ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
   <div id="catIconPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
@@ -482,7 +482,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 固定費・積立の項目選択（専用サブ画面） ===== -->
 <div class="page" id="page-quickitempicker" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name" id="quickItemPickerTitle">項目を選ぶ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
   <div id="quickItemPickerGrid" class="cat-icon-grid cat-icon-grid-lg" style="max-height:none;"></div>
 </div>
 </div>
@@ -490,7 +490,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== グラフ ===== -->
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 21px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-    <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+    <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
     <input type="text" id="historyTxSearchInput" class="field-input" placeholder="店名・メモ・カテゴリで絞り込み" style="margin-top:6px;font-size:15px;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（9件分の高さに固定し、それ以上はスクロール） -->
@@ -508,7 +508,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 積立 ===== -->
 <div class="page" id="page-savings" style="flex-direction:column;padding:0;overflow:hidden;background:var(--teal-l);">
 <div style="flex-shrink:0;padding:10px 21px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">積立費登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">積立費登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
   <div id="flowNextToFixed" style="display:none;background:var(--blue-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
@@ -616,7 +616,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 資金繰り（残高の答え合わせ） ===== -->
 <div class="page" id="page-cashflow" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">残高の答え合わせ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">残高の答え合わせ</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:15px;color:var(--text);line-height:1.6;margin-bottom:8px;">
     保有しているべき金額と実際の残高を見比べ、差額がないか確認できます。
@@ -665,7 +665,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== ユーティリティ（メイン一覧） ===== -->
 <div class="page" id="page-utility" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex-shrink:0;padding:10px 21px 0;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">補助機能</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">補助機能</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 </div>
 <div id="utilityScrollBody" style="flex:1;overflow-y:auto;padding:0 21px calc(20px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
 
@@ -784,7 +784,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== カスタムカテゴリ整理（専用画面） ===== -->
 <div class="page" id="page-customcats" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ整理</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ整理</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:16px;color:var(--text);line-height:1.7;margin-bottom:12px;">
     支出・収入の登録画面で自由入力して追加されたカテゴリの一覧です。使わなくなったものは削除できます（削除しても、過去の取引記録自体は残ります）。
@@ -799,11 +799,23 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== バージョン情報（専用画面） ===== -->
 <div class="page" id="page-versioninfo" style="flex-direction:column;padding:0;overflow:hidden;background:var(--gray-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">バージョン情報</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">バージョン情報</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div class="budget-card" style="text-align:center;">
     <div style="font-size:13px;color:var(--sub);margin-bottom:6px;">かんたん家計簿</div>
     <div style="font-size:28px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;">v<span id="versionText"></span></div>
+  </div>
+
+  <!-- 最新バージョンの確認：GitHub Pages側に新しいバージョンが公開されているかをその場で確認し、
+       見つかった場合はそのまま更新（再読み込み）できるようにする。 -->
+  <div class="budget-card" style="margin-top:10px;text-align:center;">
+    <button onclick="checkForAppUpdate()" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid var(--teal);background:var(--teal-l);color:var(--teal-d);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">
+      最新バージョンを確認
+    </button>
+    <div id="versionCheckStatus" style="margin-top:10px;font-size:13px;color:var(--sub);min-height:18px;"></div>
+    <button id="versionUpdateBtn" onclick="applyAppUpdate()" style="display:none;width:100%;margin-top:4px;padding:14px;border-radius:12px;border:none;background:var(--teal-d);color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;">
+      今すぐ更新する
+    </button>
   </div>
 </div>
 </div>
@@ -811,7 +823,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 初期設定（専用画面） ===== -->
 <div class="page" id="page-initsetup" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">初期設定</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">初期設定</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:17px;color:var(--text);line-height:1.8;margin-bottom:20px;text-align:left;">
     収入・固定費・積立費の登録を順番に案内します。データが大きく変わるため、ボタンは1.2秒の長押しと確認画面を経てから実行されます。
@@ -832,7 +844,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 毎月の自動移行日（専用画面） ===== -->
 <div class="page" id="page-autotransition" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">自動移行日の変更</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">自動移行日の変更</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:16px;color:var(--text);margin-bottom:16px;line-height:1.7;">
     指定した日を過ぎてからアプリを開くと、自動的に新しい月度へ移行します（完全なバックグラウンド自動実行ではなく、起動時に判定する方式です）。すでに設定済みの日を変更したい場合も、ここで選び直して保存してください。
@@ -849,7 +861,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== ショートカットで自動化（専用画面） ===== -->
 <div class="page" id="page-shortcutsguide" style="flex-direction:column;padding:0;overflow:hidden;background:var(--green-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">ショートカット連携</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">ショートカット連携</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:16px;color:var(--text);margin-bottom:14px;line-height:1.7;">
     iPhoneの「ショートカット」機能を使うと、毎日決まった時刻にアプリを裏側で開かせ、移行日を過ぎていれば自動的に新しい月度へ切り替えられます。設定手順は以下の通りです。
@@ -870,7 +882,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== データのバックアップ（専用画面） ===== -->
 <div class="page" id="page-backup" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">CSV書き出し</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">CSV書き出し</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
     取引データをCSV形式で書き出します。Excelやスプレッドシートで開いて確認・加工できます（このCSVから元の状態には復元できません。機種変更・故障に備える場合は「データ移行」をご利用ください）。
@@ -892,7 +904,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== エクセル出力（証憑画像つき） ===== -->
 <div class="page" id="page-excelexport" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex-shrink:0;padding:10px 21px 0;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">XLS・CSV出力</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">XLS・CSV出力</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 </div>
 <div style="flex:1;overflow-y:auto;padding:0 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
 
@@ -935,7 +947,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== データ移行（機種変更・故障対策） ===== -->
 <div class="page" id="page-migration" style="flex-direction:column;padding:0;overflow:hidden;background:var(--purple-l);">
 <div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">データ移行</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">データ移行</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
     残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます。
@@ -961,7 +973,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <!-- ===== 固定費 ===== -->
 <div class="page" id="page-fixedcosts" style="flex-direction:column;padding:0;overflow:hidden;background:var(--orange-l);">
 <div style="flex-shrink:0;padding:10px 21px 4px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
-  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">固定費登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">固定費登録</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <!-- 「新しい月を開始」フロー中の案内バナー -->
   <div id="flowFinish" style="display:none;background:var(--green-l);border-radius:var(--radius-s);padding:10px 12px;margin-bottom:10px;">
@@ -1239,7 +1251,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.100.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.100.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2355,7 +2367,7 @@ function trendHeaderHtml(activeMode) {
     return `<button onclick="goTrendMode('${m.key}')" style="padding:10px 4px;border-radius:8px;border:1.5px solid ${m.color};background:${bg};color:${fg};font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">${m.label}</button>`;
   }).join("");
   return `
-    <div class="page-toolbar" style="padding:8px 12px;margin-bottom:6px;"><button class="home-btn" onclick="trendBack('${activeMode}')">戻る</button><span class="page-name">収支レポート</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;padding:9px 12px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+    <div class="page-toolbar" style="padding:8px 12px;margin-bottom:6px;"><button class="home-btn" onclick="trendBack('${activeMode}')">戻る</button><span class="page-name">収支レポート</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
     <div class="budget-card" style="margin-bottom:6px;padding:10px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">${btns}</div>
     </div>
@@ -5772,6 +5784,51 @@ function showAppUpdateBanner() {
 // 更新バナーをタップしたときの処理：画面を再読み込みし、新しいHTML/JSを反映する。
 function applyAppUpdate() {
   location.reload();
+}
+
+// バージョン情報画面の「最新バージョンを確認」ボタンから呼ばれる。
+// Service Workerに、GitHub Pages側の最新のsw.jsを取りに行かせ（reg.update()）、
+// 中身が変わっていれば（＝新しいバージョンが公開されていれば）自動的にインストールが始まる
+// （init()内のupdatefound/controllerchangeの監視と同じ仕組み）。一定時間待っても
+// インストールが始まらなければ、最新版だとみなして案内する。
+function checkForAppUpdate() {
+  const statusEl = document.getElementById("versionCheckStatus");
+  const updateBtn = document.getElementById("versionUpdateBtn");
+  if (updateBtn) updateBtn.style.display = "none";
+  if (!("serviceWorker" in navigator)) {
+    if (statusEl) statusEl.textContent = "このブラウザでは確認できません。";
+    return;
+  }
+  if (statusEl) statusEl.textContent = "確認中…";
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (!reg) {
+      if (statusEl) statusEl.textContent = "確認できませんでした。時間をおいて再度お試しください。";
+      return;
+    }
+    let found = false;
+    const onFound = () => {
+      found = true;
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener("statechange", () => {
+        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+          if (statusEl) statusEl.textContent = "新しいバージョンが見つかりました。";
+          if (updateBtn) updateBtn.style.display = "block";
+          showAppUpdateBanner(); // どの画面からでも更新できるよう、常設バナーも合わせて出す
+        }
+      });
+    };
+    reg.addEventListener("updatefound", onFound, { once: true });
+    reg.update().then(() => {
+      setTimeout(() => {
+        reg.removeEventListener("updatefound", onFound);
+        if (!found && statusEl) statusEl.textContent = "現在お使いのものが最新のバージョンです。";
+      }, 2500);
+    }).catch(() => {
+      reg.removeEventListener("updatefound", onFound);
+      if (statusEl) statusEl.textContent = "確認に失敗しました。通信環境をご確認ください。";
+    });
+  });
 }
 
 init();
