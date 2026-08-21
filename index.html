@@ -1229,7 +1229,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.95.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.96.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2456,6 +2456,7 @@ function trendSectionChip(title) {
 const TREND_CHART_AXIS_PAD = 40; // 左側：軸の目盛り数字のための余白
 const TREND_CHART_SIDE_PAD = 10; // 棒の並びの左右の余白（左右で同じ）
 const TREND_CHART_MIN_COL_W = 34; // 1か月あたりの最小幅
+const TREND_CHART_PAD_BOTTOM = 18; // 下側：月ラベルのための余白
 function trendChartLayout(containerW, n) {
   const plotW = Math.max(0, containerW - TREND_CHART_AXIS_PAD - TREND_CHART_SIDE_PAD * 2);
   const colW = Math.max(TREND_CHART_MIN_COL_W, n > 0 ? plotW / n : plotW);
@@ -2463,24 +2464,51 @@ function trendChartLayout(containerW, n) {
   const xFor = i => TREND_CHART_AXIS_PAD + TREND_CHART_SIDE_PAD + colW * i + colW / 2;
   return { colW, totalW, xFor };
 }
+// 縦方向の目盛り計算（軸ラベル側と棒グラフ側で必ず同じ値を使うよう共通化する）
+function trendChartScale(maxAbsRaw, H, padBottom) {
+  const usableH = H - padBottom;
+  const midY = usableH / 2;
+  const maxAbs = Math.max(1, maxAbsRaw);
+  const labelPad = 15; // 棒の先端とラベル文字がグラフ枠内に収まるための余白
+  const amp = Math.max(10, midY - labelPad);
+  const scale = amp / maxAbs;
+  return { midY, maxAbs, amp, scale };
+}
+// 横スクロールする棒グラフ本体とは別に、左端に固定表示する縦軸の目盛り数字だけのSVGを作る。
+// negativeLabelsがtrueの場合（繰越の推移など符号付きの系列）は基準線の下側にもマイナス表記のラベルを出す。
+function buildTrendChartAxisSvg(maxAbsRaw, H, negativeLabels) {
+  const padBottom = TREND_CHART_PAD_BOTTOM;
+  const W = TREND_CHART_AXIS_PAD;
+  const { midY, scale } = trendChartScale(maxAbsRaw, H, padBottom);
+  let ticks = "";
+  if (maxAbsRaw > 0) {
+    const step = pickNiceAxisStep(maxAbsRaw);
+    for (let v = step; v <= maxAbsRaw; v += step) {
+      const yUp = midY - v * scale;
+      const yDown = midY + v * scale;
+      ticks += `<text x="4" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">${formatManYen(v)}</text>`;
+      if (negativeLabels) {
+        ticks += `<text x="4" y="${(yDown + 13).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">-${formatManYen(v)}</text>`;
+      }
+    }
+  }
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block;"><rect x="0" y="0" width="${W}" height="${H}" fill="var(--card)"/>${ticks}</svg>`;
+}
 
 // 収支の推移：収入(上・緑)と支出(下・赤)を実額のまま基準線から上下に伸びる棒で表示する。
 // containerWは呼び出し側（横スクロール可能な枠）の実際に見えている幅。データ量に対して
 // 狭ければ、実際に描くWはcontainerWより大きくなり、枠の中を横スクロールして見る形になる。
+// 縦軸の目盛り数字はここでは描かず、buildTrendChartAxisSvg()が別の固定枠に描く
+// （横スクロールしても目盛り数字だけはその場に留まるようにするため）。
 function buildDivergingAmountChart(slots, incomeValues, expenseValues, containerW, H) {
-  const padBottom = 18;
-  const usableH = H - padBottom;
-  const midY = usableH / 2;
+  const padBottom = TREND_CHART_PAD_BOTTOM;
   const n = slots.length;
   const { colW, totalW, xFor } = trendChartLayout(containerW, n);
   const W = totalW;
   const barW = Math.max(3, colW * 0.5);
 
   const maxAbsRaw = Math.max(0, ...incomeValues, ...expenseValues);
-  const maxAbs = Math.max(1, maxAbsRaw);
-  const labelPad = 15; // 棒の先端とラベル文字がグラフ枠内に収まるための余白
-  const amp = Math.max(10, midY - labelPad);
-  const scale = amp / maxAbs;
+  const { midY, scale } = trendChartScale(maxAbsRaw, H, padBottom);
 
   let grid = "";
   for (let i = 0; i < n; i++) {
@@ -2492,7 +2520,6 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, container
       const yUp = midY - v * scale;
       const yDown = midY + v * scale;
       grid += `<line x1="0" y1="${yUp.toFixed(1)}" x2="${W}" y2="${yUp.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="4" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">${formatManYen(v)}</text>`;
       grid += `<line x1="0" y1="${yDown.toFixed(1)}" x2="${W}" y2="${yDown.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
     }
   }
@@ -2529,19 +2556,14 @@ function buildSignedBarChart(slots, values, containerW, H, opts) {
   opts = opts || {};
   const positiveColor = opts.positiveColor || "var(--green)";
   const negativeColor = opts.negativeColor || "var(--red)";
-  const padBottom = 18;
-  const usableH = H - padBottom;
-  const midY = usableH / 2;
+  const padBottom = TREND_CHART_PAD_BOTTOM;
   const n = values.length;
   const { colW, totalW, xFor } = trendChartLayout(containerW, n);
   const W = totalW;
   const barW = Math.max(3, colW * 0.55);
 
   const maxAbsRaw = Math.max(0, ...values.map(v => Math.abs(v)));
-  const maxAbs = Math.max(1, maxAbsRaw);
-  const labelPad = 15; // 棒の先端とラベル文字がグラフ枠内に収まるための余白
-  const amp = Math.max(10, midY - labelPad);
-  const scale = amp / maxAbs;
+  const { midY, scale } = trendChartScale(maxAbsRaw, H, padBottom);
 
   let grid = "";
   for (let i = 0; i < n; i++) {
@@ -2553,9 +2575,7 @@ function buildSignedBarChart(slots, values, containerW, H, opts) {
       const yUp = midY - v * scale;
       const yDown = midY + v * scale;
       grid += `<line x1="0" y1="${yUp.toFixed(1)}" x2="${W}" y2="${yUp.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="4" y="${(yUp - 4).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">${formatManYen(v)}</text>`;
       grid += `<line x1="0" y1="${yDown.toFixed(1)}" x2="${W}" y2="${yDown.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="4" y="${(yDown + 13).toFixed(1)}" font-size="12" text-anchor="start" fill="var(--sub)">-${formatManYen(v)}</text>`;
     }
   }
 
@@ -2651,18 +2671,29 @@ function renderTrend() {
 
     const { incomeValues, expenseValues, carryoverValues } = buildOverviewAmounts(slots);
     legendBox.innerHTML = `<div style="font-size:13px;color:var(--sub);"><span style="color:var(--green);font-weight:700;">■収入</span>　<span style="color:var(--red);font-weight:700;">■支出</span></div>`;
+    // 縦軸の目盛り数字（trendChartA_axis / trendChartB_axis）は、棒グラフ本体の上に
+    // position:absoluteで固定表示する。棒グラフ本体（trendChartA / trendChartB）だけを
+    // 横スクロールさせることで、横にスライドしても目盛り数字はその場に留まるようにする。
     chartBox.innerHTML = `
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
         ${trendSectionChip("収支の推移")}
-        <div id="trendChartA" style="flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
+        <div style="position:relative;flex:1;min-height:0;">
+          <div id="trendChartA" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
+          <div id="trendChartA_axis" style="position:absolute;left:0;top:0;width:${TREND_CHART_AXIS_PAD}px;height:100%;pointer-events:none;"></div>
+        </div>
       </div>
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
         ${trendSectionChip("繰越の推移")}
-        <div id="trendChartB" style="flex:1;min-height:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
+        <div style="position:relative;flex:1;min-height:0;">
+          <div id="trendChartB" style="position:absolute;left:0;top:0;right:0;bottom:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;"></div>
+          <div id="trendChartB_axis" style="position:absolute;left:0;top:0;width:${TREND_CHART_AXIS_PAD}px;height:100%;pointer-events:none;"></div>
+        </div>
       </div>
     `;
     fillChart("trendChartA", (w, h) => buildDivergingAmountChart(slots, incomeValues, expenseValues, w, h));
+    fillChart("trendChartA_axis", (w, h) => buildTrendChartAxisSvg(Math.max(0, ...incomeValues, ...expenseValues), h, false));
     fillChart("trendChartB", (w, h) => buildSignedBarChart(slots, carryoverValues, w, h));
+    fillChart("trendChartB_axis", (w, h) => buildTrendChartAxisSvg(Math.max(0, ...carryoverValues.map(v => Math.abs(v))), h, true));
     return;
   }
 
@@ -2810,7 +2841,7 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal) {
     detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
       <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;flex-shrink:0;">${escHtml(label)}の内訳（多い順）</div>
       <div style="max-height:62vh;overflow-y:auto;touch-action:pan-y;">
-        ${buildRankingBarChart(group.items, { rowH: 28 })}
+        ${buildRankingBarChart(group.items, { rowH: 20, gap: 6 })}
       </div>
     </div>`;
   }
@@ -2821,7 +2852,7 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal) {
         <span style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
         <span style="font-size:14px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
       </div>
-      ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 22, gap: 0 })}
+      ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 28, gap: 0 })}
     </div>
     ${detailHtml}
   </div>`;
