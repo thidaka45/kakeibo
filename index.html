@@ -754,12 +754,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <div class="page" id="page-expensebreakdown" style="flex-direction:column;padding:0;overflow:hidden;background:var(--red-l);touch-action:pan-y;">
 <div style="flex:1;display:flex;flex-direction:column;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden;min-height:0;">
 
-  <!-- 固定領域：戻る・カテゴリ別推移・概況/収入/支出ボタン、年月度は常に表示したまま -->
+  <!-- 固定領域：戻る・カテゴリ別推移・概況/収入/支出ボタン、年月度、支出全体の金額は常に表示したまま -->
   <div id="expenseBreakdownHeaderBox" style="padding:6px 21px 0;flex-shrink:0;touch-action:none;"></div>
   <div style="padding:0 21px;flex-shrink:0;touch-action:none;">
     <div class="budget-card" style="padding:6px 14px;margin-bottom:6px;text-align:center;">
       <span id="expenseBreakdownPeriodLabel" style="font-size:14px;font-weight:700;color:var(--sub);"></span>
     </div>
+    <div id="expenseBreakdownTotalBox"></div>
   </div>
 
   <!-- スクロール領域：固定費・積立費・その他の3分類。タップすると各項目の直下に内訳が展開する（同時に開けるのは1つ）。
@@ -1231,7 +1232,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.98.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2339,7 +2340,7 @@ function trendHeaderHtml(activeMode) {
     return `<button onclick="goTrendMode('${m.key}')" style="padding:10px 4px;border-radius:8px;border:1.5px solid ${m.color};background:${bg};color:${fg};font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">${m.label}</button>`;
   }).join("");
   return `
-    <div class="page-toolbar" style="padding:8px 12px;margin-bottom:6px;"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">カテゴリ別推移</span></div>
+    <div class="page-toolbar" style="padding:8px 12px;margin-bottom:6px;"><button class="home-btn" onclick="trendBack('${activeMode}')">戻る</button><span class="page-name">カテゴリ別推移</span></div>
     <div class="budget-card" style="margin-bottom:6px;padding:10px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">${btns}</div>
     </div>
@@ -2351,6 +2352,20 @@ function goTrendMode(mode) {
   if (mode === "expense") { openExpenseBreakdown(); return; }
   trendMode = mode;
   showPage("trend");
+}
+
+// カテゴリ別推移3画面（概況・収入・支出）共通の「戻る」。
+// 支出（別画面＝page-expensebreakdown）からの戻るは、直前のtrendModeが収入のままだと
+// 収入画面に戻ってしまうため、常に概況へ戻すようにする。概況・収入からの戻るは、
+// このカテゴリ別推移に入る前の画面（通常は補助機能）へ通常通り戻る。
+function trendBack(mode) {
+  if (mode === "expense") {
+    pageHistory.pop(); // 支出画面に入る際にpushされた"trend"を消費する（goBack()と同じ役割）
+    trendMode = "overview";
+    showPage("trend", true);
+    return;
+  }
+  goBack();
 }
 
 // 12ヶ月分の「枠」を用意する。実際のデータが無い月は idx:null（空欄）として扱う。
@@ -2717,12 +2732,15 @@ function renderTrend() {
   const periodIdx = (viewPeriodIndex !== null && viewPeriodIndex !== undefined) ? viewPeriodIndex : periods.length - 1;
   const items = buildIncomeBreakdownItems(periodIdx);
   const incomeTotal = items.reduce((s, it) => s + it.amount, 0);
-  // 年月度の表示位置・見た目は支出の内訳画面（expenseBreakdownPeriodLabel）と揃える
-  legendBox.innerHTML = `<div class="budget-card" style="padding:6px 14px;margin-bottom:0;text-align:center;">
-    <span style="font-size:14px;font-weight:700;color:var(--sub);">${escHtml(periodLabel(periodIdx))}</span>
-  </div>`;
-  chartBox.innerHTML = `
+  // 年月度と収入全体の金額は、支出の内訳画面と同様に固定領域（legendBox）に表示する。
+  // 内訳リスト（chartBox）だけをスクロールさせ、全体の金額は常に見えるようにする。
+  legendBox.innerHTML = `
+    <div class="budget-card" style="padding:6px 14px;margin-bottom:6px;text-align:center;">
+      <span style="font-size:14px;font-weight:700;color:var(--sub);">${escHtml(periodLabel(periodIdx))}</span>
+    </div>
     ${buildBreakdownTotalCard(incomeTotal, "var(--green-d)")}
+  `;
+  chartBox.innerHTML = `
     <div class="budget-card" style="padding:10px 12px;">
       ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90 })}
     </div>`;
@@ -2889,11 +2907,13 @@ function renderExpenseBreakdown() {
   const scrollWrap = document.getElementById("expenseBreakdownGroupsScroll");
   const groupsBox = document.getElementById("expenseBreakdownGroups");
   const labelBox = document.getElementById("expenseBreakdownPeriodLabel");
+  const totalBox = document.getElementById("expenseBreakdownTotalBox");
   if (!groupsBox) return;
 
   const periods = ensurePeriods();
   if (!periods.length) {
     if (labelBox) labelBox.textContent = "";
+    if (totalBox) totalBox.innerHTML = "";
     groupsBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     return;
   }
@@ -2904,6 +2924,11 @@ function renderExpenseBreakdown() {
 
   const groups = buildExpenseBreakdownGroups(expenseBreakdownPeriodIdx);
   const maxTotal = Math.max(1, groups.fixed.total, groups.savings.total, groups.other.total);
+
+  // 支出全体の金額は、固定領域（expenseBreakdownTotalBox）に表示するため、
+  // 内訳をスクロールしても常に見える（分類を展開しているときも常時表示する）。
+  const grandTotal = groups.fixed.total + groups.savings.total + groups.other.total;
+  if (totalBox) totalBox.innerHTML = buildBreakdownTotalCard(grandTotal, "var(--red)");
 
   // 3分類自体も、金額の多い順に並べ替える
   let order = [
@@ -2926,10 +2951,7 @@ function renderExpenseBreakdown() {
     groupsBox.style.cssText = "";
   }
 
-  const grandTotal = groups.fixed.total + groups.savings.total + groups.other.total;
-  const totalCardHtml = solo ? "" : buildBreakdownTotalCard(grandTotal, "var(--red)");
-
-  groupsBox.innerHTML = totalCardHtml + order
+  groupsBox.innerHTML = order
     .map(o => buildExpenseBreakdownGroupCard(o.key, EXPENSE_BREAKDOWN_GROUP_LABELS[o.key], o.group, maxTotal, solo))
     .join("");
 }
