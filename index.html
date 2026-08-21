@@ -673,7 +673,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 収支レポート</div>
   <div class="export-section" style="padding:14px;">
     <div style="font-size:15px;color:var(--sub);margin-bottom:14px;line-height:1.7;">
-      カテゴリごとに、月度をまたいだ支出・収入の増減を確認できます。
+      月度ごとの収支・繰越の推移をグラフで確認できます。<br>収入・支出の内訳も、それぞれ月度別に確認できます。
     </div>
     <button onclick="openTrend()" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--teal);background:var(--teal-l);color:var(--teal-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
       推移を見る
@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2358,7 +2358,16 @@ function goTrendMode(mode) {
   if (mode === "expense") { openExpenseBreakdown(); return; }
   trendMode = mode;
   if (mode === "income") trendIncomePeriodIdx = viewPeriodIndex; // 収入タブに入るたびホームと同じ月度から始める
-  showPage("trend");
+  // 支出画面（page-expensebreakdown、別画面）から概況・収入タブへ直接切り替えた場合、
+  // 支出画面に入る際にpushされた"trend"がpageHistoryに残ったままになり、以後の戻るボタンの
+  // 挙動がおかしくなる（支出画面が誤って戻り先になる）。支出画面から離れる場合は、
+  // trendBack('expense')と同じくそのpush分をここで消費してから遷移する。
+  if (currentPageName === "expensebreakdown") {
+    pageHistory.pop();
+    showPage("trend", true);
+  } else {
+    showPage("trend");
+  }
 }
 
 // 収支レポート3画面（概況・収入・支出）共通の「戻る」。
@@ -2583,6 +2592,7 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, container
 
   const maxIncomeIdx = incomeValues.indexOf(Math.max(...incomeValues));
   const maxExpenseIdx = expenseValues.indexOf(Math.max(...expenseValues));
+  const lastIdx = n - 1; // 最新月（今月）は、最大値でなくても常に金額を表示する（繰越の推移と同じ扱い）
 
   let bars = "", labels = "";
   for (let i = 0; i < n; i++) {
@@ -2591,10 +2601,10 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, container
     const expH = expenseValues[i] * scale;
     if (incomeValues[i] > 0) bars += `<rect x="${(x - barW / 2).toFixed(1)}" y="${(midY - incH).toFixed(1)}" width="${barW.toFixed(1)}" height="${incH.toFixed(1)}" rx="3" fill="var(--green)"/>`;
     if (expenseValues[i] > 0) bars += `<rect x="${(x - barW / 2).toFixed(1)}" y="${midY.toFixed(1)}" width="${barW.toFixed(1)}" height="${expH.toFixed(1)}" rx="3" fill="var(--red)"/>`;
-    if (i === maxIncomeIdx && incomeValues[i] > 0) {
+    if ((i === maxIncomeIdx || i === lastIdx) && incomeValues[i] > 0) {
       labels += `<text x="${x.toFixed(1)}" y="${(midY - incH - 6).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--green-d)" font-weight="700">${formatManYen(incomeValues[i])}</text>`;
     }
-    if (i === maxExpenseIdx && expenseValues[i] > 0) {
+    if ((i === maxExpenseIdx || i === lastIdx) && expenseValues[i] > 0) {
       labels += `<text x="${x.toFixed(1)}" y="${(midY + expH + 13).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--red)" font-weight="700">${formatManYen(expenseValues[i])}</text>`;
     }
     labels += `<text x="${x.toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
