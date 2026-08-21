@@ -236,6 +236,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 </head>
 <body>
 
+<!-- アプリの更新通知バナー：新しいバージョンがGitHub Pages側に公開され、Service Workerが
+     それを検知したときだけ表示する。どの画面を開いていても目に入るよう、.page（画面ごとの
+     display:none切り替え）の外側に置き、position:fixedで常に最前面に重ねる。
+     タップすると画面を再読み込みし、新しいバージョンのHTML/JSを反映する。 -->
+<div id="appUpdateBanner" style="display:none;position:fixed;left:0;right:0;top:0;z-index:9999;background:var(--teal-d);color:#fff;padding:12px 16px calc(12px + env(safe-area-inset-top));font-size:14px;font-weight:700;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);" onclick="applyAppUpdate()">
+  新しいバージョンがあります。タップして更新
+</div>
+
 <!-- トースト通知 -->
 <div class="toast" id="toast"></div>
 
@@ -1230,7 +1238,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.8"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.9"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -5713,8 +5721,48 @@ function init() {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js");
+    navigator.serviceWorker.register("./sw.js").then(reg => {
+      // GitHub Pages側にsw.jsの新しいバージョンが公開されると、ブラウザが自動的に
+      // バイト差分を検知して新しいService Workerのインストールを開始する
+      // （このタイミングは、ページ読み込み時・定期チェック時・後述のvisibilitychange時など）。
+      // 「新しいSWがインストール完了」かつ「既に別のSWが画面を制御中（＝初回インストールではない）」
+      // の場合だけ、実際に更新があったとみなしてバナーを出す。
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener("statechange", () => {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            showAppUpdateBanner();
+          }
+        });
+      });
+      // アプリを開いたまま長時間放置されるケースに備えて、画面がフォアグラウンドに
+      // 戻るたびに更新の有無を確認する（reg.update()は新しいsw.jsを取得しにいくだけで、
+      // 実際に差分があれば上のupdatefoundが発火する。差分が無ければ何も起こらない）。
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update();
+      });
+    });
+    // sw.js側はインストール後すぐにskipWaiting()・clients.claim()する設計のため、
+    // 上のupdatefoundより先に（または代わりに）このcontrollerchangeが発火することがある。
+    // どちらか一方でもバナーを一度出せればよいので、showAppUpdateBanner側で多重表示を防ぐ。
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      showAppUpdateBanner();
+    });
   }
+}
+
+// 新しいバージョンを検知したときに、更新バナーを表示する（複数回呼ばれても一度表示すれば十分）。
+let appUpdateBannerShown = false;
+function showAppUpdateBanner() {
+  if (appUpdateBannerShown) return;
+  appUpdateBannerShown = true;
+  const el = document.getElementById("appUpdateBanner");
+  if (el) el.style.display = "block";
+}
+// 更新バナーをタップしたときの処理：画面を再読み込みし、新しいHTML/JSを反映する。
+function applyAppUpdate() {
+  location.reload();
 }
 
 init();
