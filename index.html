@@ -1231,7 +1231,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.97.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.98.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2449,6 +2449,14 @@ function trendSectionChip(title) {
   return `<div style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#1E3A5F;padding:2px 9px;border-radius:6px;margin:0 0 3px;flex-shrink:0;">${escHtml(title)}</div>`;
 }
 
+// 支出/収入の内訳一覧の一番上に置く、全体合計を示す枠（支出の内訳・収入の内訳で共通）
+function buildBreakdownTotalCard(label, total, color) {
+  return `<div class="budget-card" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+    ${trendSectionChip(label)}
+    <span style="font-size:16px;font-weight:700;color:${color};">${escHtml(fmt(total))}</span>
+  </div>`;
+}
+
 // 月ごとの棒グラフ（収支の推移・繰越の推移で共通）の横方向レイアウトを決める。
 // ・軸の目盛り数字は左側に置く（右端の棒＝直近月と重ならないようにするため）
 // ・1か月あたりの幅が狭くなりすぎないよう下限（MIN_COL_W）を設け、コンテナ幅に
@@ -2707,10 +2715,16 @@ function renderTrend() {
   const periods = ensurePeriods();
   const periodIdx = (viewPeriodIndex !== null && viewPeriodIndex !== undefined) ? viewPeriodIndex : periods.length - 1;
   const items = buildIncomeBreakdownItems(periodIdx);
-  legendBox.innerHTML = `<div style="font-size:13px;color:var(--sub);">${escHtml(periodLabel(periodIdx))}の収入内訳（多い順）</div>`;
-  chartBox.innerHTML = `<div class="budget-card" style="padding:10px 12px;">
-    ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90 })}
+  const incomeTotal = items.reduce((s, it) => s + it.amount, 0);
+  // 年月度の表示位置・見た目は支出の内訳画面（expenseBreakdownPeriodLabel）と揃える
+  legendBox.innerHTML = `<div class="budget-card" style="padding:6px 14px;margin-bottom:0;text-align:center;">
+    <span style="font-size:14px;font-weight:700;color:var(--sub);">${escHtml(periodLabel(periodIdx))}</span>
   </div>`;
+  chartBox.innerHTML = `
+    ${buildBreakdownTotalCard("収入全体", incomeTotal, "var(--green-d)")}
+    <div class="budget-card" style="padding:10px 12px;">
+      ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90 })}
+    </div>`;
 }
 
 // ============================================================
@@ -2845,7 +2859,6 @@ function buildExpenseBreakdownGroupCard(key, label, group, maxTotal, solo) {
       ? "flex:1;min-height:0;overflow-y:auto;touch-action:pan-y;"
       : "max-height:62vh;overflow-y:auto;touch-action:pan-y;";
     detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);${solo ? "flex:1;min-height:0;display:flex;flex-direction:column;" : ""}">
-      <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;flex-shrink:0;">${escHtml(label)}の内訳（多い順）</div>
       <div style="${detailWrapStyle}">
         ${buildRankingBarChart(group.items, { rowH: 24, gap: 7 })}
       </div>
@@ -2912,7 +2925,10 @@ function renderExpenseBreakdown() {
     groupsBox.style.cssText = "";
   }
 
-  groupsBox.innerHTML = order
+  const grandTotal = groups.fixed.total + groups.savings.total + groups.other.total;
+  const totalCardHtml = solo ? "" : buildBreakdownTotalCard("支出全体", grandTotal, "var(--red)");
+
+  groupsBox.innerHTML = totalCardHtml + order
     .map(o => buildExpenseBreakdownGroupCard(o.key, EXPENSE_BREAKDOWN_GROUP_LABELS[o.key], o.group, maxTotal, solo))
     .join("");
 }
