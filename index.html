@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.4"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.99.5"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2448,9 +2448,17 @@ function buildOverviewAmounts(slots) {
   const incomeValues = slots.map(slot =>
     slotTxs(slot).filter(t => t.type === "income" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
   );
-  const expenseValues = slots.map(slot =>
-    slotTxs(slot).filter(t => t.type === "expense" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
-  );
+  // 支出の内訳画面（概況の「支出」タブ）では、進行中の最新月度に限り、まだ取引が無い
+  // 未払いの固定費もあわせて合計に含めている。概況の実額グラフもそれと一致させるため、
+  // 該当する月度（枠）だけ同じ未払い分を加算する（それ以外の過去月は実績のみ＝加算なし）。
+  const expenseValues = slots.map(slot => {
+    const paidExpense = slotTxs(slot).filter(t => t.type === "expense" && t.cat !== "carryover");
+    const base = paidExpense.reduce((s, t) => s + t.amount, 0);
+    if (slot.idx === null) return base;
+    const paidFixedCatIds = new Set(paidExpense.filter(t => t.cat.startsWith("fc_")).map(t => t.cat));
+    const unpaidTotal = getUnpaidFixedCostItems(slot.idx, paidFixedCatIds).reduce((s, x) => s + x.amount, 0);
+    return base + unpaidTotal;
+  });
   const carryoverValues = slots.map(slot =>
     slotTxs(slot).filter(t => t.cat === "carryover")
       .reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0)
@@ -2840,6 +2848,25 @@ function changeExpenseBreakdownPeriod(d) {
 // 「その他（それ以外の通常カテゴリ）」の3分類に振り分け、分類ごとに項目別の内訳も作る。
 // 分類はマスター（固定費・積立プランの一覧）ではなく取引自体のカテゴリIDで判定するため、
 // マスターから削除済みの項目の過去実績も、正しい分類のまま残る。
+// 未払いの固定費（進行中の最新月度でのみ意味を持つ）一覧を返す。
+// 固定費マスター（cycle.fixed_costs）は月度ごとの履歴を持たず「常に1セット」の仕組みで、
+// paidフラグも毎月の自動移行時にリセットされる現在進行分の状態でしかないため、
+// 過去の月度で使うと実態と合わなくなる（＝進行中の最新月度以外は空配列を返す）。
+// 支出の内訳画面・概況の収支の推移グラフの両方で、同じロジックを共有して合計金額を一致させる。
+function getUnpaidFixedCostItems(periodIdx, paidFixedCatIds) {
+  const periods = ensurePeriods();
+  if (periodIdx !== periods.length - 1) return [];
+  const cycle = ensureCycle();
+  const items = [];
+  (cycle.fixed_costs || []).forEach(item => {
+    if (item.paid) return;
+    const id = "fc_" + item.id;
+    if (paidFixedCatIds.has(id)) return; // 既に取引がある（＝実質支払い済み）ものは重複させない
+    items.push({ id, label: item.item, amount: item.amount || 0, unpaid: true });
+  });
+  return items;
+}
+
 function buildExpenseBreakdownGroups(periodIdx) {
   const allCats = getAllCats();
   const txs = periodTxs(periodIdx).filter(t => t.type === "expense" && t.cat !== "carryover");
@@ -2858,21 +2885,7 @@ function buildExpenseBreakdownGroups(periodIdx) {
   }
 
   const fixedItems = toItems(buckets.fixed);
-
-  // 未払いの固定費も、今まさに表示している月度（進行中の最新月度）を見ている場合だけ混ぜる。
-  // 固定費マスター（cycle.fixed_costs）は月度ごとの履歴を持たず「常に1セット」の仕組みで、
-  // paidフラグも毎月の自動移行時にリセットされる現在進行分の状態でしかないため、
-  // 過去の月度で使うと実態と合わなくなる。
-  const periods = ensurePeriods();
-  if (periodIdx === periods.length - 1) {
-    const cycle = ensureCycle();
-    (cycle.fixed_costs || []).forEach(item => {
-      if (item.paid) return;
-      const id = "fc_" + item.id;
-      if (buckets.fixed[id]) return; // 既に取引がある（＝実質支払い済み）ものは重複させない
-      fixedItems.push({ id, label: item.item, amount: item.amount || 0, unpaid: true });
-    });
-  }
+  fixedItems.push(...getUnpaidFixedCostItems(periodIdx, new Set(Object.keys(buckets.fixed))));
 
   const savingsItems = toItems(buckets.savings);
   const otherItems   = toItems(buckets.other);
