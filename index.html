@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.100.5"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.100.6"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3613,6 +3613,25 @@ function renderHistoryTxList(idx) {
 // ============================================================
 let currentPageName = "home";
 let pageHistory = [];
+
+// 画面ロック（スマホの画面が消える）などでアプリが非表示になり、10分以上経ってから
+// 再び表示された場合、ホーム画面以外の画面にいたら自動的にホームへ戻る。
+// 入力途中の画面を長時間放置したまま気づかず残ってしまう、といったことを防ぐための措置。
+const AUTO_HOME_AFTER_HIDDEN_MS = 10 * 60 * 1000; // 10分
+let appHiddenAt = null;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    appHiddenAt = Date.now();
+  } else if (document.visibilityState === "visible") {
+    if (appHiddenAt !== null) {
+      const elapsed = Date.now() - appHiddenAt;
+      appHiddenAt = null;
+      if (elapsed >= AUTO_HOME_AFTER_HIDDEN_MS && currentPageName !== "home") {
+        goHome();
+      }
+    }
+  }
+});
 
 function showPage(name, isBack) {
   // 「すべての操作」をきっかけに自動移行チェックが走るよう、画面遷移のたびに確認する
