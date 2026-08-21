@@ -244,6 +244,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   新しいバージョンがあります。タップして更新
 </div>
 
+<!-- ホームへ一気に戻るボタン（家の簡単なイラストのFAB）。ホーム画面以外のすべての画面で、
+     画面右下に常に表示する（表示・非表示はshowPage()側で切り替える）。.pageの外側に置き、
+     position:fixedで最前面に重ねることで、どの画面からでも1タップでホームへ戻れるようにする。 -->
+<button id="homeFab" onclick="goHome()" aria-label="ホームへ戻る" style="display:none;align-items:center;justify-content:center;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:500;width:52px;height:52px;border-radius:50%;background:var(--blue);border:none;box-shadow:0 3px 10px rgba(0,0,0,.22);cursor:pointer;padding:0;">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg>
+</button>
+
 <!-- トースト通知 -->
 <div class="toast" id="toast"></div>
 
@@ -1238,7 +1245,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.99.9"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.100.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3647,6 +3654,17 @@ function showPage(name, isBack) {
   if (name==="expensebreakdown") renderExpenseBreakdown();
   if (name==="customcats") renderCustomCatsList();
   if (name==="excelexport") renderExcelExportPeriodSelects();
+
+  // ホームへ一気に戻れるボタン（画面右下・家アイコン）は、ホーム画面自身では不要なので隠す
+  const homeFab = document.getElementById("homeFab");
+  if (homeFab) homeFab.style.display = (name === "home") ? "none" : "flex";
+}
+
+// 画面右下の家アイコンから：今どの画面にいても、途中の画面をすべて飛ばして一気にホームへ戻る
+// （通常の戻るボタンのように1画面ずつ遡るのではなく、履歴ごと破棄してホームへジャンプする）。
+function goHome() {
+  pageHistory = [];
+  showPage("home");
 }
 
 // 「戻る」ボタン：ひとつ前に表示していた画面へ戻る（履歴が無い場合はホームへ）
