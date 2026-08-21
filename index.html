@@ -737,15 +737,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <div class="page" id="page-trend" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
 <div style="flex:1;display:flex;flex-direction:column;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden;min-height:0;">
 
-  <div id="trendHeaderBox" style="padding:8px 21px 0;flex-shrink:0;"></div>
+  <div id="trendHeaderBox" style="padding:6px 21px 0;flex-shrink:0;touch-action:none;"></div>
 
-  <div class="budget-card" style="margin:0 21px 6px;padding:8px 10px;flex-shrink:0;">
-    <div id="trendLegendHeader"></div>
-  </div>
+  <div id="trendLegendHeader" style="padding:0 21px;flex-shrink:0;text-align:center;touch-action:none;"></div>
 
-  <div style="flex:1;overflow:hidden;min-height:0;padding:0 21px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;">
-    <div class="budget-card" style="flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 10px 8px;overflow:hidden;">
-      <div id="trendChart" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow:hidden;"></div>
+  <div style="flex:1;overflow:hidden;min-height:0;padding:4px 21px calc(8px + env(safe-area-inset-bottom));display:flex;flex-direction:column;">
+    <div id="trendChartCard" class="budget-card" style="flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 10px 8px;overflow:hidden;touch-action:none;">
+      <div id="trendChart" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;"></div>
     </div>
   </div>
 
@@ -756,18 +754,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <div class="page" id="page-expensebreakdown" style="flex-direction:column;padding:0;overflow:hidden;background:var(--red-l);">
 <div style="flex:1;display:flex;flex-direction:column;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;overflow:hidden;min-height:0;">
 
-  <!-- 固定領域：戻る・カテゴリ別推移・概況/収入/支出、月度、固定費/積立費/その他 の3分類（全体グラフ）は常に表示したまま -->
-  <div id="expenseBreakdownHeaderBox" style="padding:8px 21px 0;flex-shrink:0;"></div>
-  <div style="padding:0 21px;flex-shrink:0;">
-    <div class="budget-card" style="padding:8px 14px;margin-bottom:6px;text-align:center;">
+  <!-- 固定領域：戻る・カテゴリ別推移・概況/収入/支出ボタン、年月度は常に表示したまま -->
+  <div id="expenseBreakdownHeaderBox" style="padding:6px 21px 0;flex-shrink:0;touch-action:none;"></div>
+  <div style="padding:0 21px;flex-shrink:0;touch-action:none;">
+    <div class="budget-card" style="padding:6px 14px;margin-bottom:6px;text-align:center;">
       <span id="expenseBreakdownPeriodLabel" style="font-size:14px;font-weight:700;color:var(--sub);"></span>
     </div>
-    <div id="expenseBreakdownGroups"></div>
   </div>
 
-  <!-- スクロール領域：タップして開いた分類の内訳だけをここに表示する（同時に開けるのは1つ） -->
+  <!-- スクロール領域：固定費・積立費・その他の3分類。タップすると各項目の直下に内訳が展開する（同時に開けるのは1つ） -->
   <div style="flex:1;overflow-y:auto;min-height:0;padding:0 21px calc(12px + env(safe-area-inset-bottom));">
-    <div id="expenseBreakdownDetail"></div>
+    <div id="expenseBreakdownGroups"></div>
   </div>
 
 </div>
@@ -1232,7 +1229,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.94.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.94.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2445,10 +2442,16 @@ function pickNiceAxisStep(maxAbs) {
 // viewBoxをそのピクセルサイズに一致させる（＝拡大率1倍）ことで、文字や線が歪んだり、
 // 画面幅に対して意図せず縦に伸びたりしないようにしている。
 
+// セクション見出し（濃紺のチップ）。カテゴリ別推移の各パネルで共通して使う。
+function trendSectionChip(title) {
+  return `<div style="display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#1E3A5F;padding:2px 9px;border-radius:6px;margin:0 0 3px;flex-shrink:0;">${escHtml(title)}</div>`;
+}
+
 // 収支の推移：収入(上・緑)と支出(下・赤)を実額のまま基準線から上下に伸びる棒で表示する。
 function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
   const padBottom = 18;
-  const midY = (H - padBottom) / 2 + 8;
+  const usableH = H - padBottom;
+  const midY = usableH / 2;
   const n = slots.length;
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2;
@@ -2456,7 +2459,8 @@ function buildDivergingAmountChart(slots, incomeValues, expenseValues, W, H) {
 
   const maxAbsRaw = Math.max(0, ...incomeValues, ...expenseValues);
   const maxAbs = Math.max(1, maxAbsRaw);
-  const amp = Math.max(10, midY - 24); // 上下の余白（軸ラベル分）を確保
+  const labelPad = 15; // 棒の先端とラベル文字がグラフ枠内に収まるための余白
+  const amp = Math.max(10, midY - labelPad);
   const scale = amp / maxAbs;
 
   let grid = "";
@@ -2509,7 +2513,8 @@ function buildSignedBarChart(slots, values, W, H, opts) {
   const positiveColor = opts.positiveColor || "var(--green)";
   const negativeColor = opts.negativeColor || "var(--red)";
   const padBottom = 18;
-  const midY = (H - padBottom) / 2 + 8;
+  const usableH = H - padBottom;
+  const midY = usableH / 2;
   const n = values.length;
   const spacing = n > 0 ? W / n : W;
   const xFor = i => spacing * i + spacing / 2;
@@ -2517,7 +2522,8 @@ function buildSignedBarChart(slots, values, W, H, opts) {
 
   const maxAbsRaw = Math.max(0, ...values.map(v => Math.abs(v)));
   const maxAbs = Math.max(1, maxAbsRaw);
-  const amp = Math.max(10, midY - 24);
+  const labelPad = 15; // 棒の先端とラベル文字がグラフ枠内に収まるための余白
+  const amp = Math.max(10, midY - labelPad);
   const scale = amp / maxAbs;
 
   let grid = "";
@@ -2549,69 +2555,29 @@ function buildSignedBarChart(slots, values, W, H, opts) {
     }
   });
 
-  // 最新月の値は常にラベル表示する（繰越が今どのくらいかが一番大事なため）
-  const lastIdx = n - 1;
-  if (values[lastIdx] !== 0) {
-    const h = Math.abs(values[lastIdx]) * scale;
-    const isPos = values[lastIdx] >= 0;
+  // 値のラベルは、最新月（今の繰越がいくらか）に加えて、プラスの最大月・マイナスの最大月にも表示する
+  function labelAt(i) {
+    const v = values[i];
+    if (v === 0) return;
+    const h = Math.abs(v) * scale;
+    const isPos = v >= 0;
     const y = isPos ? midY - h - 6 : midY + h + 13;
-    labels += `<text x="${xFor(lastIdx).toFixed(1)}" y="${y.toFixed(1)}" font-size="11" text-anchor="middle" fill="${isPos ? "var(--green-d)" : "var(--red)"}" font-weight="700">${formatManYen(values[lastIdx])}</text>`;
+    labels += `<text x="${xFor(i).toFixed(1)}" y="${y.toFixed(1)}" font-size="11" text-anchor="middle" fill="${isPos ? "var(--green-d)" : "var(--red)"}" font-weight="700">${formatManYen(v)}</text>`;
   }
+  const lastIdx = n - 1;
+  const shown = new Set();
+  let maxPosIdx = -1, maxNegIdx = -1;
+  values.forEach((v, i) => {
+    if (v > 0 && (maxPosIdx === -1 || v > values[maxPosIdx])) maxPosIdx = i;
+    if (v < 0 && (maxNegIdx === -1 || v < values[maxNegIdx])) maxNegIdx = i;
+  });
+  [lastIdx, maxPosIdx, maxNegIdx].forEach(i => {
+    if (i >= 0 && !shown.has(i)) { shown.add(i); labelAt(i); }
+  });
 
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;">
     ${grid}
     <line x1="0" y1="${midY.toFixed(1)}" x2="${W}" y2="${midY.toFixed(1)}" stroke="var(--sub)" stroke-width="1.3"/>
-    ${bars}${labels}
-  </svg>`;
-}
-
-// マイナスの無い単一系列を、下端を基準線として上に伸びる棒で表示する（収入など）。
-// 収支の推移と同じ見た目（軸目盛り・棒の丸み）だが、上下反転させず下端基準にすることで
-// 使える高さをすべて使う。
-function buildSingleBarChart(slots, values, W, H, opts) {
-  opts = opts || {};
-  const color = opts.color || "var(--green)";
-  const padBottom = 18, padTop = 24;
-  const baseY = H - padBottom;
-  const n = values.length;
-  const spacing = n > 0 ? W / n : W;
-  const xFor = i => spacing * i + spacing / 2;
-  const barW = Math.max(3, spacing * 0.5);
-
-  const maxRaw = Math.max(0, ...values);
-  const maxV = Math.max(1, maxRaw);
-  const amp = Math.max(10, baseY - padTop);
-  const scale = amp / maxV;
-
-  let grid = "";
-  for (let i = 0; i < n; i++) {
-    grid += `<line x1="${xFor(i).toFixed(1)}" y1="0" x2="${xFor(i).toFixed(1)}" y2="${baseY.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-  }
-  if (maxRaw > 0) {
-    const step = pickNiceAxisStep(maxRaw);
-    for (let v = step; v <= maxRaw; v += step) {
-      const y = baseY - v * scale;
-      grid += `<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4,3"/>`;
-      grid += `<text x="${W}" y="${(y - 4).toFixed(1)}" font-size="12" text-anchor="end" fill="var(--sub)">${formatManYen(v)}</text>`;
-    }
-  }
-
-  const maxIdx = values.indexOf(maxRaw);
-  let bars = "", labels = "";
-  for (let i = 0; i < n; i++) {
-    const h = values[i] * scale;
-    if (values[i] > 0) bars += `<rect x="${(xFor(i) - barW / 2).toFixed(1)}" y="${(baseY - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
-    if (i === maxIdx && values[i] > 0) {
-      labels += `<text x="${xFor(i).toFixed(1)}" y="${(baseY - h - 6).toFixed(1)}" font-size="11" text-anchor="middle" fill="var(--green-d)" font-weight="700">${formatManYen(values[i])}</text>`;
-    }
-    if (i % 2 === (n - 1) % 2) {
-      labels += `<text x="${xFor(i).toFixed(1)}" y="${H - 4}" font-size="11" text-anchor="middle" fill="var(--sub)">${escHtml(shortSlotLabel(slots[i]))}</text>`;
-    }
-  }
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;">
-    ${grid}
-    <line x1="0" y1="${baseY.toFixed(1)}" x2="${W}" y2="${baseY.toFixed(1)}" stroke="var(--sub)" stroke-width="1.3"/>
     ${bars}${labels}
   </svg>`;
 }
@@ -2627,31 +2593,54 @@ function fillChart(id, buildFn) {
   el.innerHTML = (w > 20 && h > 20) ? buildFn(w, h) : "";
 }
 
+// 指定した月度の収入を、カテゴリ別の内訳（多い順）にする。
+// 収入はカテゴリ数が少ないことが多いため、支出のように分類ごとにタップ展開する必要はなく、
+// 最初からカテゴリ別の横棒ランキングをそのまま表示する。
+function buildIncomeBreakdownItems(periodIdx) {
+  const allCats = getAllCats();
+  const txs = periodTxs(periodIdx).filter(t => t.type === "income" && t.cat !== "carryover");
+  const buckets = {};
+  txs.forEach(t => { buckets[t.cat] = (buckets[t.cat] || 0) + t.amount; });
+  const items = Object.keys(buckets).map(id => {
+    const c = allCats.find(x => x.id === id);
+    return { id, label: c ? c.label : id, amount: buckets[id] };
+  });
+  return items.sort((a, b) => b.amount - a.amount);
+}
+
 function renderTrend() {
   const headerBox = document.getElementById("trendHeaderBox");
+  const chartCard = document.getElementById("trendChartCard");
   const chartBox = document.getElementById("trendChart");
   const legendBox = document.getElementById("trendLegendHeader");
   if (headerBox) headerBox.innerHTML = trendHeaderHtml(trendMode);
-  if (!chartBox || !legendBox) return;
+  if (!chartBox || !legendBox || !chartCard) return;
 
   const slots = buildTrendSlots();
   if (!slots.length) {
     legendBox.innerHTML = "";
+    chartCard.style.overflow = "hidden";
+    chartCard.style.touchAction = "none";
+    chartBox.style.cssText = "flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;";
     chartBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     return;
   }
 
   // 概況：収支の推移（実額の棒グラフ）＋繰越の推移（実額の棒グラフ、マイナスもあり）
   if (trendMode === "overview") {
+    chartCard.style.overflow = "hidden";
+    chartCard.style.touchAction = "none";
+    chartBox.style.cssText = "flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;overflow:hidden;";
+
     const { incomeValues, expenseValues, carryoverValues } = buildOverviewAmounts(slots);
-    legendBox.innerHTML = `<div style="font-size:14px;color:var(--sub);"><span style="color:var(--green);font-weight:700;">■収入</span>　<span style="color:var(--red);font-weight:700;">■支出</span></div>`;
+    legendBox.innerHTML = `<div style="font-size:13px;color:var(--sub);"><span style="color:var(--green);font-weight:700;">■収入</span>　<span style="color:var(--red);font-weight:700;">■支出</span></div>`;
     chartBox.innerHTML = `
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
-        <div style="font-size:13px;font-weight:700;color:var(--sub);flex-shrink:0;padding:0 2px 2px;">収支の推移</div>
+        ${trendSectionChip("収支の推移")}
         <div id="trendChartA" style="flex:1;min-height:0;"></div>
       </div>
       <div style="flex:1;min-height:0;display:flex;flex-direction:column;">
-        <div style="font-size:13px;font-weight:700;color:var(--sub);flex-shrink:0;padding:6px 2px 2px;">繰越の推移</div>
+        ${trendSectionChip("繰越の推移")}
         <div id="trendChartB" style="flex:1;min-height:0;"></div>
       </div>
     `;
@@ -2660,13 +2649,18 @@ function renderTrend() {
     return;
   }
 
-  // 収入：概況の収支の推移と同じ形式の棒グラフ（収入はマイナスが無いため単一方向）
-  const incomeValues = slots.map(slot =>
-    slotTxs(slot).filter(t => t.type === "income" && t.cat !== "carryover").reduce((s, t) => s + t.amount, 0)
-  );
-  legendBox.innerHTML = `<div style="font-size:14px;color:var(--sub);"><span style="color:var(--green);font-weight:700;">■収入</span></div>`;
-  chartBox.innerHTML = `<div id="trendChartA" style="flex:1;min-height:0;"></div>`;
-  fillChart("trendChartA", (w, h) => buildSingleBarChart(slots, incomeValues, w, h));
+  // 収入：カテゴリ数が少ないため、最初から当月度の内訳（多い順の横棒）で表示する
+  chartCard.style.overflow = "auto";
+  chartCard.style.touchAction = "pan-y";
+  chartBox.style.cssText = "display:block;";
+
+  const periods = ensurePeriods();
+  const periodIdx = (viewPeriodIndex !== null && viewPeriodIndex !== undefined) ? viewPeriodIndex : periods.length - 1;
+  const items = buildIncomeBreakdownItems(periodIdx);
+  legendBox.innerHTML = `<div style="font-size:13px;color:var(--sub);">${escHtml(periodLabel(periodIdx))}の収入内訳（多い順）</div>`;
+  chartBox.innerHTML = `<div class="budget-card" style="padding:10px 12px;">
+    ${buildRankingBarChart(items, { barColor: "var(--green)", trackColor: "var(--green-l)", rowH: 30, gap: 10, labelWidth: 90 })}
+  </div>`;
 }
 
 // ============================================================
@@ -2780,35 +2774,32 @@ function toggleExpenseBreakdownGroup(key) {
   renderExpenseBreakdown();
 }
 
-// 固定領域に表示する、分類ごとの見出し＋全体量の1本棒（常に3つとも表示したまま）
-function buildExpenseBreakdownGroupHeader(key, label, group, maxTotal) {
+// 分類ごとのカード（見出し＋全体量の1本棒）。タップすると、そのカード自身の直下に
+// 項目別の内訳（多い順の横棒）がそのまま展開される（同時に開けるのは1つだけ）。
+function buildExpenseBreakdownGroupCard(key, label, group, maxTotal) {
   const expanded = expenseBreakdownExpandedKey === key;
   const hasItems = group.items.length > 0;
   const chevron = hasItems ? (expanded ? "▾" : "▸") : "";
 
-  return `<div class="budget-card" style="padding:10px 12px;margin-bottom:6px;${expanded ? "border:1.5px solid var(--red);" : ""}">
+  let detailHtml = "";
+  if (expanded) {
+    const unpaidNote = key === "fixed" && group.items.some(it => it.unpaid)
+      ? `<div style="font-size:11px;color:var(--orange-d);margin:8px 0 6px;">■は未払いの固定費です（今月度のみ表示）</div>`
+      : "";
+    detailHtml = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px;">${escHtml(label)}の内訳（多い順）</div>
+      ${unpaidNote}
+      ${buildRankingBarChart(group.items, { rowH: 28 })}
+    </div>`;
+  }
+
+  return `<div class="budget-card" style="padding:10px 12px;margin-bottom:8px;${expanded ? "border:1.5px solid var(--red);" : ""}">
     <div onclick="${hasItems ? `toggleExpenseBreakdownGroup('${key}')` : ""}" style="display:flex;align-items:center;justify-content:space-between;cursor:${hasItems ? "pointer" : "default"};padding-bottom:6px;">
       <span style="font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">${escHtml(label)}<span style="font-size:11px;color:var(--sub);">${chevron}</span></span>
       <span style="font-size:14px;font-weight:700;color:var(--red);">${escHtml(fmt(group.total))}</span>
     </div>
     ${buildRankingBarChart([{ id: key, label: label, amount: group.total }], { max: maxTotal, rowH: 22, gap: 0 })}
-  </div>`;
-}
-
-// スクロール領域に表示する、開いている分類だけの項目別内訳
-function buildExpenseBreakdownDetail(groups) {
-  const key = expenseBreakdownExpandedKey;
-  if (!key) {
-    return `<div style="color:var(--sub);font-size:13px;text-align:center;padding:20px 4px;">分類名をタップすると、内訳が表示されます</div>`;
-  }
-  const group = groups[key];
-  const unpaidNote = key === "fixed" && group.items.some(it => it.unpaid)
-    ? `<div style="font-size:11px;color:var(--orange-d);margin-bottom:8px;">■は未払いの固定費です（今月度のみ表示）</div>`
-    : "";
-  return `<div class="budget-card" style="padding:12px;">
-    <div style="font-size:13px;font-weight:700;color:var(--sub);margin-bottom:8px;">${escHtml(EXPENSE_BREAKDOWN_GROUP_LABELS[key])}の内訳（多い順）</div>
-    ${unpaidNote}
-    ${buildRankingBarChart(group.items, { rowH: 28 })}
+    ${detailHtml}
   </div>`;
 }
 
@@ -2817,15 +2808,13 @@ function renderExpenseBreakdown() {
   if (headerBox) headerBox.innerHTML = trendHeaderHtml("expense");
 
   const groupsBox = document.getElementById("expenseBreakdownGroups");
-  const detailBox = document.getElementById("expenseBreakdownDetail");
   const labelBox = document.getElementById("expenseBreakdownPeriodLabel");
-  if (!groupsBox || !detailBox) return;
+  if (!groupsBox) return;
 
   const periods = ensurePeriods();
   if (!periods.length) {
     if (labelBox) labelBox.textContent = "";
-    groupsBox.innerHTML = "";
-    detailBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
+    groupsBox.innerHTML = `<div style="color:var(--sub);text-align:center;padding:24px 0;">表示できるデータがありません。</div>`;
     return;
   }
   if (expenseBreakdownPeriodIdx === null || expenseBreakdownPeriodIdx > periods.length - 1) {
@@ -2844,9 +2833,8 @@ function renderExpenseBreakdown() {
   ].sort((a, b) => b.group.total - a.group.total);
 
   groupsBox.innerHTML = order
-    .map(o => buildExpenseBreakdownGroupHeader(o.key, EXPENSE_BREAKDOWN_GROUP_LABELS[o.key], o.group, maxTotal))
+    .map(o => buildExpenseBreakdownGroupCard(o.key, EXPENSE_BREAKDOWN_GROUP_LABELS[o.key], o.group, maxTotal))
     .join("");
-  detailBox.innerHTML = buildExpenseBreakdownDetail(groups);
 }
 
 // ============================================================
