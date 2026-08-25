@@ -929,28 +929,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">データ移行</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.7;">
-    残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。機種変更の前にこのファイルを保存しておき、新しい端末でこの画面から読み込めば、そのまま元通りに復元できます。
+    残高・固定費・積立プラン・自動移行日などの設定をまるごと1つのファイルに保存します。「全データを1ファイルに保存する」から、メール（Gmailなど）への添付やFilesアプリへの保存を選べます。新しい端末でこの画面から読み込めば、そのまま元通りに復元できます。
   </div>
 
   <div class="budget-card">
-    <button class="export-btn" onclick="shareFullBackup()" style="background:var(--purple);border-color:var(--purple);color:#fff;padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>
-      メールなどで送る
-    </button>
     <button class="export-btn" onclick="exportFullBackup()" style="background:var(--purple-l);border-color:var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;margin-bottom:12px;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       全データを1ファイルに保存する
     </button>
-    <div style="font-size:12px;color:var(--sub);margin:-4px 0 16px;line-height:1.6;">
-      ※「メールなどで送る」は、端末標準の共有メニューを開きます。そこから「メール」を選ぶとメールに添付できます（LINEでの送付やFilesアプリへの保存にも使えます）。対応していない端末では「全データを1ファイルに保存する」をご利用ください。
-    </div>
     <input type="file" id="fullBackupFileInput" accept="application/json,.json,text/plain" style="display:none;" onchange="importFullBackupFile(event)">
     <input type="file" id="receiptFileInput" accept=".jpg" style="display:none;" onchange="onReceiptFileChosen(event)">
     <button class="export-btn" onclick="document.getElementById('fullBackupFileInput').click()" style="background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:18px;font-size:16px;font-weight:700;border-radius:12px;">
       保存したファイルから復元する
     </button>
     <div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6;">
-      ※ メールで受け取ったファイルも、一度「ファイル」アプリ等に保存すれば、この「保存したファイルから復元する」から選んで復元できます（保存場所は問いません）。<br>
       ※ 復元すると、この端末の現在のデータはすべて上書きされます（元に戻せません）。
     </div>
   </div>
@@ -1238,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.101.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.101.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3752,42 +3744,35 @@ function fullBackupFileName() {
   return `kakeibo_backup_${stamp}.json`;
 }
 
-function exportFullBackup() {
+// XLS・CSV出力（証憑つき）と同じ考え方：対応環境では共有シート（メール添付等）を開き、
+// 非対応環境や共有失敗時・キャンセル時は、これまで通り直接ダウンロードする。
+async function exportFullBackup() {
   const payload = buildFullBackupPayload();
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const filename = fullBackupFileName();
+
+  const file = new File([blob], filename, { type: "application/json" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      showToast("バックアップを共有しました");
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // 利用者がキャンセルした場合は何もしない
+      // それ以外のエラーはダウンロードにフォールバック
+    }
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = fullBackupFileName();
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast("全データを1ファイルに保存しました。安全な場所に保管してください");
-}
-
-// 「メールなどで送る」：バックアップファイルをOS標準の共有シート（Web Share API）に渡す。
-// メール本文にファイルを直接添付する手段はブラウザには無いため、共有シートを開いて
-// そこから「メール」を選んでもらう形にする（LINEやAirDrop、Filesへの保存にも使える）。
-// 対応していない端末・ブラウザの場合は、従来どおりの「1ファイルに保存する」を案内する。
-function shareFullBackup() {
-  if (!navigator.share) {
-    showToast("この端末・ブラウザは共有に対応していません。「全データを1ファイルに保存する」をご利用ください");
-    return;
-  }
-  const payload = buildFullBackupPayload();
-  const file = new File([JSON.stringify(payload, null, 2)], fullBackupFileName(), { type: "application/json" });
-  if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-    showToast("この端末・ブラウザは共有に対応していません。「全データを1ファイルに保存する」をご利用ください");
-    return;
-  }
-  navigator.share({
-    files: [file],
-    title: "かんたん家計簿 バックアップ",
-    text: "かんたん家計簿のバックアップデータです。"
-  }).catch(err => {
-    if (err && err.name !== "AbortError") showToast("共有に失敗しました");
-  });
 }
 
 function importFullBackupFile(event) {
