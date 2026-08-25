@@ -575,18 +575,18 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 
       <div style="position:relative;">
         <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>目標金額</span><span>：</span></span>
-        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+        <input class="field-input" id="savingsAmount" type="text" placeholder="円" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)" onblur="formatYenInputBlur(this)">
       </div>
 
       <div style="position:relative;margin-top:4px;">
         <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>貯蓄額</span><span>：</span></span>
-        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+        <input class="field-input" id="savingsBalance" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)" onblur="formatYenInputBlur(this)">
       </div>
 
       <div id="savingsMonthlyWrap" style="display:flex;align-items:center;height:42px;box-sizing:border-box;margin-top:4px;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);padding:0 10px;overflow:hidden;">
         <div id="savingsMonthlyFieldsGroup" style="display:flex;align-items:center;width:100%;gap:0;">
           <span style="width:106px;display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--sub);flex-shrink:0;"><span>1回の積立額</span><span>：</span></span>
-          <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()">
+          <input id="savingsMonthlyManual" type="text" placeholder="円" style="flex:1;min-width:0;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--text);outline:none;padding:0;" inputmode="numeric" oninput="formatYenInput(this);updateSavingsCalc()" onblur="formatYenInputBlur(this)">
           <div id="savingsCalcNote" style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34%;flex-shrink:0;text-align:right;margin-left:8px;"></div>
         </div>
         <div id="savingsOnceInline" style="display:none;width:100%;font-size:11.5px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">「都度」は自動積立なし。入金時に上の「貯蓄額」を更新してください</div>
@@ -597,7 +597,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
          「通常の残高へ加算」と「フォームの他の変更の保存」をまとめて行う） -->
     <div id="savingsWithdrawWrap" style="position:relative;margin-top:4px;margin-bottom:4px;display:none;">
       <span style="position:absolute;left:10px;width:106px;display:flex;justify-content:space-between;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;"><span>積立費引出し</span><span>：</span></span>
-      <input class="field-input" id="savingsWithdrawAmount" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;background:#fff;" inputmode="numeric" oninput="formatYenInput(this)">
+      <input class="field-input" id="savingsWithdrawAmount" type="text" placeholder="円（任意）" style="height:42px;box-sizing:border-box;width:100%;padding:0 10px 0 116px;font-size:16px;background:#fff;" inputmode="numeric" oninput="formatYenInput(this)" onblur="formatYenInputBlur(this)">
     </div>
 
     <!-- 1回の積立額（逆算・非表示・内部計算用） -->
@@ -642,11 +642,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
       <div>
         <div style="font-size:15px;font-weight:400;color:var(--sub);margin-bottom:4px;">銀行口座</div>
-        <input class="field-input" id="cfBankInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
+        <input class="field-input" id="cfBankInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();" onblur="formatYenInputBlur(this)">
       </div>
       <div>
         <div style="font-size:15px;font-weight:400;color:var(--sub);margin-bottom:4px;">手持ち</div>
-        <input class="field-input" id="cfCashInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();">
+        <input class="field-input" id="cfCashInput" type="text" inputmode="numeric" placeholder="¥0" style="width:100%;padding:10px;font-size:17px;font-weight:700;text-align:right;box-sizing:border-box;" oninput="formatYenInput(this); renderCashflow();" onblur="formatYenInputBlur(this)">
       </div>
     </div>
     <div style="border-top:1px solid var(--border);margin:8px 0;padding-top:8px;display:flex;justify-content:space-between;align-items:baseline;">
@@ -997,7 +997,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     <div style="margin-bottom:8px;">
       <div style="position:relative;">
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:var(--sub);pointer-events:none;z-index:1;">金額：</span>
-        <input class="field-input" id="fcAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 60px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)">
+        <input class="field-input" id="fcAmount" type="text" placeholder="円" style="width:100%;padding:8px 10px 8px 60px;font-size:16px;" inputmode="numeric" oninput="formatYenInput(this)" onblur="formatYenInputBlur(this)">
       </div>
     </div>
 
@@ -1230,7 +1230,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.100.6"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.100.7"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1454,10 +1454,22 @@ function escHtml(s) {
 function fmtSigned(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "+¥" + n.toLocaleString("ja-JP"); }
 
 // 数値入力欄に¥マーク＋カンマ区切りをリアルタイム表示する（type=text用）
+// 入力中（oninput）は数字以外を取り除くだけにとどめ、¥やカンマは付けない。
+// 以前は入力のたびに毎回「¥12,345」のような整形済み文字列へ丸ごと書き換えていたが、
+// これはel.valueを書き換えるたびにカーソル位置が末尾へ飛ばされる仕組みのため、
+// 端末やiOSのバージョン・入力方式によっては、変換前後でOS側のキーボードの入力状態と
+// ズレが生じ、数字が表示されない・文字が乱れる（iPhone等で報告あり）原因になっていた。
+// 数字だけの単純なフィルタであれば、そのまま入力した場合は書き換え自体が発生しない
+// （raw === el.valueのため）ので、この問題を避けられる。
 function formatYenInput(el) {
   const raw = el.value.replace(/[^\d]/g, "");
-  el.value = raw ? "¥" + parseInt(raw, 10).toLocaleString("ja-JP") : "";
+  if (el.value !== raw) el.value = raw;
   if (typeof updateSavingsCalc === "function") updateSavingsCalc();
+}
+// フォーカスが外れたタイミング（入力確定後）でのみ、見やすい「¥12,345」表示に整形する。
+function formatYenInputBlur(el) {
+  const raw = el.value.replace(/[^\d]/g, "");
+  el.value = raw ? "¥" + parseInt(raw, 10).toLocaleString("ja-JP") : "";
 }
 // 保存時などに¥・カンマを除いた純粋な数値を取り出す
 function parseYenInput(id) {
