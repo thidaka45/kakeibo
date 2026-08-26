@@ -1060,6 +1060,7 @@ const CATS_EXPENSE = [
   {id:"housing",   emoji:"🏠", label:"住居"},
   {id:"medical",   emoji:"💊", label:"医療"},
   {id:"social",    emoji:"🎉", label:"交際"},
+  {id:"hobby",     emoji:"📚", label:"娯楽・書籍"},
   {id:"savings",   emoji:"🐷", label:"貯蓄"},
   {id:"other",     emoji:"📦", label:"その他"},
 ];
@@ -1230,7 +1231,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.101.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.102.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2267,28 +2268,50 @@ function openTxEdit(id) {
 }
 
 // 編集中の取引を削除する
+// 同じ証憑（receiptRef）を共有する取引（1レシートから複数品目を登録した場合の兄弟取引）が
+// 他にもある場合は、証憑の整合性（品目が揃っている状態）を保つため、それらもまとめて削除する。
+// レシートの一部の品目だけ記録が欠けた状態を防ぐための仕様（1レシート＝一蓮托生）。
 function deleteTxEdit() {
   if (editingTxId === null) return;
-  if (!confirm("この取引を削除します。よろしいですか？")) return;
+  const txsForCheck = loadTx();
+  const target = txsForCheck.find(t => t.id === editingTxId);
+  if (!target) return;
+
+  // 同じ証憑を参照している取引（自分自身を含む）を洗い出す
+  const siblings = target.receiptRef
+    ? txsForCheck.filter(t => t.receiptRef === target.receiptRef)
+    : [target];
+
+  let confirmMsg = "この取引を削除します。よろしいですか？";
+  if (siblings.length > 1) {
+    const siblingTotal = siblings.reduce((s, t) => s + t.amount, 0);
+    confirmMsg =
+      `この取引は、同じレシート（証憑）から登録された他の${siblings.length - 1}件の取引と紐づいています。\n\n` +
+      `証憑の整合性を保つため、このレシートに紐づく${siblings.length}件（合計¥${siblingTotal.toLocaleString()}）をまとめて削除します。\n\n` +
+      `よろしいですか？\n（修正が必要な場合は、削除後に修正版のレシートを撮り直して登録し直してください）`;
+  }
+  if (!confirm(confirmMsg)) return;
+
   const txs = loadTx();
-  const idx = txs.findIndex(t => t.id === editingTxId);
-  if (idx !== -1) {
-    const old = txs[idx];
+  const siblingIds = new Set(siblings.map(t => t.id));
+  let sharedReceiptRef = null;
+  for (const old of siblings) {
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
-    txs.splice(idx, 1);
-    saveTx(txs);
     revertFixedCostPaidFromTx(old.type, old.cat, old.date);
     revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
     syncCarryoverIfNeeded(old.date);
-
-    // 取引に画像が保存されていれば、アプリ内（IndexedDB）の画像も一緒に削除し、
-    // 取引の記録が残っていないのに画像だけがストレージに残り続けるのを防ぐ
-    if (old.receiptRef) {
-      deleteReceiptBlob(old.receiptRef).catch(() => {});
-      receiptIdSet.delete(old.receiptRef);
-    }
+    if (old.receiptRef) sharedReceiptRef = old.receiptRef;
   }
-  showToast("取引を削除しました");
+  const remaining = txs.filter(t => !siblingIds.has(t.id));
+  saveTx(remaining);
+
+  // 証憑画像は、紐づく取引をすべて削除し終えたタイミングで1回だけ削除する
+  if (sharedReceiptRef) {
+    deleteReceiptBlob(sharedReceiptRef).catch(() => {});
+    receiptIdSet.delete(sharedReceiptRef);
+  }
+
+  showToast(siblings.length > 1 ? `${siblings.length}件の取引を削除しました` : "取引を削除しました");
   resetEditMode();
   renderHome();
   showPage("graph");
@@ -5613,42 +5636,17 @@ function normalizeDateStr(raw) {
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
-function receiveFromUrl() {
-  const params = new URLSearchParams(location.search);
-  const raw = params.get("data");
-  if (!raw) return;
-
-  // 同じデータの重複登録・リロード時の再登録を防ぐため、先にURLをきれいにする
-  history.replaceState(null, "", location.pathname);
-
-  const parts = raw.split(",").map(s => s.trim());
-  if (parts.length < 4) {
-    showToast("受け取ったデータの形式が正しくありませんでした");
-    return;
-  }
-  // parts: 日付, 店名, 金額, カテゴリ, [任意]画像の識別子（ファイル名）
-  // ※ 画像本体はURL経由では受け取らない方針（GitHub Pages側のURL長制限に阻まれるため）。
-  //    画像は、取引の「画像」ボタンをタップした際にファイル選択（<input type="file">）で
-  //    その場で選んでもらい、アプリ内（IndexedDB）に保存する運用にしている（showReceiptInfo参照）。
-  const [rawDate, store, rawAmount, rawCat, rawRef] = parts;
-
-  const date = normalizeDateStr(rawDate);
-  const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
-  if (!date || isNaN(amount)) {
-    showToast("受け取ったデータの形式が正しくありませんでした");
-    return;
-  }
-
-  // 極端に現実離れした日付（OCRの読み取りミスで年を丸ごと誤読した等）だけを
-  // 一度確認する。通常の「振替日」「支払期日」は今の月度より先の日付になる
-  // ことも普通にあるため、単純な日数の遠近では判定しない（月度との比較は後段で行う）。
+// 日付の妥当性を確認し、必要なら利用者に確認ダイアログを出した上で、
+// 実際に記録に使う日付（またはnull＝登録中断）を返す。
+// レシート全体で1回だけ判定するための共通処理（単一品目・複数品目どちらからも呼ばれる）。
+function resolveReceiptFinalDate(date, store, displayAmount) {
   let finalDate = date;
   const today = new Date();
   const todayStr = todayLocalStr();
   const daysDiff = Math.round((today - new Date(date)) / (1000 * 60 * 60 * 24));
   if (Math.abs(daysDiff) > 365) {
     const useReceiptDate = confirm(
-      `${store} ¥${amount.toLocaleString()}\n\n` +
+      `${store} ¥${displayAmount.toLocaleString()}\n\n` +
       `レシートの日付が「${date}」と、今日（${todayStr}）から大きく離れています。\n\n` +
       `「OK」→ レシートの日付（${date}）のまま記録します\n` +
       `「キャンセル」→ 今日の日付（${todayStr}）で記録します`
@@ -5669,7 +5667,7 @@ function receiveFromUrl() {
       // ②既に終了した月度
       const dateIdx = findPeriodIndexForDate(finalDate);
       const okPastPeriod = confirm(
-        `${store} ¥${amount.toLocaleString()}\n\n` +
+        `${store} ¥${displayAmount.toLocaleString()}\n\n` +
         `この日付（${finalDate}）は「${periodLabel(dateIdx)}」に属し、既に終了した月度です。\n\n` +
         `「OK」→ このまま${periodLabel(dateIdx)}の記録として登録します\n` +
         `「キャンセル」→ 今日の日付（${todayStr}）で、今の月度に記録します`
@@ -5684,16 +5682,55 @@ function receiveFromUrl() {
       if (finalDate >= nextExpectedStr) {
         // ③まだ作られていない次の月度
         alert(
-          `${store} ¥${amount.toLocaleString()}\n\n` +
+          `${store} ¥${displayAmount.toLocaleString()}\n\n` +
           `この日付（${finalDate}）は、まだ準備されていない次の月度に属します。\n\n` +
           `${nextExpectedStr}以降、新しい月度が始まってから改めて登録してください。\n` +
           `（この取引は登録されていません）`
         );
-        return; // 登録処理を中断する
+        return null; // 登録処理を中断する
       }
       // ①今の月度の範囲内 → 何もせずそのまま進む
     }
   }
+  return finalDate;
+}
+
+function receiveFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const raw = params.get("data");
+  if (!raw) return;
+
+  // 同じデータの重複登録・リロード時の再登録を防ぐため、先にURLをきれいにする
+  history.replaceState(null, "", location.pathname);
+
+  // 複数品目形式かどうかは「|」区切りの有無で判定する。
+  //   複数品目形式: "YYYY/MM/DD,店名,レシート記載合計,証憑ID|品目名,金額,カテゴリ|品目名,金額,カテゴリ|..."
+  //   単一品目形式（旧・互換用）: "YYYY/MM/DD,店名,金額,カテゴリ[,証憑ID]"
+  if (raw.includes("|")) {
+    receiveMultiItemFromUrl(raw);
+  } else {
+    receiveSingleItemFromUrl(raw);
+  }
+}
+
+// 旧形式（1レシート＝1取引）の受け取り処理。既存のショートカットとの互換性のため残す。
+function receiveSingleItemFromUrl(raw) {
+  const parts = raw.split(",").map(s => s.trim());
+  if (parts.length < 4) {
+    showToast("受け取ったデータの形式が正しくありませんでした");
+    return;
+  }
+  const [rawDate, store, rawAmount, rawCat, rawRef] = parts;
+
+  const date = normalizeDateStr(rawDate);
+  const amount = parseInt(rawAmount.replace(/[^\d]/g, ""), 10);
+  if (!date || isNaN(amount)) {
+    showToast("受け取ったデータの形式が正しくありませんでした");
+    return;
+  }
+
+  const finalDate = resolveReceiptFinalDate(date, store, amount);
+  if (!finalDate) return;
 
   // 固定費への紐付けは、登録時の自動マッチングではなく、取引履歴からの手動編集で
   // 行う運用に一本化したため、ここでは常に通常のカテゴリとして記録する。
@@ -5718,11 +5755,97 @@ function receiveFromUrl() {
 
   if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
 
-
   showToast(
     matched
       ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
+  );
+}
+
+// 新形式（1レシート＝複数品目）の受け取り処理。
+// 1件のレシートに含まれる品目をすべて、同じ証憑（receiptRef）を共有する個別の取引として登録する。
+function receiveMultiItemFromUrl(raw) {
+  const segments = raw.split("|").map(s => s.trim()).filter(Boolean);
+  if (segments.length < 2) {
+    showToast("受け取ったデータの形式が正しくありませんでした");
+    return;
+  }
+
+  const headerParts = segments[0].split(",").map(s => s.trim());
+  if (headerParts.length < 3) {
+    showToast("受け取ったデータの形式が正しくありませんでした（ヘッダー部）");
+    return;
+  }
+  const [rawDate, store, rawTotal, rawRef] = headerParts;
+  const date = normalizeDateStr(rawDate);
+  const receiptTotal = parseInt(rawTotal.replace(/[^\d]/g, ""), 10);
+  if (!date || isNaN(receiptTotal)) {
+    showToast("受け取ったデータの形式が正しくありませんでした（日付・合計金額）");
+    return;
+  }
+
+  // 品目行をパースする（品目名,金額,カテゴリ）。金額が数値にならない行はスキップする。
+  const items = [];
+  for (const seg of segments.slice(1)) {
+    const itemParts = seg.split(",").map(s => s.trim());
+    if (itemParts.length < 2) continue;
+    const [itemName, rawItemAmount, rawItemCat] = itemParts;
+    const itemAmount = parseInt(String(rawItemAmount).replace(/[^\d]/g, ""), 10);
+    if (!itemName || isNaN(itemAmount)) continue;
+    items.push({ name: itemName, amount: itemAmount, cat: rawItemCat || "" });
+  }
+  if (!items.length) {
+    showToast("レシートから品目を読み取れませんでした");
+    return;
+  }
+
+  const itemsTotal = items.reduce((s, it) => s + it.amount, 0);
+
+  // 品目合計とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
+  // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
+  if (itemsTotal !== receiptTotal) {
+    const diff = receiptTotal - itemsTotal;
+    const proceed = confirm(
+      `${store}\n\n` +
+      `⚠️ 品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません（差額 ¥${diff.toLocaleString()}）。\n\n` +
+      `品目の読み落とし・誤読の可能性があります。手元のレシートと見比べてご確認ください。\n\n` +
+      `「OK」→ このまま${items.length}品目（合計¥${itemsTotal.toLocaleString()}）を登録します\n` +
+      `「キャンセル」→ 登録せずに終了します（撮り直してやり直してください）`
+    );
+    if (!proceed) return;
+  }
+
+  const finalDate = resolveReceiptFinalDate(date, store, itemsTotal);
+  if (!finalDate) return;
+
+  const txs = loadTx();
+  const catCounts = {};
+  let baseId = Date.now();
+  for (const item of items) {
+    const matched = CATS_EXPENSE.find(c => c.label === item.cat);
+    const cat = matched ? matched.id : CATS_EXPENSE[0].id;
+    catCounts[matched ? matched.label : CATS_EXPENSE[0].label] =
+      (catCounts[matched ? matched.label : CATS_EXPENSE[0].label] || 0) + 1;
+    txs.push({
+      id: baseId++, // 同一ミリ秒内でIDが衝突しないよう、品目ごとに1ずつ増やす
+      type: "expense",
+      cat,
+      amount: item.amount,
+      memo: `${item.name}（${store}）`,
+      date: finalDate,
+      source: "receipt",
+      receiptRef: rawRef || null // 同じレシートの品目はすべて同じ証憑IDを共有する
+    });
+    adjustBalance(-item.amount);
+  }
+  saveTx(txs);
+  syncCarryoverIfNeeded(finalDate);
+
+  if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
+
+  const catSummary = Object.entries(catCounts).map(([label, n]) => `${label}${n}件`).join("、");
+  showToast(
+    `${finalDate} ${store} ${items.length}品目 ¥${itemsTotal.toLocaleString()} を記録しました（${catSummary}）`
   );
 }
 
