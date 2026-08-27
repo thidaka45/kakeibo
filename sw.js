@@ -4,7 +4,7 @@
 //    例: v4 → v5 → v6 ...
 //    これによりスマホ側のキャッシュが自動更新されます
 // ============================================================
-const CACHE_VERSION = "kakeibo-v856";
+const CACHE_VERSION = "kakeibo-v857";
 const ASSETS = ["./index.html", "./manifest.json", "./sw.js"];
 
 // インストール時: 新しいキャッシュを作成
