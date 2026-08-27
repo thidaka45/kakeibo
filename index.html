@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.115.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.117.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6230,10 +6230,15 @@ function receiveMultiItemFromUrl(raw) {
     showToast("受け取ったデータの形式が正しくありませんでした（ヘッダー部）");
     return;
   }
-  // ヘッダーは「日付,店名,合計金額,消費税額」の4項目（証憑IDはショートカット側で送っていない）。
+  // ヘッダーは「日付,店名,合計金額,消費税額,証憑ファイル名」の5項目。
   // 4番目（消費税）は任意項目。レシートに消費税額が印字されている場合のみ、
   // AI（ChatGPT）がその実際の数値を読み取って渡す。印字が無い・読み取れない場合は空でよい。
-  const [rawDate, store, rawTotal, rawPrintedTax] = headerParts;
+  // 5番目（証憑ファイル名）も任意項目。ショートカット側が実際に写真を保存したときの
+  // ファイル名（例:"○○_2026-08-20_10-15-30.jpg"）をそのまま渡してもらうことで、
+  // アプリ側で名前を独自に組み立て直す必要がなくなり、実ファイルと確実に一致する。
+  // 省略された場合（古いショートカットのまま等）は、これまで通りアプリ側で
+  // 店名・登録日から名前を組み立てる。
+  const [rawDate, store, rawTotal, rawPrintedTax, rawFileName] = headerParts;
   const date = normalizeDateStr(rawDate);
   const receiptTotal = parseInt(rawTotal.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(receiptTotal)) {
@@ -6292,7 +6297,13 @@ function receiveMultiItemFromUrl(raw) {
       const txs = loadTx();
       const catCounts = {};
       let baseId = Date.now();
-      const sharedReceiptRef = String(baseId) + ".jpg"; // 同じレシートの品目はすべて同じ証憑IDを共有する（拡張子を含めることで、証憑画像を保存・出力する際にファイル種別が正しく認識される）
+      // 同じレシートの品目はすべて同じ証憑IDを共有する。
+      // ショートカット側が実際に写真を保存した際のファイル名を受け取れた場合は、それをそのまま使う
+      // （実ファイルと確実に一致し、名前の組み立てロジックもショートカット側の1箇所に一本化できる）。
+      // 受け取れなかった場合（古いショートカットのまま等）は、従来通りアプリ側で組み立てる。
+      const sharedReceiptRef = (rawFileName && rawFileName.trim())
+        ? rawFileName.trim()
+        : buildManualReceiptFileName(store, finalDate);
       for (const item of itemsToRegister) {
         const matched = CATS_EXPENSE.find(c => c.label === item.cat);
         const cat = matched ? matched.id : CATS_EXPENSE[0].id;
