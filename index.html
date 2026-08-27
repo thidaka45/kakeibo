@@ -1271,7 +1271,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.103.4"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.104.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2385,6 +2385,17 @@ function resetEditMode() {
   if (btn) btn.textContent = inputType === "expense" ? "支出を登録" : "収入を登録";
   const nameEl = document.getElementById("pageName_" + inputType);
   if (nameEl) nameEl.textContent = inputType === "expense" ? "支出登録" : "収入登録";
+
+  // 編集中だった取引の内容が画面に残ったままにならないよう、入力欄の見た目も新規状態に戻す
+  // （「戻る」「ホーム」でこの画面を離れる際にも呼ばれるため、次に開いたときに前回の
+  //   入力が残っていて誤って上書き・二重登録してしまうのを防ぐ）
+  inputAmt = "";
+  const amountDisplay = F("amountDisplay");
+  if (amountDisplay) amountDisplay.textContent = "¥0";
+  if (F("itemInput")) F("itemInput").value = "";
+  if (F("memoInput")) F("memoInput").value = "";
+  const nameInputToClear = document.getElementById("catNameInput_" + inputType);
+  if (nameInputToClear) nameInputToClear.value = "";
 }
 
 // ホーム画面のアイコンから新規入力を開始する（編集状態を確実にリセット）
@@ -3845,16 +3856,46 @@ function showPage(name, isBack) {
   if (name==="excelexport") renderExcelExportPeriodSelects();
 }
 
+// 「戻る」「ホーム」のどちらで画面を離れる場合も、保存していない入力途中の内容を
+// 画面に残したままにしない。次にその画面を開いたときに前回の入力（編集対象の取引、
+// 開いたままのフォームなど）が残っていると、気づかないまま誤って上書き・二重登録して
+// しまう恐れがあるため、離れる画面ごとに必要なリセットをここでまとめて行う。
+// ※ 同じ画面内のサブ画面（アイコン選択・項目選択など）へ行って戻ってくる場合は
+// 　 currentPageNameがサブ画面側になるため、ここでは何もせず入力内容は保持される。
+function resetInProgressInputOnLeave(pageName) {
+  if (pageName === "expense" || pageName === "income") {
+    resetEditMode();
+  }
+  if (pageName === "savings") {
+    const form = document.getElementById("savingsForm");
+    if (form && form.style.display !== "none") closeSavingsForm();
+  }
+  if (pageName === "fixedcosts") {
+    const form = document.getElementById("fixedCostForm");
+    if (form && form.style.display !== "none") closeFixedCostForm();
+  }
+  if (pageName === "cashflow") {
+    // 残高の答え合わせ：一時的な入力用の電卓であり、保存される値ではないため
+    // 次に開いたときは空欄からやり直せるようにする
+    const bank = document.getElementById("cfBankInput");
+    const cash = document.getElementById("cfCashInput");
+    if (bank) bank.value = "";
+    if (cash) cash.value = "";
+  }
+}
+
 // 画面タイトル枠（page-toolbar）の家アイコンから：今どの画面にいても、途中の画面をすべて
 // 飛ばして一気にホームへ戻る（通常の戻るボタンのように1画面ずつ遡るのではなく、
 // 履歴ごと破棄してホームへジャンプする）。
 function goHome() {
+  resetInProgressInputOnLeave(currentPageName);
   pageHistory = [];
   showPage("home");
 }
 
 // 「戻る」ボタン：ひとつ前に表示していた画面へ戻る（履歴が無い場合はホームへ）
 function goBack() {
+  resetInProgressInputOnLeave(currentPageName);
   const prev = pageHistory.pop() || "home";
   showPage(prev, true);
 }
