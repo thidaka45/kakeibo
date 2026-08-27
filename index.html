@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.115.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.115.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3487,11 +3487,16 @@ async function cleanupOrphanedReceiptBlobs() {
 async function migrateReceiptRefsMissingExtension() {
   try {
     const txs = loadTx();
-    const targets = txs.filter(t => t.receiptRef && /^\d+$/.test(t.receiptRef));
-    if (!targets.length) return;
     let changed = false;
-    for (const t of targets) {
-      const oldKey = t.receiptRef;
+
+    // 修正版：同じreceiptRefを共有する兄弟取引（1レシート内の複数品目）が複数あると、
+    // 1件ずつ処理するたびにすでに書き換え済みの値を読み直してしまい、".jpg"が
+    // 何重にも連結される不具合があったため、まず「元のキー」をユニークな集合として
+    // 一度だけ洗い出してから、キーごとに1回だけ処理する。
+    const uniqueOldKeys = Array.from(new Set(
+      txs.filter(t => t.receiptRef && /^\d+$/.test(t.receiptRef)).map(t => t.receiptRef)
+    ));
+    for (const oldKey of uniqueOldKeys) {
       const newKey = oldKey + ".jpg";
       const blob = await getReceiptBlob(oldKey);
       if (blob) {
@@ -3502,10 +3507,30 @@ async function migrateReceiptRefsMissingExtension() {
           receiptIdSet.add(newKey);
         }
       }
-      // 同じ旧receiptRefを共有する兄弟取引（1レシートの複数品目）もまとめて付け替える
       txs.forEach(t2 => { if (t2.receiptRef === oldKey) t2.receiptRef = newKey; });
       changed = true;
     }
+
+    // 既に上の不具合で ".jpg.jpg.jpg..." のように何重にも連結されてしまったデータを、
+    // 末尾の ".jpg" の連続をひとつだけ残す形に正規化する（IndexedDB側のキーも同様に統合する）。
+    const corrupted = txs.filter(t => t.receiptRef && /(\.jpg){2,}$/i.test(t.receiptRef));
+    const corruptedOldKeys = Array.from(new Set(corrupted.map(t => t.receiptRef)));
+    for (const oldKey of corruptedOldKeys) {
+      const newKey = oldKey.replace(/(\.jpg)+$/i, ".jpg");
+      if (newKey === oldKey) continue;
+      const blob = await getReceiptBlob(oldKey);
+      if (blob) {
+        await saveReceiptBlob(newKey, blob);
+        await deleteReceiptBlob(oldKey);
+        if (receiptIdSet.has(oldKey)) {
+          receiptIdSet.delete(oldKey);
+          receiptIdSet.add(newKey);
+        }
+      }
+      txs.forEach(t2 => { if (t2.receiptRef === oldKey) t2.receiptRef = newKey; });
+      changed = true;
+    }
+
     if (changed) saveTx(txs);
   } catch (e) {
     console.error("証憑IDの拡張子移行に失敗しました", e);
