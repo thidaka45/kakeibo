@@ -397,6 +397,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
         <input class="field-input" id="catNameInput_expense" type="text" placeholder="項目名（例: 食料品）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
       </div>
     </div>
+    <!-- 店名（レシートから登録した取引の編集時のみ表示） -->
+    <div id="storeInputWrap_expense" style="margin-bottom:6px;display:none;">
+      <input class="field-input" id="storeInput_expense" type="text" placeholder="店名"
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;box-sizing:border-box;">
+    </div>
     <!-- 商品名・内容 -->
     <div style="margin-bottom:6px;">
       <input class="field-input" id="itemInput_expense" type="text" placeholder="商品名・内容（任意）"
@@ -454,6 +459,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     <div style="display:grid;grid-template-columns:50px 1fr;gap:6px;margin-bottom:6px;">
       <button type="button" id="catIconBtn_income" onclick="openCatIconPicker('income')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
       <input class="field-input" id="catNameInput_income" type="text" placeholder="項目名（例: 給与）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
+    </div>
+    <!-- 店名（レシートから登録した取引の編集時のみ表示） -->
+    <div id="storeInputWrap_income" style="margin-bottom:6px;display:none;">
+      <input class="field-input" id="storeInput_income" type="text" placeholder="店名"
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;box-sizing:border-box;">
     </div>
     <!-- 商品名・内容 -->
     <div style="margin-bottom:6px;">
@@ -1271,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.104.6"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.105.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2185,6 +2195,7 @@ function submitTx() {
   const date = F("dateInput").value || todayLocalStr();
   const item = (F("itemInput") ? F("itemInput").value : "") || "";
   const memo = F("memoInput").value || "";
+  const store = (F("storeInput") ? F("storeInput").value : "") || "";
   const txs = loadTx();
 
   if (editingTxId !== null) {
@@ -2192,9 +2203,19 @@ function submitTx() {
     const idx = txs.findIndex(t => t.id === editingTxId);
     if (idx === -1) { showToast("対象の取引が見つかりませんでした"); resetEditMode(); return; }
     const old = txs[idx];
+    // レシートから読み取り登録した取引を更新する場合、証憑（レシート画像）の内容と
+    // 差異が生じる可能性があることを、更新の都度あらかじめ確認する
+    if (old.source === "receipt" || old.receiptRef) {
+      const okReceipt = confirm(
+        "この取引はレシートから読み取り登録されたものです。\n\n" +
+        "内容を更新すると、証憑（レシート画像）の記載と差異が生じる場合があります。\n\n" +
+        "よろしければ「OK」を選んでください。"
+      );
+      if (!okReceipt) return;
+    }
     // 残高補正：旧内容の影響を取り消してから、新内容の影響を反映する
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
-    txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, item, memo, date };
+    txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, item, memo, store, date };
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
     // カテゴリが変わっていない場合でも、金額だけの編集で積立残高が
@@ -2252,6 +2273,8 @@ function submitTx() {
   F("amountDisplay").textContent = "¥0";
   if (F("itemInput")) F("itemInput").value = "";
   F("memoInput").value = "";
+  if (F("storeInput")) F("storeInput").value = "";
+  if (F("storeInputWrap")) F("storeInputWrap").style.display = "none";
   const nameInputToClear = document.getElementById("catNameInput_" + inputType);
   if (nameInputToClear) nameInputToClear.value = "";
   renderCatGrid();
@@ -2306,6 +2329,12 @@ function openTxEdit(id) {
   syncDateDisplay(inputType);
   if (F("itemInput")) F("itemInput").value = tx.item || "";
   F("memoInput").value = tx.memo || "";
+  const storeWrap = F("storeInputWrap");
+  if (storeWrap) {
+    const showStore = !!(tx.store || tx.source === "receipt" || tx.receiptRef);
+    storeWrap.style.display = showStore ? "block" : "none";
+    if (F("storeInput")) F("storeInput").value = tx.store || "";
+  }
 
   F("deleteTxBtn").style.display = "block";
   const receiptBtn = F("receiptAccessBtn");
@@ -2394,6 +2423,9 @@ function resetEditMode() {
   if (amountDisplay) amountDisplay.textContent = "¥0";
   if (F("itemInput")) F("itemInput").value = "";
   if (F("memoInput")) F("memoInput").value = "";
+  if (F("storeInput")) F("storeInput").value = "";
+  const storeWrapClear = F("storeInputWrap");
+  if (storeWrapClear) storeWrapClear.style.display = "none";
   const nameInputToClear = document.getElementById("catNameInput_" + inputType);
   if (nameInputToClear) nameInputToClear.value = "";
 }
