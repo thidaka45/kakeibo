@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.110.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.111.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3803,6 +3803,16 @@ function onHistorySearchModeChange() {
   renderHistoryTxList(selectedGraphPeriodIdx);
 }
 
+// 1枚のレシートから複数品目を登録した取引（同じreceiptRefを共有する）は、取引実績の一覧では
+// 折りたたんだ1行にまとめて表示し、タップで展開できるようにする。開閉状態はここに保持する
+// （画面を離れる・絞り込みを変えるとリセットされる、一時的な表示状態）。
+let expandedReceiptGroups = new Set();
+function toggleReceiptGroup(ref) {
+  if (expandedReceiptGroups.has(ref)) expandedReceiptGroups.delete(ref);
+  else expandedReceiptGroups.add(ref);
+  renderHistoryTxList(selectedGraphPeriodIdx);
+}
+
 function renderHistoryTxList(idx) {
   const el = document.getElementById("historyTxList");
   if (!el) return;
@@ -3850,44 +3860,85 @@ function renderHistoryTxList(idx) {
     }
   }
 
+  // 1つの取引を1行分のHTMLに変換する（通常表示・レシートグループの展開内、どちらでも使う）。
+  // indent:true のときは、展開されたレシートグループの中の品目として、少し控えめな表示にする。
+  function renderTxRow(t, indent) {
+    const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
+    const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
+    const d = new Date(t.date);
+    // 固定費・積立の取引は、登録時に自動入力される定型メモ（登録時点の名前が固定文字列として残る）ではなく、
+    // 常に現在の登録名を参照して表示する（項目名を後から変更しても取引履歴が追従するように）
+    const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
+    // 1列目（商品名）：商品名 → 店名 → メモ → カテゴリ名 の優先順で表示する
+    // （古い形式のデータはmemoしか持たないため、そのままmemoが使われる）
+    const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
+    // 証憑マークは金額欄と同じく必ず優先表示する（flex-shrink:0）ため、商品名より先にHTMLだけ組み立てておく
+    const receiptMark = (!indent && t.receiptRef)
+      ? `<span class="receipt-mark" title="証憑あり" style="display:inline-flex;vertical-align:middle;opacity:0.9;">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
+             <line x1="9" y1="8" x2="15" y2="8"/>
+             <line x1="9" y1="12" x2="15" y2="12"/>
+           </svg>
+         </span>`
+      : "";
+    // 2列目：日付・曜日・カテゴリ・区切りの「・」は固定表示し、店名部分だけを電光掲示板表示の対象にする
+    // （「・」が店名と一緒にスクロールしてしまわないよう、区切り文字は別要素にする）
+    const storeHtml = (!indent && !isFcOrSv && t.store)
+      ? `<span class="tx-date-sep">　</span><span class="marquee-wrap" data-marquee-text="${escapeHtml(t.store)}"><span class="marquee-inner">${escapeHtml(t.store)}</span></span>`
+      : "";
+    const indentStyle = indent ? "padding-left:52px;background:var(--bg,transparent);" : "";
+    return `<div class="tx-item" style="cursor:pointer;${indentStyle}" onclick="openTxEdit(${t.id})">
+      <div class="tx-icon" style="background:${bg};${indent?"width:32px;height:32px;":""}">${catIconSvg(c.emoji,indent?16:20)}</div>
+      <div class="tx-info">
+        <div class="tx-name">
+          <span class="marquee-wrap" data-marquee-text="${escapeHtml(displayName)}"><span class="marquee-inner">${escapeHtml(displayName)}</span></span>${receiptMark}
+        </div>
+        <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${escapeHtml(c.label)}</span>${storeHtml}</div>
+      </div>
+      <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
+    </div>`;
+  }
+
+  // 同じ証憑（receiptRef）を共有する取引が2件以上ある場合は、1レシート分としてまとめて
+  // 折りたたみ表示する（品目ごとにずらっと並ぶと見づらいため）。1件しかない場合はまとめない。
+  const refCounts = {};
+  txs.forEach(t => { if (t.receiptRef) refCounts[t.receiptRef] = (refCounts[t.receiptRef] || 0) + 1; });
+
   el.innerHTML = txs.length === 0
     ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">${hasCondition ? "該当する取引はありません" : "この月度の取引はありません"}</div>`
-    : txs.map(t => {
-        const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
-        const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
-        const d = new Date(t.date);
-        // 固定費・積立の取引は、登録時に自動入力される定型メモ（登録時点の名前が固定文字列として残る）ではなく、
-        // 常に現在の登録名を参照して表示する（項目名を後から変更しても取引履歴が追従するように）
-        const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
-        // 1列目（商品名）：商品名 → 店名 → メモ → カテゴリ名 の優先順で表示する
-        // （古い形式のデータはmemoしか持たないため、そのままmemoが使われる）
-        const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
-        // 証憑マークは金額欄と同じく必ず優先表示する（flex-shrink:0）ため、商品名より先にHTMLだけ組み立てておく
-        const receiptMark = t.receiptRef
-          ? `<span class="receipt-mark" title="証憑あり" style="display:inline-flex;vertical-align:middle;opacity:0.9;">
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                 <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
-                 <line x1="9" y1="8" x2="15" y2="8"/>
-                 <line x1="9" y1="12" x2="15" y2="12"/>
-               </svg>
-             </span>`
-          : "";
-        // 2列目：日付・曜日・カテゴリ・区切りの「・」は固定表示し、店名部分だけを電光掲示板表示の対象にする
-        // （「・」が店名と一緒にスクロールしてしまわないよう、区切り文字は別要素にする）
-        const storeHtml = (!isFcOrSv && t.store)
-          ? `<span class="tx-date-sep">　</span><span class="marquee-wrap" data-marquee-text="${escapeHtml(t.store)}"><span class="marquee-inner">${escapeHtml(t.store)}</span></span>`
-          : "";
-        return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
-          <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
-          <div class="tx-info">
-            <div class="tx-name">
-              <span class="marquee-wrap" data-marquee-text="${escapeHtml(displayName)}"><span class="marquee-inner">${escapeHtml(displayName)}</span></span>${receiptMark}
+    : (() => {
+        const renderedRefs = new Set();
+        const parts = [];
+        txs.forEach(t => {
+          const ref = t.receiptRef;
+          const isGroup = ref && refCounts[ref] > 1;
+          if (isGroup && renderedRefs.has(ref)) return; // グループの2件目以降はここでは何もしない（1件目でまとめて出力済み）
+          if (!isGroup) { parts.push(renderTxRow(t, false)); return; }
+
+          renderedRefs.add(ref);
+          const members = txs.filter(x => x.receiptRef === ref);
+          const expanded = expandedReceiptGroups.has(ref);
+          const total = members.reduce((s, m) => s + (m.type === "income" ? m.amount : -m.amount), 0);
+          const isIncomeGroup = total >= 0 && members.every(m => m.type === "income");
+          const d = new Date(members[0].date);
+          const store = members[0].store || "";
+          const chevron = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${expanded?90:0}deg);transition:transform .15s;flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>`;
+          const headerRow = `<div class="tx-item" style="cursor:pointer;" onclick="toggleReceiptGroup('${ref}')">
+            <div class="tx-icon" style="background:var(--card2,var(--border));">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
             </div>
-            <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${escapeHtml(c.label)}</span>${storeHtml}</div>
-          </div>
-          <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
-        </div>`;
-      }).join("");
+            <div class="tx-info">
+              <div class="tx-name">${chevron}<span class="marquee-wrap" data-marquee-text="${escapeHtml(store)}（${members.length}品目）"><span class="marquee-inner">${escapeHtml(store)}（${members.length}品目）</span></span></div>
+              <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  レシート</span></div>
+            </div>
+            <div class="tx-amount ${isIncomeGroup?"income":"expense"}">${isIncomeGroup?"+":"-"}${fmt(Math.abs(total))}</div>
+          </div>`;
+          parts.push(headerRow);
+          if (expanded) members.forEach(m => parts.push(renderTxRow(m, true)));
+        });
+        return parts.join("");
+      })();
 
   applyMarquee(el);
 }
@@ -6135,20 +6186,27 @@ function receiveMultiItemFromUrl(raw) {
   const TOLERANCE = Math.max(3, items.length);
   const rawMatches = Math.abs(itemsTotal - receiptTotal) <= TOLERANCE;
   // 消費税額は「推測計算」ではなく、レシートに実際に印字されている数値（AIが読み取ってヘッダーの
-  // 5番目に渡してきた値）のみを使う。印字が無く読み取れなかった場合（printedTaxが数値でない場合）は、
+  // 4番目に渡してきた値）のみを使う。印字が無く読み取れなかった場合（printedTaxが数値でない場合）は、
   // 証憑に基づく判断材料が無いということなので、この判定は行わない（下の通常の不一致警告になる）。
-  const hasPrintedTax = !isNaN(printedTax) && printedTax > 0;
+  // 0（内税と判断された）も含めて、AIが明示的に判断できた場合は hasPrintedTax = true とする
+  // （内税・外税どちらだったかを、取引実績に「消費税：¥0」等の形で必ず残せるようにするため）。
+  const hasPrintedTax = !isNaN(printedTax);
   const itemsTotalWithTax = itemsTotal + (hasPrintedTax ? printedTax : 0);
-  const taxNotConsidered = !rawMatches && hasPrintedTax && Math.abs(itemsTotalWithTax - receiptTotal) <= TOLERANCE;
-  const estimatedTaxAmount = printedTax; // レシートに印字されていた実際の消費税額
-
-  // 消費税が未考慮と判定された場合は、各品目の金額はそのまま（誤読チェックの担保のため書き換えない）にし、
-  // 「消費税」という1件の品目を追加登録する。カテゴリは既存のカテゴリに該当しないため「その他」として扱う。
+  const totalsMatchWithTax = hasPrintedTax && Math.abs(itemsTotalWithTax - receiptTotal) <= TOLERANCE;
   const TAX_LINE_CAT = "その他";
-  const itemsToRegister = taxNotConsidered
-    ? [...items, { name: "消費税", amount: estimatedTaxAmount, cat: TAX_LINE_CAT }]
+
+  // 品目合計だけで既にレシート合計と一致している（＝内税だったと考えられる）場合は、消費税を
+  // 上乗せする必要はないが、AIがどう判断したかを記録として残すため「消費税：¥0」等をそのまま追加する
+  // （品目の金額自体は変更しない＝誤読チェックの担保は崩さない）。この場合は確認なしでそのまま登録する
+  // （これまで通り、一致しているものにまで確認を挟むと煩わしいため）。
+  const taxRecordedAsZero = hasPrintedTax && rawMatches;
+  // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
+  const taxNotConsidered = !rawMatches && totalsMatchWithTax;
+
+  const itemsToRegister = (taxRecordedAsZero || taxNotConsidered)
+    ? [...items, { name: "消費税", amount: printedTax, cat: TAX_LINE_CAT }]
     : items;
-  const registerTotal = taxNotConsidered ? itemsTotalWithTax : itemsTotal;
+  const registerTotal = (taxRecordedAsZero || taxNotConsidered) ? itemsTotalWithTax : itemsTotal;
 
   const registerMultiItems = () => {
     resolveReceiptFinalDate(date, store, registerTotal, (finalDate) => {
@@ -6189,18 +6247,18 @@ function receiveMultiItemFromUrl(raw) {
   };
 
   if (taxNotConsidered) {
-    // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だったと判断できるケース。
+    // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
     // 各品目はそのまま（誤読チェックの担保）、「消費税」という1件を追加した上で確認を求める。
     const itemsListText = items
       .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
-      .concat(`・消費税：¥${estimatedTaxAmount.toLocaleString()}（税金）`)
+      .concat(`・消費税：¥${printedTax.toLocaleString()}（税金）`)
       .join("\n");
     showConfirmModal(
       `${store} ${date}\n\n` +
       `${itemsListText}\n\n` +
       `⚠️注意\n` +
       `品目合計（¥${itemsTotal.toLocaleString()}）に消費税が含まれていないようです。\n` +
-      `レシートに記載の消費税（¥${estimatedTaxAmount.toLocaleString()}）を加えると、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）と一致します。\n\n` +
+      `レシートに記載の消費税（¥${printedTax.toLocaleString()}）を加えると、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）と一致します。\n\n` +
       `■OK： 消費税を含めて${itemsToRegister.length}品目を登録します。\n` +
       `■キャンセル： 登録せずに終了します。`,
       registerMultiItems
