@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.108.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.110.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6102,13 +6102,16 @@ function receiveMultiItemFromUrl(raw) {
     showToast("受け取ったデータの形式が正しくありませんでした（ヘッダー部）");
     return;
   }
-  const [rawDate, store, rawTotal, rawRef] = headerParts;
+  // 5番目（消費税）は任意項目。レシートに消費税額が印字されている場合のみ、
+  // AI（ChatGPT）がその実際の数値を読み取って渡す。印字が無い・読み取れない場合は空でよい。
+  const [rawDate, store, rawTotal, rawRef, rawPrintedTax] = headerParts;
   const date = normalizeDateStr(rawDate);
   const receiptTotal = parseInt(rawTotal.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(receiptTotal)) {
     showToast("受け取ったデータの形式が正しくありませんでした（日付・合計金額）");
     return;
   }
+  const printedTax = rawPrintedTax ? parseInt(String(rawPrintedTax).replace(/[^\d]/g, ""), 10) : NaN;
 
   // 品目行をパースする（品目名,金額,カテゴリ）。金額が数値にならない行はスキップする。
   const items = [];
@@ -6125,16 +6128,35 @@ function receiveMultiItemFromUrl(raw) {
     return;
   }
 
-  const itemsTotal = items.reduce((s, it) => s + it.amount, 0);
+  const itemsTotal = items.reduce((s, it) => s + it.amount, 0); // 品目合計（読み取った金額そのまま。誤読チェックの基準）
+
+  // 読み取り誤差やレジの端数処理の違いを吸収するための許容差（品目数が多いほど広めにとる）
+  const TOLERANCE = Math.max(3, items.length);
+  const rawMatches = Math.abs(itemsTotal - receiptTotal) <= TOLERANCE;
+  // 消費税額は「推測計算」ではなく、レシートに実際に印字されている数値（AIが読み取ってヘッダーの
+  // 5番目に渡してきた値）のみを使う。印字が無く読み取れなかった場合（printedTaxが数値でない場合）は、
+  // 証憑に基づく判断材料が無いということなので、この判定は行わない（下の通常の不一致警告になる）。
+  const hasPrintedTax = !isNaN(printedTax) && printedTax > 0;
+  const itemsTotalWithTax = itemsTotal + (hasPrintedTax ? printedTax : 0);
+  const taxNotConsidered = !rawMatches && hasPrintedTax && Math.abs(itemsTotalWithTax - receiptTotal) <= TOLERANCE;
+  const estimatedTaxAmount = printedTax; // レシートに印字されていた実際の消費税額
+
+  // 消費税が未考慮と判定された場合は、各品目の金額はそのまま（誤読チェックの担保のため書き換えない）にし、
+  // 「消費税」という1件の品目を追加登録する。カテゴリは既存のカテゴリに該当しないため「その他」として扱う。
+  const TAX_LINE_CAT = "その他";
+  const itemsToRegister = taxNotConsidered
+    ? [...items, { name: "消費税", amount: estimatedTaxAmount, cat: TAX_LINE_CAT }]
+    : items;
+  const registerTotal = taxNotConsidered ? itemsTotalWithTax : itemsTotal;
 
   const registerMultiItems = () => {
-    resolveReceiptFinalDate(date, store, itemsTotal, (finalDate) => {
+    resolveReceiptFinalDate(date, store, registerTotal, (finalDate) => {
       if (!finalDate) return;
 
       const txs = loadTx();
       const catCounts = {};
       let baseId = Date.now();
-      for (const item of items) {
+      for (const item of itemsToRegister) {
         const matched = CATS_EXPENSE.find(c => c.label === item.cat);
         const cat = matched ? matched.id : CATS_EXPENSE[0].id;
         catCounts[matched ? matched.label : CATS_EXPENSE[0].label] =
@@ -6159,22 +6181,41 @@ function receiveMultiItemFromUrl(raw) {
 
       const catSummary = Object.entries(catCounts).map(([label, n]) => `${label}${n}件`).join("、");
       showToast(
-        `${finalDate} ${store} ${items.length}品目 ¥${itemsTotal.toLocaleString()} を記録しました（${catSummary}）`
+        `${finalDate} ${store} ${itemsToRegister.length}品目 ¥${registerTotal.toLocaleString()} を記録しました（${catSummary}）`
       );
     });
   };
 
-  // 品目合計とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
-  // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
-  if (itemsTotal !== receiptTotal) {
-    const itemsListText = items.map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`).join("\n");
+  if (taxNotConsidered) {
+    // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だったと判断できるケース。
+    // 各品目はそのまま（誤読チェックの担保）、「消費税」という1件を追加した上で確認を求める。
+    const itemsListText = items
+      .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
+      .concat(`・消費税：¥${estimatedTaxAmount.toLocaleString()}（税金）`)
+      .join("\n");
+    showConfirmModal(
+      `${store} ${date}\n\n` +
+      `${itemsListText}\n\n` +
+      `⚠️注意\n` +
+      `品目合計（¥${itemsTotal.toLocaleString()}）に消費税が含まれていないようです。\n` +
+      `レシートに記載の消費税（¥${estimatedTaxAmount.toLocaleString()}）を加えると、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）と一致します。\n\n` +
+      `■OK： 消費税を含めて${itemsToRegister.length}品目を登録します。\n` +
+      `■キャンセル： 登録せずに終了します。`,
+      registerMultiItems
+    );
+  } else if (!rawMatches) {
+    // 品目合計（税込換算しても）とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
+    // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
+    const itemsListText = items
+      .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
+      .join("\n");
     showConfirmModal(
       `${store} ${date}\n\n` +
       `${itemsListText}\n\n` +
       `⚠️注意\n` +
       `品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません。\n\n` +
       `品目の読み落とし・誤読の可能性があります。レシートと見比べてご確認ください。\n\n` +
-      `■OK： 品目合計と、${items.length}品目を登録します。\n` +
+      `■OK： 品目合計と${items.length}品目を登録します。\n` +
       `■キャンセル： 登録せずに終了します。`,
       registerMultiItems
     );
