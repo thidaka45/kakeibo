@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.105.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.105.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2203,16 +2203,8 @@ function submitTx() {
     const idx = txs.findIndex(t => t.id === editingTxId);
     if (idx === -1) { showToast("対象の取引が見つかりませんでした"); resetEditMode(); return; }
     const old = txs[idx];
-    // レシートから読み取り登録した取引を更新する場合、証憑（レシート画像）の内容と
-    // 差異が生じる可能性があることを、更新の都度あらかじめ確認する
-    if (old.source === "receipt" || old.receiptRef) {
-      const okReceipt = confirm(
-        "この取引はレシートから読み取り登録されたものです。\n\n" +
-        "内容を更新すると、証憑（レシート画像）の記載と差異が生じる場合があります。\n\n" +
-        "よろしければ「OK」を選んでください。"
-      );
-      if (!okReceipt) return;
-    }
+    // ※証憑との整合性についての確認は、この編集画面に入る時点（openTxEdit）で
+    //   済ませているため、ここでは行わない
     // 残高補正：旧内容の影響を取り消してから、新内容の影響を反映する
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
     txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, item, memo, store, date };
@@ -2297,6 +2289,16 @@ function submitTx() {
 function openTxEdit(id) {
   const tx = loadTx().find(t => t.id === id);
   if (!tx) return;
+  // レシートから読み取り登録した取引の場合、更新画面に入る前に、
+  // 証憑（レシート画像）との整合性が取れなくなる可能性をあらかじめ確認する
+  if (tx.source === "receipt" || tx.receiptRef) {
+    const okReceipt = confirm(
+      "この取引はレシートから読み取り登録されたものです。\n\n" +
+      "内容を更新すると、証憑（レシート画像）の記載と差異が生じ、整合性が取れなくなる場合があります。\n\n" +
+      "よろしければ「OK」を選んでください。"
+    );
+    if (!okReceipt) { showPage("graph"); return; }
+  }
   const periods = ensurePeriods();
   const txPeriodIdx = findPeriodIndexForDate(tx.date);
   if (periods.length && txPeriodIdx !== periods.length - 1) {
