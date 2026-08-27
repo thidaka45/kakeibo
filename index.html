@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.108.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.108.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6359,9 +6359,11 @@ if (document.readyState === "loading") {
 
 <!-- 汎用の確認・通知ポップアップ（標準confirm/alertの置き換え） -->
 <div id="genericConfirmModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-  <div style="background:var(--card,#fff);border-radius:16px;padding:22px 20px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
-    <p id="genericConfirmMsg" style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 18px;color:var(--text,#222);white-space:pre-line;"></p>
-    <div style="display:flex;gap:10px;">
+  <div style="background:var(--card,#fff);border-radius:16px;padding:22px 20px 16px;max-width:420px;width:100%;max-height:80vh;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);display:flex;flex-direction:column;">
+    <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;margin-bottom:16px;">
+      <p id="genericConfirmMsg" style="font-size:16px;font-weight:700;line-height:1.6;margin:0;color:var(--text,#222);white-space:pre-line;"></p>
+    </div>
+    <div style="display:flex;gap:10px;flex:0 0 auto;">
       <button id="genericConfirmCancelBtn" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">キャンセル</button>
       <button id="genericConfirmOkBtn" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--blue,#2f6fd3);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">OK</button>
     </div>
