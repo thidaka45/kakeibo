@@ -116,7 +116,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .tx-info{flex:1 1 auto;min-width:0;} /* min-width:0が無いと、長い文字列がflexの外側（金額欄）を押し出してしまう */
-.tx-name{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
+.tx-name{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
 .tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;min-width:0;}
 .tx-date .tx-date-fixed{flex:0 0 auto;white-space:nowrap;}
 .tx-date .tx-date-sep{flex:0 0 auto;white-space:nowrap;margin-left:2px;}
@@ -528,7 +528,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
       <div style="flex:0 0 75%;min-width:0;">
         <input type="text" id="historyTxSearchInput" class="field-input" placeholder="商品名で絞り込み" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
         <select id="historyTxSearchCat" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)"></select>
-        <input type="date" id="historyTxSearchDate" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;align-items:center;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)">
+        <input type="date" id="historyTxSearchDate" class="field-input" style="font-size:15px;height:42px;max-height:42px;min-height:42px;line-height:1;padding-top:0;padding-bottom:0;-webkit-appearance:none;appearance:none;width:100%;box-sizing:border-box;display:none;align-items:center;overflow:hidden;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)">
         <div id="historySearchAllLabel" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:flex;align-items:center;color:var(--sub);background:transparent;border-color:transparent;">すべての取引を表示中</div>
       </div>
     </div>
@@ -1271,7 +1271,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.104.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.104.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
