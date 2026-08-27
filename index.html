@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.114.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.115.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3476,6 +3476,39 @@ async function cleanupOrphanedReceiptBlobs() {
     }
   } catch (e) {
     console.error("証憑画像の掃除に失敗しました", e);
+  }
+}
+
+// 過去バージョンの不具合で、レシート撮影経由の証憑ID（receiptRef）が拡張子なしの
+// 数字だけ（例:"1787824740447"）で登録されてしまったデータを修正する。
+// 拡張子がないと、XLS・CSV出力のZIPに同梱される画像ファイルの種類がPC側で認識されず、
+// 「不明なドキュメント」として保存されてしまうため、起動時に一度だけ ".jpg" を補って
+// 取引データ・IndexedDB内の画像の両方のキーを付け替える。
+async function migrateReceiptRefsMissingExtension() {
+  try {
+    const txs = loadTx();
+    const targets = txs.filter(t => t.receiptRef && /^\d+$/.test(t.receiptRef));
+    if (!targets.length) return;
+    let changed = false;
+    for (const t of targets) {
+      const oldKey = t.receiptRef;
+      const newKey = oldKey + ".jpg";
+      const blob = await getReceiptBlob(oldKey);
+      if (blob) {
+        await saveReceiptBlob(newKey, blob);
+        await deleteReceiptBlob(oldKey);
+        if (receiptIdSet.has(oldKey)) {
+          receiptIdSet.delete(oldKey);
+          receiptIdSet.add(newKey);
+        }
+      }
+      // 同じ旧receiptRefを共有する兄弟取引（1レシートの複数品目）もまとめて付け替える
+      txs.forEach(t2 => { if (t2.receiptRef === oldKey) t2.receiptRef = newKey; });
+      changed = true;
+    }
+    if (changed) saveTx(txs);
+  } catch (e) {
+    console.error("証憑IDの拡張子移行に失敗しました", e);
   }
 }
 
@@ -6239,7 +6272,7 @@ function receiveMultiItemFromUrl(raw) {
       const txs = loadTx();
       const catCounts = {};
       let baseId = Date.now();
-      const sharedReceiptRef = String(baseId); // 同じレシートの品目はすべて同じ証憑IDを共有する
+      const sharedReceiptRef = String(baseId) + ".jpg"; // 同じレシートの品目はすべて同じ証憑IDを共有する（拡張子を含めることで、証憑画像を保存・出力する際にファイル種別が正しく認識される）
       for (const item of itemsToRegister) {
         const matched = CATS_EXPENSE.find(c => c.label === item.cat);
         const cat = matched ? matched.id : CATS_EXPENSE[0].id;
@@ -6332,7 +6365,7 @@ function init() {
   migrateTxDates();
   receiveFromUrl();
   refreshReceiptIdSet(); // レシート画像保存済み一覧を先読みしておく（ファイル選択シートを即座に開くため）
-  cleanupOrphanedReceiptBlobs(); // 起動のたびに1回、取り残された証憑画像を裏側で掃除する
+  migrateReceiptRefsMissingExtension().then(cleanupOrphanedReceiptBlobs); // 拡張子なし証憑IDの移行→取り残された証憑画像の掃除、の順に起動のたびに1回実行する
 
   const today = todayLocalStr();
   document.getElementById("dateInput_expense").value = today;
