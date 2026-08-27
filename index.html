@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.111.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.111.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3873,7 +3873,7 @@ function renderHistoryTxList(idx) {
     // （古い形式のデータはmemoしか持たないため、そのままmemoが使われる）
     const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
     // 証憑マークは金額欄と同じく必ず優先表示する（flex-shrink:0）ため、商品名より先にHTMLだけ組み立てておく
-    const receiptMark = (!indent && t.receiptRef)
+    const receiptMark = t.receiptRef
       ? `<span class="receipt-mark" title="証憑あり" style="display:inline-flex;vertical-align:middle;opacity:0.9;">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
@@ -3923,14 +3923,23 @@ function renderHistoryTxList(idx) {
           const isIncomeGroup = total >= 0 && members.every(m => m.type === "income");
           const d = new Date(members[0].date);
           const store = members[0].store || "";
-          const chevron = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${expanded?90:0}deg);transition:transform .15s;flex-shrink:0;"><path d="M9 6l6 6-6 6"/></svg>`;
+          // 展開・折りたたみの目印は、アイコン欄いっぱいに大きく表示して、タップしやすくする
+          const chevron = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(${expanded?90:0}deg);transition:transform .15s;">
+              <path d="M9 5l7 7-7 7"/>
+            </svg>`;
+          // 2行目の「レシート」の文字は、他の行と同じ証憑マークに統一する
+          const groupReceiptMark = `<span class="receipt-mark" title="証憑あり" style="display:inline-flex;vertical-align:middle;opacity:0.9;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
+                <line x1="9" y1="8" x2="15" y2="8"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+              </svg>
+            </span>`;
           const headerRow = `<div class="tx-item" style="cursor:pointer;" onclick="toggleReceiptGroup('${ref}')">
-            <div class="tx-icon" style="background:var(--card2,var(--border));">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-            </div>
+            <div class="tx-icon" style="background:var(--card2,var(--border));display:flex;align-items:center;justify-content:center;">${chevron}</div>
             <div class="tx-info">
-              <div class="tx-name">${chevron}<span class="marquee-wrap" data-marquee-text="${escapeHtml(store)}（${members.length}品目）"><span class="marquee-inner">${escapeHtml(store)}（${members.length}品目）</span></span></div>
-              <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  レシート</span></div>
+              <div class="tx-name">${groupReceiptMark}<span class="marquee-wrap" data-marquee-text="${escapeHtml(store)}（${members.length}品目）"><span class="marquee-inner">${escapeHtml(store)}（${members.length}品目）</span></span></div>
+              <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）</span></div>
             </div>
             <div class="tx-amount ${isIncomeGroup?"income":"expense"}">${isIncomeGroup?"+":"-"}${fmt(Math.abs(total))}</div>
           </div>`;
