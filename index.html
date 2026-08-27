@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.107.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.107.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2318,11 +2318,18 @@ function openTxEdit(id) {
 }
 
 // ===== 汎用の確認・通知ポップアップ（アプリ内独自デザイン。標準confirm/alertの置き換え用） =====
-// message内の改行(\n)は<br>に変換して表示する。DOMが無い場合のみ標準confirm/alertに素通りする。
+// message内の改行(\n)は<br>に変換して表示する。「⚠️注意」は赤文字で強調する。
+// DOMが無い場合のみ標準confirm/alertに素通りする。
+function formatModalMessage(message) {
+  return escapeHtml(message)
+    .replace(/\n/g, "<br>")
+    .replace(/⚠️注意/g, '<span style="color:#d32f2f;">⚠️注意</span>');
+}
+
 function showConfirmModal(message, onOk, onCancel) {
   const modal = document.getElementById("genericConfirmModal");
   if (!modal) { if (confirm(message)) { if (onOk) onOk(); } else { if (onCancel) onCancel(); } return; }
-  document.getElementById("genericConfirmMsg").innerHTML = escapeHtml(message).replace(/\n/g, "<br>");
+  document.getElementById("genericConfirmMsg").innerHTML = formatModalMessage(message);
   const okBtn = document.getElementById("genericConfirmOkBtn");
   const cancelBtn = document.getElementById("genericConfirmCancelBtn");
   cancelBtn.style.display = "inline-block";
@@ -2335,7 +2342,7 @@ function showConfirmModal(message, onOk, onCancel) {
 function showAlertModal(message, onOk) {
   const modal = document.getElementById("genericConfirmModal");
   if (!modal) { alert(message); if (onOk) onOk(); return; }
-  document.getElementById("genericConfirmMsg").innerHTML = escapeHtml(message).replace(/\n/g, "<br>");
+  document.getElementById("genericConfirmMsg").innerHTML = formatModalMessage(message);
   const okBtn = document.getElementById("genericConfirmOkBtn");
   const cancelBtn = document.getElementById("genericConfirmCancelBtn");
   cancelBtn.style.display = "none";
@@ -6166,8 +6173,8 @@ function receiveMultiItemFromUrl(raw) {
       `⚠️注意\n` +
       `品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません（差額 ¥${diff.toLocaleString()}）。\n\n` +
       `品目の読み落とし・誤読の可能性があります。手元のレシートと見比べてご確認ください。\n\n` +
-      `「OK」： 合計¥${itemsTotal.toLocaleString()}で、${items.length}品目を登録します。\n` +
-      `「キャンセル」： 登録せずに終了します。`,
+      `■OK： 合計¥${itemsTotal.toLocaleString()}で、${items.length}品目を登録します。\n` +
+      `■キャンセル： 登録せずに終了します。`,
       registerMultiItems
     );
   } else {
