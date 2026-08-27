@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.110.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.110.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6102,9 +6102,10 @@ function receiveMultiItemFromUrl(raw) {
     showToast("受け取ったデータの形式が正しくありませんでした（ヘッダー部）");
     return;
   }
-  // 5番目（消費税）は任意項目。レシートに消費税額が印字されている場合のみ、
+  // ヘッダーは「日付,店名,合計金額,消費税額」の4項目（証憑IDはショートカット側で送っていない）。
+  // 4番目（消費税）は任意項目。レシートに消費税額が印字されている場合のみ、
   // AI（ChatGPT）がその実際の数値を読み取って渡す。印字が無い・読み取れない場合は空でよい。
-  const [rawDate, store, rawTotal, rawRef, rawPrintedTax] = headerParts;
+  const [rawDate, store, rawTotal, rawPrintedTax] = headerParts;
   const date = normalizeDateStr(rawDate);
   const receiptTotal = parseInt(rawTotal.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(receiptTotal)) {
@@ -6156,6 +6157,7 @@ function receiveMultiItemFromUrl(raw) {
       const txs = loadTx();
       const catCounts = {};
       let baseId = Date.now();
+      const sharedReceiptRef = String(baseId); // 同じレシートの品目はすべて同じ証憑IDを共有する
       for (const item of itemsToRegister) {
         const matched = CATS_EXPENSE.find(c => c.label === item.cat);
         const cat = matched ? matched.id : CATS_EXPENSE[0].id;
@@ -6170,7 +6172,7 @@ function receiveMultiItemFromUrl(raw) {
           store: store || "",
           date: finalDate,
           source: "receipt",
-          receiptRef: rawRef || null // 同じレシートの品目はすべて同じ証憑IDを共有する
+          receiptRef: sharedReceiptRef
         });
         adjustBalance(-item.amount);
       }
