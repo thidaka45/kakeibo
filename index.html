@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.113.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.114.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3825,7 +3825,11 @@ function renderHistoryTxList(idx) {
   const catSelect = document.getElementById("historyTxSearchCat");
   const dateInput = document.getElementById("historyTxSearchDate");
 
-  let txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
+  // 実際の支出（取引）日付の新しい順。同じ日付内では登録順（id）の新しい順に並べる。
+  let txs = [...periodTxs(idx)].sort((a,b)=> {
+    const dc = String(b.date).localeCompare(String(a.date));
+    return dc !== 0 ? dc : (b.id - a.id);
+  });
   const allCats = getAllCats();
   const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
