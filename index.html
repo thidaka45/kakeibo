@@ -115,16 +115,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 .tx-item{display:flex;align-items:center;gap:10px;padding:12.6px 12px;border-bottom:1px solid var(--border);}
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
-.tx-info{flex:1;}
-.tx-name{font-size:16px;font-weight:600;color:var(--text);}
-.tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;}
+.tx-info{flex:1 1 auto;min-width:0;} /* min-width:0が無いと、長い文字列がflexの外側（金額欄）を押し出してしまう */
+.tx-name{font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
+.tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;min-width:0;}
 .tx-date .tx-date-fixed{flex:0 0 auto;white-space:nowrap;}
-.tx-amount{font-size:17px;font-weight:700;}
-/* 店名表示：枠の厚みは変えず、入りきらない場合だけ左右に流れるアニメーションで見せる */
-.tx-store-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;margin-left:2px;}
-.tx-store-inner{display:inline-block;white-space:nowrap;}
-.tx-store-wrap.marquee .tx-store-inner{animation:txStoreMarquee linear infinite;animation-duration:var(--marquee-duration,6s);}
-@keyframes txStoreMarquee{
+.tx-amount{font-size:17px;font-weight:700;flex:0 0 auto;white-space:nowrap;}
+/* 商品名・店名の電光掲示板表示：証憑マーク・金額欄は必ず優先表示し、
+   商品名・店名は残りの幅に収め、入りきらない場合だけ左右に流れるアニメーションで見せる */
+.marquee-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;}
+.marquee-inner{display:inline-block;white-space:nowrap;}
+.marquee-wrap.marquee-active .marquee-inner{animation:txMarquee linear infinite;animation-duration:var(--marquee-duration,6s);}
+.tx-name .marquee-wrap{margin-left:0;}
+.tx-date .marquee-wrap{margin-left:2px;}
+.tx-name .receipt-mark{flex:0 0 auto;}
+@keyframes txMarquee{
   0%{transform:translateX(0);}
   100%{transform:translateX(-50%);}
 }
@@ -1263,7 +1267,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.103.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.103.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3729,8 +3733,9 @@ function renderHistoryTxList(idx) {
         // 1列目（商品名）：商品名 → 店名 → メモ → カテゴリ名 の優先順で表示する
         // （古い形式のデータはmemoしか持たないため、そのままmemoが使われる）
         const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
+        // 証憑マークは金額欄と同じく必ず優先表示する（flex-shrink:0）ため、商品名より先にHTMLだけ組み立てておく
         const receiptMark = t.receiptRef
-          ? `<span title="証憑あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.9;">
+          ? `<span class="receipt-mark" title="証憑あり" style="display:inline-flex;vertical-align:middle;opacity:0.9;">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                  <path d="M6 2h9l3 3v15l-3-2-3 2-3-2-3 2V2z"/>
                  <line x1="9" y1="8" x2="15" y2="8"/>
@@ -3738,37 +3743,39 @@ function renderHistoryTxList(idx) {
                </svg>
              </span>`
           : "";
-        // 2列目：日付・曜日・カテゴリは固定表示、店名だけは枠の厚みを変えずに
-        // 入りきらない場合だけ左右に流れるアニメーションで見せる（renderHistoryTxList実行後に判定）
+        // 2列目：日付・曜日・カテゴリは固定表示、店名だけは電光掲示板表示の対象にする
         const storeHtml = (!isFcOrSv && t.store)
-          ? `<span class="tx-store-wrap" data-store="${escapeHtml(t.store)}"><span class="tx-store-inner">・${escapeHtml(t.store)}</span></span>`
+          ? `<span class="marquee-wrap" data-marquee-text="・${escapeHtml(t.store)}"><span class="marquee-inner">・${escapeHtml(t.store)}</span></span>`
           : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
           <div class="tx-info">
-            <div class="tx-name">${escapeHtml(displayName)}${receiptMark}</div>
+            <div class="tx-name">
+              <span class="marquee-wrap" data-marquee-text="${escapeHtml(displayName)}"><span class="marquee-inner">${escapeHtml(displayName)}</span></span>${receiptMark}
+            </div>
             <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${escapeHtml(c.label)}</span>${storeHtml}</div>
           </div>
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
       }).join("");
 
-  applyStoreMarquee(el);
+  applyMarquee(el);
 }
 
-// 店名部分が枠に入りきらない場合だけ、左右に流れるアニメーションを付与する
-// （枠の厚みは変えず、テキストの横幅だけで判定する）
-function applyStoreMarquee(container) {
-  container.querySelectorAll(".tx-store-wrap").forEach(wrap => {
-    const inner = wrap.querySelector(".tx-store-inner");
+// 商品名・店名が枠に入りきらない場合だけ、左右に流れる電光掲示板風のアニメーションを付与する。
+// 証憑マーク・金額欄はCSS側でflex-shrink:0にしてあるため、常に優先的に表示され、
+// 商品名・店名は「残りの幅」に収まる分だけ静止表示し、収まらない分だけスクロールする。
+function applyMarquee(container) {
+  container.querySelectorAll(".marquee-wrap").forEach(wrap => {
+    const inner = wrap.querySelector(".marquee-inner");
     if (!inner) return;
     if (inner.scrollWidth > wrap.clientWidth) {
-      const text = wrap.dataset.store || "";
+      const text = wrap.dataset.marqueeText || inner.textContent;
       // 継ぎ目が目立たないよう、同じ文字列を余白付きで2回並べてループさせる
-      inner.innerHTML = `・${escapeHtml(text)}　　　・${escapeHtml(text)}`;
+      inner.innerHTML = `${text}　　　${text}`;
       const duration = Math.max(4, inner.scrollWidth / 40); // 長い文字列ほどゆっくり流す
       wrap.style.setProperty("--marquee-duration", duration + "s");
-      wrap.classList.add("marquee");
+      wrap.classList.add("marquee-active");
     }
   });
 }
