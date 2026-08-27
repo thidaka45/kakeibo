@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.106.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.107.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2019,35 +2019,37 @@ function syncCarryoverIfNeeded(editedTxDate) {
   const editedIdx = findPeriodIndexForDate(editedTxDate);
   if (editedIdx >= periods.length - 1) return; // 最新月度自体の修正は、繰越の再計算対象外
 
-  let confirmed = false;
-  let anyChanged = false;
+  syncCarryoverStep(periods, editedIdx, editedIdx, false, false);
+}
 
-  for (let p = editedIdx; p <= periods.length - 2; p++) {
-    const nextIdx = p + 1;
-    // 符号付きの残高（プラス・マイナスどちらもありうる。0円未満に切り詰めない）
-    const correctBalance =
-      periodTxs(p).filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0) -
-      periodTxs(p).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-
-    const allTxs = loadTx();
-    const carryoverMemo = `${periodLabel(p)}繰越`;
-    const existing = allTxs.find(t => t.source === "carryover" && t.memo === carryoverMemo &&
-      findPeriodIndexForDate(t.date) === nextIdx);
-    // 既存の繰越取引を符号付きの値に直す（収入＝プラス、支出＝マイナス）
-    const existingSigned = existing ? (existing.type === "income" ? existing.amount : -existing.amount) : 0;
-
-    if (correctBalance === existingSigned) continue; // このステップはズレなし。次の月度へ進む
-
-    if (!confirmed) {
-      const ok = confirm(
-        `${periodLabel(editedIdx)}の修正により、${periodLabel(nextIdx)}以降の繰越金額にズレが生じています。\n\n` +
-        `${periodLabel(periods.length - 1)}（最新月度）まで、影響する月度の繰越をすべて再計算して修正しますか？\n\n` +
-        `（「キャンセル」を選ぶと、繰越の記録は今のまま変更されません）`
-      );
-      if (!ok) return;
-      confirmed = true;
+// syncCarryoverIfNeededのループ本体（確認ポップアップが非同期のため、1期間ずつ再帰で処理する）
+function syncCarryoverStep(periods, p, editedIdx, confirmed, anyChanged) {
+  if (p > periods.length - 2) {
+    if (anyChanged) {
+      showToast(`繰越の記録を、${periodLabel(periods.length - 1)}まで連鎖的に再計算しました`);
     }
+    return;
+  }
 
+  const nextIdx = p + 1;
+  // 符号付きの残高（プラス・マイナスどちらもありうる。0円未満に切り詰めない）
+  const correctBalance =
+    periodTxs(p).filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0) -
+    periodTxs(p).filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+  const allTxs = loadTx();
+  const carryoverMemo = `${periodLabel(p)}繰越`;
+  const existing = allTxs.find(t => t.source === "carryover" && t.memo === carryoverMemo &&
+    findPeriodIndexForDate(t.date) === nextIdx);
+  // 既存の繰越取引を符号付きの値に直す（収入＝プラス、支出＝マイナス）
+  const existingSigned = existing ? (existing.type === "income" ? existing.amount : -existing.amount) : 0;
+
+  if (correctBalance === existingSigned) {
+    syncCarryoverStep(periods, p + 1, editedIdx, confirmed, anyChanged); // このステップはズレなし。次の月度へ進む
+    return;
+  }
+
+  const applyThisStep = () => {
     if (existing) {
       if (correctBalance !== 0) {
         existing.type = correctBalance > 0 ? "income" : "expense";
@@ -2069,11 +2071,18 @@ function syncCarryoverIfNeeded(editedTxDate) {
       });
       saveTx(allTxs);
     }
-    anyChanged = true;
-  }
+    syncCarryoverStep(periods, p + 1, editedIdx, true, true);
+  };
 
-  if (anyChanged) {
-    showToast(`繰越の記録を、${periodLabel(periods.length - 1)}まで連鎖的に再計算しました`);
+  if (!confirmed) {
+    showConfirmModal(
+      `${periodLabel(editedIdx)}の修正により、${periodLabel(nextIdx)}以降の繰越金額にズレが生じています。\n\n` +
+      `${periodLabel(periods.length - 1)}（最新月度）まで、影響する月度の繰越をすべて再計算して修正しますか？\n\n` +
+      `（「キャンセル」を選ぶと、繰越の記録は今のまま変更されません）`,
+      applyThisStep
+    );
+  } else {
+    applyThisStep();
   }
 }
 
@@ -2146,13 +2155,20 @@ function submitTx() {
   const dateForCheck = F("dateInput").value || todayLocalStr();
   const checkIdx = periods.length ? findPeriodIndexForDate(dateForCheck) : null;
   if (periods.length && checkIdx !== periods.length - 1) {
-    const ok = confirm(
+    showConfirmModal(
       `入力された日付（${dateForCheck}）は${periodLabel(checkIdx)}に属します。過去の月度です。\n\n` +
       `記録漏れの追記など、意図的な操作であれば「OK」を選んでください。\n` +
-      `（過去の集計・予算消化率などに影響します）`
+      `（過去の集計・予算消化率などに影響します）`,
+      submitTxProceed
     );
-    if (!ok) return;
+    return;
   }
+  submitTxProceed();
+}
+
+function submitTxProceed() {
+  const periods = ensurePeriods();
+  const dateForCheck = F("dateInput").value || todayLocalStr();
 
   // まだ準備されていない次の月度に属する日付は、登録自体を中断する
   // （レシート登録側=receiveFromUrlと同じ判定ロジックに統一）
@@ -2162,7 +2178,7 @@ function submitTx() {
     nextExpected.setMonth(nextExpected.getMonth() + 1);
     const nextExpectedStr = `${nextExpected.getFullYear()}-${String(nextExpected.getMonth() + 1).padStart(2, "0")}-${String(nextExpected.getDate()).padStart(2, "0")}`;
     if (dateForCheck >= nextExpectedStr) {
-      alert(
+      showAlertModal(
         `この日付（${dateForCheck}）は、まだ準備されていない次の月度に属します。\n\n` +
         `${nextExpectedStr}以降、新しい月度が始まってから改めて登録してください。`
       );
@@ -2301,6 +2317,33 @@ function openTxEdit(id) {
   continueOpenTxEdit(id);
 }
 
+// ===== 汎用の確認・通知ポップアップ（アプリ内独自デザイン。標準confirm/alertの置き換え用） =====
+// message内の改行(\n)は<br>に変換して表示する。DOMが無い場合のみ標準confirm/alertに素通りする。
+function showConfirmModal(message, onOk, onCancel) {
+  const modal = document.getElementById("genericConfirmModal");
+  if (!modal) { if (confirm(message)) { if (onOk) onOk(); } else { if (onCancel) onCancel(); } return; }
+  document.getElementById("genericConfirmMsg").innerHTML = escapeHtml(message).replace(/\n/g, "<br>");
+  const okBtn = document.getElementById("genericConfirmOkBtn");
+  const cancelBtn = document.getElementById("genericConfirmCancelBtn");
+  cancelBtn.style.display = "inline-block";
+  modal.style.display = "flex";
+  const cleanup = () => { modal.style.display = "none"; okBtn.onclick = null; cancelBtn.onclick = null; };
+  okBtn.onclick = () => { cleanup(); if (onOk) onOk(); };
+  cancelBtn.onclick = () => { cleanup(); if (onCancel) onCancel(); };
+}
+
+function showAlertModal(message, onOk) {
+  const modal = document.getElementById("genericConfirmModal");
+  if (!modal) { alert(message); if (onOk) onOk(); return; }
+  document.getElementById("genericConfirmMsg").innerHTML = escapeHtml(message).replace(/\n/g, "<br>");
+  const okBtn = document.getElementById("genericConfirmOkBtn");
+  const cancelBtn = document.getElementById("genericConfirmCancelBtn");
+  cancelBtn.style.display = "none";
+  modal.style.display = "flex";
+  const cleanup = () => { modal.style.display = "none"; okBtn.onclick = null; };
+  okBtn.onclick = () => { cleanup(); if (onOk) onOk(); };
+}
+
 // レシート由来の取引を編集する前に表示する、強調文字付きの確認ポップアップ
 function showReceiptEditWarnModal(onOk, onCancel) {
   const modal = document.getElementById("receiptEditWarnModal");
@@ -2319,13 +2362,18 @@ function continueOpenTxEdit(id) {
   const periods = ensurePeriods();
   const txPeriodIdx = findPeriodIndexForDate(tx.date);
   if (periods.length && txPeriodIdx !== periods.length - 1) {
-    const ok = confirm(
+    showConfirmModal(
       `${periodLabel(txPeriodIdx)}は過去の月度です。\n\n` +
       `記録漏れの修正など、意図的な操作であれば「OK」を選んでください。\n` +
-      `（過去の集計・予算消化率などに影響します）`
+      `（過去の集計・予算消化率などに影響します）`,
+      () => continueOpenTxEditProceed(id, tx)
     );
-    if (!ok) return;
+    return;
   }
+  continueOpenTxEditProceed(id, tx);
+}
+
+function continueOpenTxEditProceed(id, tx) {
   editingTxId = id;
 
   showPage(tx.type); // 'expense' または 'income'
@@ -2388,31 +2436,31 @@ function deleteTxEdit() {
       `証憑の整合性を保つため、このレシートに紐づく${siblings.length}件（合計¥${siblingTotal.toLocaleString()}）をまとめて削除します。\n\n` +
       `よろしいですか？\n（修正が必要な場合は、削除後に修正版のレシートを撮り直して登録し直してください）`;
   }
-  if (!confirm(confirmMsg)) return;
+  showConfirmModal(confirmMsg, () => {
+    const txs = loadTx();
+    const siblingIds = new Set(siblings.map(t => t.id));
+    let sharedReceiptRef = null;
+    for (const old of siblings) {
+      adjustBalance(old.type === "expense" ? old.amount : -old.amount);
+      revertFixedCostPaidFromTx(old.type, old.cat, old.date);
+      revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
+      syncCarryoverIfNeeded(old.date);
+      if (old.receiptRef) sharedReceiptRef = old.receiptRef;
+    }
+    const remaining = txs.filter(t => !siblingIds.has(t.id));
+    saveTx(remaining);
 
-  const txs = loadTx();
-  const siblingIds = new Set(siblings.map(t => t.id));
-  let sharedReceiptRef = null;
-  for (const old of siblings) {
-    adjustBalance(old.type === "expense" ? old.amount : -old.amount);
-    revertFixedCostPaidFromTx(old.type, old.cat, old.date);
-    revertSavingsBalanceFromTx(old.type, old.cat, old.amount);
-    syncCarryoverIfNeeded(old.date);
-    if (old.receiptRef) sharedReceiptRef = old.receiptRef;
-  }
-  const remaining = txs.filter(t => !siblingIds.has(t.id));
-  saveTx(remaining);
+    // 証憑画像は、紐づく取引をすべて削除し終えたタイミングで1回だけ削除する
+    if (sharedReceiptRef) {
+      deleteReceiptBlob(sharedReceiptRef).catch(() => {});
+      receiptIdSet.delete(sharedReceiptRef);
+    }
 
-  // 証憑画像は、紐づく取引をすべて削除し終えたタイミングで1回だけ削除する
-  if (sharedReceiptRef) {
-    deleteReceiptBlob(sharedReceiptRef).catch(() => {});
-    receiptIdSet.delete(sharedReceiptRef);
-  }
-
-  showToast(siblings.length > 1 ? `${siblings.length}件の取引を削除しました` : "取引を削除しました");
-  resetEditMode();
-  renderHome();
-  showPage("graph");
+    showToast(siblings.length > 1 ? `${siblings.length}件の取引を削除しました` : "取引を削除しました");
+    resetEditMode();
+    renderHome();
+    showPage("graph");
+  });
 }
 
 // 編集モードの状態・表示をリセットする（新規入力状態に戻す）
@@ -4070,26 +4118,26 @@ function importFullBackupFile(event) {
     const dateStr = payload.exportedAt
       ? new Date(payload.exportedAt).toLocaleString("ja-JP")
       : "不明";
-    const ok = confirm(
+    showConfirmModal(
       `このファイル（保存日時：${dateStr}）で、現在のこの端末のデータを全て上書きします。\n\n` +
-      `今のデータは全て消え、元に戻せません。よろしいですか？`
+      `今のデータは全て消え、元に戻せません。よろしいですか？`,
+      () => {
+        // 復元前に既存のバックアップ対象キーを一旦すべて削除する
+        // （バックアップ後に廃止されたキーが端末に残り続けるのを防ぐため）
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (isBackupKey(key)) localStorage.removeItem(key);
+        }
+        keys.forEach(k => localStorage.setItem(k, payload.data[k]));
+
+        // バックアップには証憑画像自体が含まれないため、復元直後は
+        // IndexedDBを丸ごと空にしておく（取り残しゴミの発生を未然に防ぐ）
+        clearAllReceiptBlobs().finally(() => {
+          showToast("データを復元しました。再読み込みします…");
+          setTimeout(() => location.reload(), 800);
+        });
+      }
     );
-    if (!ok) return;
-
-    // 復元前に既存のバックアップ対象キーを一旦すべて削除する
-    // （バックアップ後に廃止されたキーが端末に残り続けるのを防ぐため）
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (isBackupKey(key)) localStorage.removeItem(key);
-    }
-    keys.forEach(k => localStorage.setItem(k, payload.data[k]));
-
-    // バックアップには証憑画像自体が含まれないため、復元直後は
-    // IndexedDBを丸ごと空にしておく（取り残しゴミの発生を未然に防ぐ）
-    clearAllReceiptBlobs().finally(() => {
-      showToast("データを復元しました。再読み込みします…");
-      setTimeout(() => location.reload(), 800);
-    });
     return;
   };
   reader.onerror = () => showToast("ファイルの読み込みに失敗しました");
@@ -5245,10 +5293,32 @@ function saveSavingsPlan() {
   if (!amount) { showToast("必要金額を入力してください"); return; }
   if (!year || !month) { showToast("目標年月を選択してください"); return; }
 
-  let monthly = 0;
+  const commitSavingsPlan = (monthly) => {
+    const plans = loadSavingsPlans();
+    const isEditing = !!editingSavingsId;
+
+    if (editingSavingsId) {
+      const idx = plans.findIndex(p => p.id === editingSavingsId);
+      if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly };
+    } else {
+      plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly, monthsSinceContribution: 0 });
+    }
+
+    saveSavingsPlans(plans);
+    renderSavings();
+    renderHome();
+    if (isEditing) {
+      // 更新の場合は画面遷移せず、詳細画面に留まる
+      showToast(withdrawAmount > 0 ? `更新しました（${fmt(withdrawAmount)}を引き出しました）` : "更新しました");
+    } else {
+      closeSavingsForm();
+      showToast("積立プランを追加しました");
+    }
+  };
+
   if (!isOnce) {
     const { monthly: autoMonthly, months } = calcMonthly(amount, balance, year, month, cycle);
-    monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
+    const monthly = manualRaw ? parseInt(manualRaw, 10) : autoMonthly;
 
     // このペース・周期を続けた場合、期限までに目標金額へ到達できるか確認（周期分の積立回数のみで判定。「都度」は確認しない）
     const contributions = calcRemainingContributions(months, cycle);
@@ -5256,48 +5326,32 @@ function saveSavingsPlan() {
     if (amount > 0 && projected < amount) {
       const shortage = amount - projected;
       const cycleNote = cycle > 1 ? `（${cycle}ヶ月ごと）` : "";
-      const ok = confirm(
+      showConfirmModal(
         `この積立額${cycleNote}（${fmt(monthly)}）では、期限までに目標金額（${fmt(amount)}）に届きません。\n` +
         `不足見込み額：${fmt(shortage)}\n\n` +
-        `このまま保存してよろしいですか？`
+        `このまま保存してよろしいですか？`,
+        () => commitSavingsPlan(monthly)
       );
-      if (!ok) return;
+      return;
     }
-  }
-
-  const plans = loadSavingsPlans();
-  const isEditing = !!editingSavingsId;
-
-  if (editingSavingsId) {
-    const idx = plans.findIndex(p => p.id === editingSavingsId);
-    if (idx >= 0) plans[idx] = { ...plans[idx], name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly };
+    commitSavingsPlan(monthly);
   } else {
-    plans.push({ id: Date.now().toString(), name, amount, balance, targetYear:year, targetMonth:month, cycle, icon, monthly, monthsSinceContribution: 0 });
-  }
-
-  saveSavingsPlans(plans);
-  renderSavings();
-  renderHome();
-  if (isEditing) {
-    // 更新の場合は画面遷移せず、詳細画面に留まる
-    showToast(withdrawAmount > 0 ? `更新しました（${fmt(withdrawAmount)}を引き出しました）` : "更新しました");
-  } else {
-    closeSavingsForm();
-    showToast("積立プランを追加しました");
+    commitSavingsPlan(0);
   }
 }
 
 function deleteSavingsPlan(id) {
   if (!id) return;
-  if (!confirm("この積立プランを削除しますか？")) return;
-  const target = loadSavingsPlans().find(p => p.id === id);
-  if (target) archiveDeletedCatLabel("sv_" + id, target.name);
-  const plans = loadSavingsPlans().filter(p => p.id !== id);
-  saveSavingsPlans(plans);
-  closeSavingsForm();
-  renderSavings();
-  renderHome();
-  showToast("削除しました");
+  showConfirmModal("この積立プランを削除しますか？", () => {
+    const target = loadSavingsPlans().find(p => p.id === id);
+    if (target) archiveDeletedCatLabel("sv_" + id, target.name);
+    const plans = loadSavingsPlans().filter(p => p.id !== id);
+    saveSavingsPlans(plans);
+    closeSavingsForm();
+    renderSavings();
+    renderHome();
+    showToast("削除しました");
+  });
 }
 
 // ============================================================
@@ -5659,16 +5713,17 @@ function toggleFixedCostPinned(id) {
 
 function deleteFixedCostItem(id) {
   if (!id) return;
-  if (!confirm("この固定費項目を削除しますか？")) return;
-  const cycle = ensureCycle();
-  const target = cycle.fixed_costs.find(i => i.id === id);
-  if (target) archiveDeletedCatLabel("fc_" + id, target.item);
-  cycle.fixed_costs = cycle.fixed_costs.filter(i => i.id !== id);
-  saveCycle(cycle);
-  closeFixedCostForm();
-  renderFixedCostsPage();
-  renderHome();
-  showToast("削除しました");
+  showConfirmModal("この固定費項目を削除しますか？", () => {
+    const cycle = ensureCycle();
+    const target = cycle.fixed_costs.find(i => i.id === id);
+    if (target) archiveDeletedCatLabel("fc_" + id, target.item);
+    cycle.fixed_costs = cycle.fixed_costs.filter(i => i.id !== id);
+    saveCycle(cycle);
+    closeFixedCostForm();
+    renderFixedCostsPage();
+    renderHome();
+    showToast("削除しました");
+  });
 }
 
 // レシート記録ボタンの長押し検出（誤操作でShortcutsが起動しないように）
@@ -5717,9 +5772,13 @@ function startNewMonth(silent) {
     const confirmMsg = isFirstTime
       ? "初期設定を開始します。ここから収入・固定費・積立費の登録に進みます。よろしいですか？"
       : "新しい月度を開始します。積立・固定費は前月の内容を引き継ぎます。まず収入（給与など）を入力してください。よろしいですか？";
-    if (!confirm(confirmMsg)) return;
+    showConfirmModal(confirmMsg, () => startNewMonthProceed(silent, periods, isFirstTime));
+    return;
   }
+  startNewMonthProceed(silent, periods, isFirstTime);
+}
 
+function startNewMonthProceed(silent, periods, isFirstTime) {
   const today = todayLocalStr();
   const prevIdx = periods.length - 1; // 移行前時点でのインデックス＝直前の月度
 
@@ -5887,63 +5946,71 @@ function normalizeDateStr(raw) {
   return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
-// 日付の妥当性を確認し、必要なら利用者に確認ダイアログを出した上で、
-// 実際に記録に使う日付（またはnull＝登録中断）を返す。
+// 日付の妥当性を確認し、必要なら利用者に確認ポップアップを出した上で、
+// 実際に記録に使う日付（またはnull＝登録中断）を、コールバックonResolvedに渡す。
 // レシート全体で1回だけ判定するための共通処理（単一品目・複数品目どちらからも呼ばれる）。
-function resolveReceiptFinalDate(date, store, displayAmount) {
-  let finalDate = date;
+function resolveReceiptFinalDate(date, store, displayAmount, onResolved) {
   const today = new Date();
   const todayStr = todayLocalStr();
   const daysDiff = Math.round((today - new Date(date)) / (1000 * 60 * 60 * 24));
-  if (Math.abs(daysDiff) > 365) {
-    const useReceiptDate = confirm(
-      `${store} ¥${displayAmount.toLocaleString()}\n\n` +
-      `レシートの日付が「${date}」と、今日（${todayStr}）から大きく離れています。\n\n` +
-      `「OK」→ レシートの日付（${date}）のまま記録します\n` +
-      `「キャンセル」→ 今日の日付（${todayStr}）で記録します`
-    );
-    if (!useReceiptDate) finalDate = todayStr;
-  }
 
-  // 日付を、今の月度（最新の月度）と直接比較して振り分ける。
-  // ①今の月度の範囲内 → 確認なしでそのまま登録
-  // ②今の月度の開始日より前（既に終了した月度） → 確認の上で登録するか選べる
-  // ③今の月度の終了予定日以降（まだ作られていない次の月度） → 登録せず終了する
-  const periodsForCheck = ensurePeriods();
-  if (periodsForCheck.length) {
+  const afterDateDiffCheck = (finalDate) => {
+    // 日付を、今の月度（最新の月度）と直接比較して振り分ける。
+    // ①今の月度の範囲内 → 確認なしでそのまま登録
+    // ②今の月度の開始日より前（既に終了した月度） → 確認の上で登録するか選べる
+    // ③今の月度の終了予定日以降（まだ作られていない次の月度） → 登録せず終了する
+    const periodsForCheck = ensurePeriods();
+    if (!periodsForCheck.length) { onResolved(finalDate); return; }
+
     const curIdx = periodsForCheck.length - 1;
     const curPeriod = periodsForCheck[curIdx];
 
     if (finalDate < curPeriod.start_date) {
       // ②既に終了した月度
       const dateIdx = findPeriodIndexForDate(finalDate);
-      const okPastPeriod = confirm(
+      showConfirmModal(
         `${store} ¥${displayAmount.toLocaleString()}\n\n` +
         `この日付（${finalDate}）は「${periodLabel(dateIdx)}」に属し、既に終了した月度です。\n\n` +
         `「OK」→ このまま${periodLabel(dateIdx)}の記録として登録します\n` +
-        `「キャンセル」→ 今日の日付（${todayStr}）で、今の月度に記録します`
+        `「キャンセル」→ 今日の日付（${todayStr}）で、今の月度に記録します`,
+        () => onResolved(finalDate),
+        () => onResolved(todayStr)
       );
-      if (!okPastPeriod) finalDate = todayStr;
-    } else {
-      // 今の月度の「終了予定日（＝次の月度が始まるはずの日）」を、開始日の1か月後として推定する
-      const nextExpected = new Date(curPeriod.start_date);
-      nextExpected.setMonth(nextExpected.getMonth() + 1);
-      const nextExpectedStr = `${nextExpected.getFullYear()}-${String(nextExpected.getMonth() + 1).padStart(2, "0")}-${String(nextExpected.getDate()).padStart(2, "0")}`;
-
-      if (finalDate >= nextExpectedStr) {
-        // ③まだ作られていない次の月度
-        alert(
-          `${store} ¥${displayAmount.toLocaleString()}\n\n` +
-          `この日付（${finalDate}）は、まだ準備されていない次の月度に属します。\n\n` +
-          `${nextExpectedStr}以降、新しい月度が始まってから改めて登録してください。\n` +
-          `（この取引は登録されていません）`
-        );
-        return null; // 登録処理を中断する
-      }
-      // ①今の月度の範囲内 → 何もせずそのまま進む
+      return;
     }
+
+    // 今の月度の「終了予定日（＝次の月度が始まるはずの日）」を、開始日の1か月後として推定する
+    const nextExpected = new Date(curPeriod.start_date);
+    nextExpected.setMonth(nextExpected.getMonth() + 1);
+    const nextExpectedStr = `${nextExpected.getFullYear()}-${String(nextExpected.getMonth() + 1).padStart(2, "0")}-${String(nextExpected.getDate()).padStart(2, "0")}`;
+
+    if (finalDate >= nextExpectedStr) {
+      // ③まだ作られていない次の月度
+      showAlertModal(
+        `${store} ¥${displayAmount.toLocaleString()}\n\n` +
+        `この日付（${finalDate}）は、まだ準備されていない次の月度に属します。\n\n` +
+        `${nextExpectedStr}以降、新しい月度が始まってから改めて登録してください。\n` +
+        `（この取引は登録されていません）`,
+        () => onResolved(null) // 登録処理を中断する
+      );
+      return;
+    }
+    // ①今の月度の範囲内 → 何もせずそのまま進む
+    onResolved(finalDate);
+  };
+
+  if (Math.abs(daysDiff) > 365) {
+    showConfirmModal(
+      `${store} ¥${displayAmount.toLocaleString()}\n\n` +
+      `レシートの日付が「${date}」と、今日（${todayStr}）から大きく離れています。\n\n` +
+      `「OK」→ レシートの日付（${date}）のまま記録します\n` +
+      `「キャンセル」→ 今日の日付（${todayStr}）で記録します`,
+      () => afterDateDiffCheck(date),
+      () => afterDateDiffCheck(todayStr)
+    );
+  } else {
+    afterDateDiffCheck(date);
   }
-  return finalDate;
 }
 
 function receiveFromUrl() {
@@ -5980,7 +6047,7 @@ function receiveSingleItemFromUrl(raw) {
     return;
   }
 
-  const finalDate = resolveReceiptFinalDate(date, store, amount);
+  resolveReceiptFinalDate(date, store, amount, (finalDate) => {
   if (!finalDate) return;
 
   // 固定費への紐付けは、登録時の自動マッチングではなく、取引履歴からの手動編集で
@@ -6011,6 +6078,7 @@ function receiveSingleItemFromUrl(raw) {
       ? `${finalDate} ${store} ¥${amount.toLocaleString()} を「${matched.label}」で記録しました`
       : `${finalDate} ${store} ¥${amount.toLocaleString()} を記録しました（カテゴリ「${rawCat}」は未対応のため「${CATS_EXPENSE[0].label}」にしました）`
   );
+  });
 }
 
 // 新形式（1レシート＝複数品目）の受け取り処理。
@@ -6052,53 +6120,58 @@ function receiveMultiItemFromUrl(raw) {
 
   const itemsTotal = items.reduce((s, it) => s + it.amount, 0);
 
+  const registerMultiItems = () => {
+    resolveReceiptFinalDate(date, store, itemsTotal, (finalDate) => {
+      if (!finalDate) return;
+
+      const txs = loadTx();
+      const catCounts = {};
+      let baseId = Date.now();
+      for (const item of items) {
+        const matched = CATS_EXPENSE.find(c => c.label === item.cat);
+        const cat = matched ? matched.id : CATS_EXPENSE[0].id;
+        catCounts[matched ? matched.label : CATS_EXPENSE[0].label] =
+          (catCounts[matched ? matched.label : CATS_EXPENSE[0].label] || 0) + 1;
+        txs.push({
+          id: baseId++, // 同一ミリ秒内でIDが衝突しないよう、品目ごとに1ずつ増やす
+          type: "expense",
+          cat,
+          amount: item.amount,
+          item: item.name, // 商品名と店名を独立した項目として保持する
+          store: store || "",
+          date: finalDate,
+          source: "receipt",
+          receiptRef: rawRef || null // 同じレシートの品目はすべて同じ証憑IDを共有する
+        });
+        adjustBalance(-item.amount);
+      }
+      saveTx(txs);
+      syncCarryoverIfNeeded(finalDate);
+
+      if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
+
+      const catSummary = Object.entries(catCounts).map(([label, n]) => `${label}${n}件`).join("、");
+      showToast(
+        `${finalDate} ${store} ${items.length}品目 ¥${itemsTotal.toLocaleString()} を記録しました（${catSummary}）`
+      );
+    });
+  };
+
   // 品目合計とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
   // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
   if (itemsTotal !== receiptTotal) {
     const diff = receiptTotal - itemsTotal;
-    const proceed = confirm(
+    showConfirmModal(
       `${store}\n\n` +
       `⚠️ 品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません（差額 ¥${diff.toLocaleString()}）。\n\n` +
       `品目の読み落とし・誤読の可能性があります。手元のレシートと見比べてご確認ください。\n\n` +
       `「OK」→ このまま${items.length}品目（合計¥${itemsTotal.toLocaleString()}）を登録します\n` +
-      `「キャンセル」→ 登録せずに終了します（撮り直してやり直してください）`
+      `「キャンセル」→ 登録せずに終了します（撮り直してやり直してください）`,
+      registerMultiItems
     );
-    if (!proceed) return;
+  } else {
+    registerMultiItems();
   }
-
-  const finalDate = resolveReceiptFinalDate(date, store, itemsTotal);
-  if (!finalDate) return;
-
-  const txs = loadTx();
-  const catCounts = {};
-  let baseId = Date.now();
-  for (const item of items) {
-    const matched = CATS_EXPENSE.find(c => c.label === item.cat);
-    const cat = matched ? matched.id : CATS_EXPENSE[0].id;
-    catCounts[matched ? matched.label : CATS_EXPENSE[0].label] =
-      (catCounts[matched ? matched.label : CATS_EXPENSE[0].label] || 0) + 1;
-    txs.push({
-      id: baseId++, // 同一ミリ秒内でIDが衝突しないよう、品目ごとに1ずつ増やす
-      type: "expense",
-      cat,
-      amount: item.amount,
-      item: item.name, // 商品名と店名を独立した項目として保持する
-      store: store || "",
-      date: finalDate,
-      source: "receipt",
-      receiptRef: rawRef || null // 同じレシートの品目はすべて同じ証憑IDを共有する
-    });
-    adjustBalance(-item.amount);
-  }
-  saveTx(txs);
-  syncCarryoverIfNeeded(finalDate);
-
-  if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
-
-  const catSummary = Object.entries(catCounts).map(([label, n]) => `${label}${n}件`).join("、");
-  showToast(
-    `${finalDate} ${store} ${items.length}品目 ¥${itemsTotal.toLocaleString()} を記録しました（${catSummary}）`
-  );
 }
 
 // ============================================================
@@ -6263,6 +6336,17 @@ init();
     <div style="display:flex;gap:10px;">
       <button id="receiptEditWarnCancelBtn" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">キャンセル</button>
       <button id="receiptEditWarnOkBtn" style="flex:1;padding:12px;border-radius:10px;border:none;background:#d32f2f;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- 汎用の確認・通知ポップアップ（標準confirm/alertの置き換え） -->
+<div id="genericConfirmModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:var(--card,#fff);border-radius:16px;padding:22px 20px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+    <p id="genericConfirmMsg" style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 18px;color:var(--text,#222);white-space:pre-line;"></p>
+    <div style="display:flex;gap:10px;">
+      <button id="genericConfirmCancelBtn" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">キャンセル</button>
+      <button id="genericConfirmOkBtn" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--blue,#2f6fd3);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">OK</button>
     </div>
   </div>
 </div>
