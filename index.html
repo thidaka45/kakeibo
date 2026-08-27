@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.105.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.106.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2292,13 +2292,30 @@ function openTxEdit(id) {
   // レシートから読み取り登録した取引の場合、更新画面に入る前に、
   // 証憑（レシート画像）との整合性が取れなくなる可能性をあらかじめ確認する
   if (tx.source === "receipt" || tx.receiptRef) {
-    const okReceipt = confirm(
-      "この取引はレシートから読み取り登録されたものです。\n\n" +
-      "内容を更新すると、証憑（レシート画像）の記載と差異が生じ、整合性が取れなくなる場合があります。\n\n" +
-      "よろしければ「OK」を選んでください。"
+    showReceiptEditWarnModal(
+      () => continueOpenTxEdit(id),
+      () => showPage("graph")
     );
-    if (!okReceipt) { showPage("graph"); return; }
+    return;
   }
+  continueOpenTxEdit(id);
+}
+
+// レシート由来の取引を編集する前に表示する、強調文字付きの確認ポップアップ
+function showReceiptEditWarnModal(onOk, onCancel) {
+  const modal = document.getElementById("receiptEditWarnModal");
+  if (!modal) { if (onOk) onOk(); return; } // 万一DOMが無ければ従来通り素通り
+  modal.style.display = "flex";
+  const okBtn = document.getElementById("receiptEditWarnOkBtn");
+  const cancelBtn = document.getElementById("receiptEditWarnCancelBtn");
+  const cleanup = () => { modal.style.display = "none"; okBtn.onclick = null; cancelBtn.onclick = null; };
+  okBtn.onclick = () => { cleanup(); if (onOk) onOk(); };
+  cancelBtn.onclick = () => { cleanup(); if (onCancel) onCancel(); };
+}
+
+function continueOpenTxEdit(id) {
+  const tx = loadTx().find(t => t.id === id);
+  if (!tx) return;
   const periods = ensurePeriods();
   const txPeriodIdx = findPeriodIndexForDate(tx.date);
   if (periods.length && txPeriodIdx !== periods.length - 1) {
@@ -6234,6 +6251,19 @@ init();
   </div>
   <div class="receipt-viewer-body">
     <img id="receiptViewerImg" src="" alt="レシート画像">
+  </div>
+</div>
+
+<!-- レシート由来の取引を編集する前の確認ポップアップ -->
+<div id="receiptEditWarnModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:var(--card,#fff);border-radius:16px;padding:22px 20px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+    <p style="font-size:19px;font-weight:700;line-height:1.6;margin:0 0 10px;color:var(--text,#222);">この取引はレシートから読み取り登録されたものです。</p>
+    <p style="font-size:19px;font-weight:800;line-height:1.6;margin:0 0 10px;color:#d32f2f;">内容を更新すると、証憑（レシート画像）の記載と差異が生じ、整合性が取れなくなる場合があります。</p>
+    <p style="font-size:19px;font-weight:700;line-height:1.6;margin:0 0 18px;color:var(--text,#222);">よろしければ「OK」を選んでください。</p>
+    <div style="display:flex;gap:10px;">
+      <button id="receiptEditWarnCancelBtn" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">キャンセル</button>
+      <button id="receiptEditWarnOkBtn" style="flex:1;padding:12px;border-radius:10px;border:none;background:#d32f2f;color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;">OK</button>
+    </div>
   </div>
 </div>
 
