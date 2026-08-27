@@ -119,14 +119,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 .tx-name{font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
 .tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;min-width:0;}
 .tx-date .tx-date-fixed{flex:0 0 auto;white-space:nowrap;}
+.tx-date .tx-date-sep{flex:0 0 auto;white-space:nowrap;margin-left:2px;}
 .tx-amount{font-size:17px;font-weight:700;flex:0 0 auto;white-space:nowrap;}
 /* 商品名・店名の電光掲示板表示：証憑マーク・金額欄は必ず優先表示し、
-   商品名・店名は残りの幅に収め、入りきらない場合だけ左右に流れるアニメーションで見せる */
-.marquee-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;}
-.marquee-inner{display:inline-block;white-space:nowrap;}
+   商品名・店名は残りの幅に収め、入りきらない場合だけ左右に流れるアニメーションで見せる。
+   フォントサイズ・太さ・色は、必ず親（商品名は.tx-name／店名は.tx-date）にそろえる。 */
+.marquee-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;font:inherit;color:inherit;}
+.marquee-inner{display:inline-block;white-space:nowrap;font:inherit;color:inherit;}
 .marquee-wrap.marquee-active .marquee-inner{animation:txMarquee linear infinite;animation-duration:var(--marquee-duration,6s);}
 .tx-name .marquee-wrap{margin-left:0;}
-.tx-date .marquee-wrap{margin-left:2px;}
+.tx-date .marquee-wrap{margin-left:0;}
 .tx-name .receipt-mark{flex:0 0 auto;}
 @keyframes txMarquee{
   0%{transform:translateX(0);}
@@ -515,7 +517,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   <div style="flex-shrink:0;padding:10px 21px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
     <div style="display:flex;gap:6px;margin-top:6px;align-items:stretch;">
-      <select id="historySearchMode" class="field-input" style="flex:0 0 25%;font-size:13px;padding:8px 2px;text-align-last:center;" onchange="onHistorySearchModeChange()">
+      <select id="historySearchMode" class="field-input" style="flex:0 0 25%;font-size:15px;height:42px;padding:8px 2px;text-align-last:center;box-sizing:border-box;" onchange="onHistorySearchModeChange()">
+        <option value="" selected>すべて</option>
         <option value="item">商品名</option>
         <option value="store">店名</option>
         <option value="cat">カテゴリ</option>
@@ -523,9 +526,10 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
         <option value="date">日付</option>
       </select>
       <div style="flex:1 1 75%;min-width:0;">
-        <input type="text" id="historyTxSearchInput" class="field-input" placeholder="商品名で絞り込み" style="font-size:15px;width:100%;box-sizing:border-box;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
-        <select id="historyTxSearchCat" class="field-input" style="font-size:15px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)"></select>
-        <input type="date" id="historyTxSearchDate" class="field-input" style="font-size:15px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)">
+        <input type="text" id="historyTxSearchInput" class="field-input" placeholder="商品名で絞り込み" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
+        <select id="historyTxSearchCat" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)"></select>
+        <input type="date" id="historyTxSearchDate" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:none;align-items:center;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)">
+        <div id="historySearchAllLabel" class="field-input" style="font-size:15px;height:42px;width:100%;box-sizing:border-box;display:flex;align-items:center;color:var(--sub);background:transparent;border-color:transparent;">すべての取引を表示中</div>
       </div>
     </div>
   </div>
@@ -1267,7 +1271,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.103.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.103.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3640,6 +3644,7 @@ async function reselectCurrentReceiptPhoto() {
 
 // 履歴検索：モードごとの設定（プレースホルダー・どの入力欄を出すか）
 const HISTORY_SEARCH_MODES = {
+  "":    { label: "すべて",  kind: "none" }, // 初期値。何も絞り込まず全件表示する
   item:  { label: "商品名", kind: "text", placeholder: "商品名で絞り込み" },
   store: { label: "店名",   kind: "text", placeholder: "店名で絞り込み" },
   cat:   { label: "カテゴリ", kind: "select" },
@@ -3650,12 +3655,13 @@ const HISTORY_SEARCH_MODES = {
 // 検索モードのプルダウンが変更されたときに、対応する入力欄だけを表示する
 function onHistorySearchModeChange() {
   const modeSel = document.getElementById("historySearchMode");
-  const mode = modeSel ? modeSel.value : "item";
-  const conf = HISTORY_SEARCH_MODES[mode] || HISTORY_SEARCH_MODES.item;
+  const mode = modeSel ? modeSel.value : "";
+  const conf = HISTORY_SEARCH_MODES[mode] || HISTORY_SEARCH_MODES[""];
 
   const textInput = document.getElementById("historyTxSearchInput");
   const catSelect = document.getElementById("historyTxSearchCat");
   const dateInput = document.getElementById("historyTxSearchDate");
+  const allLabel  = document.getElementById("historySearchAllLabel");
 
   if (textInput) {
     textInput.style.display = conf.kind === "text" ? "block" : "none";
@@ -3670,8 +3676,12 @@ function onHistorySearchModeChange() {
     }
   }
   if (dateInput) {
-    dateInput.style.display = conf.kind === "date" ? "block" : "none";
+    // type=date はブロック表示だと入力値が縦中央にならないため、この欄だけflex表示にして中央揃えにする
+    dateInput.style.display = conf.kind === "date" ? "flex" : "none";
     if (conf.kind === "date") dateInput.value = "";
+  }
+  if (allLabel) {
+    allLabel.style.display = conf.kind === "none" ? "flex" : "none";
   }
   renderHistoryTxList(selectedGraphPeriodIdx);
 }
@@ -3683,7 +3693,7 @@ function renderHistoryTxList(idx) {
   if (!periods.length || idx === null || !periods[idx]) { el.innerHTML = ""; return; }
 
   const modeSel = document.getElementById("historySearchMode");
-  const mode = modeSel ? modeSel.value : "item";
+  const mode = modeSel ? modeSel.value : "";
   const textInput = document.getElementById("historyTxSearchInput");
   const catSelect = document.getElementById("historyTxSearchCat");
   const dateInput = document.getElementById("historyTxSearchDate");
@@ -3693,7 +3703,9 @@ function renderHistoryTxList(idx) {
   const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
   let hasCondition = false;
-  if (mode === "cat") {
+  if (mode === "") {
+    // 「すべて」モード：絞り込みは行わない
+  } else if (mode === "cat") {
     const catLabel = catSelect ? catSelect.value : "";
     if (catLabel) {
       hasCondition = true;
@@ -3743,9 +3755,10 @@ function renderHistoryTxList(idx) {
                </svg>
              </span>`
           : "";
-        // 2列目：日付・曜日・カテゴリは固定表示、店名だけは電光掲示板表示の対象にする
+        // 2列目：日付・曜日・カテゴリ・区切りの「・」は固定表示し、店名部分だけを電光掲示板表示の対象にする
+        // （「・」が店名と一緒にスクロールしてしまわないよう、区切り文字は別要素にする）
         const storeHtml = (!isFcOrSv && t.store)
-          ? `<span class="marquee-wrap" data-marquee-text="・${escapeHtml(t.store)}"><span class="marquee-inner">・${escapeHtml(t.store)}</span></span>`
+          ? `<span class="tx-date-sep">・</span><span class="marquee-wrap" data-marquee-text="${escapeHtml(t.store)}"><span class="marquee-inner">${escapeHtml(t.store)}</span></span>`
           : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
