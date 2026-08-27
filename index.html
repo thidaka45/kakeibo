@@ -116,7 +116,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 .tx-item:last-child{border-bottom:none;}
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .tx-info{flex:1 1 auto;min-width:0;} /* min-width:0が無いと、長い文字列がflexの外側（金額欄）を押し出してしまう */
-.tx-name{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
+.tx-name{font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:4px;min-width:0;}
 .tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;min-width:0;}
 .tx-date .tx-date-fixed{flex:0 0 auto;white-space:nowrap;}
 .tx-date .tx-date-sep{flex:0 0 auto;white-space:nowrap;margin-left:2px;}
@@ -1271,7 +1271,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.104.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.104.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -3769,7 +3769,7 @@ function renderHistoryTxList(idx) {
         // 2列目：日付・曜日・カテゴリ・区切りの「・」は固定表示し、店名部分だけを電光掲示板表示の対象にする
         // （「・」が店名と一緒にスクロールしてしまわないよう、区切り文字は別要素にする）
         const storeHtml = (!isFcOrSv && t.store)
-          ? `<span class="tx-date-sep">・</span><span class="marquee-wrap" data-marquee-text="${escapeHtml(t.store)}"><span class="marquee-inner">${escapeHtml(t.store)}</span></span>`
+          ? `<span class="tx-date-sep">　</span><span class="marquee-wrap" data-marquee-text="${escapeHtml(t.store)}"><span class="marquee-inner">${escapeHtml(t.store)}</span></span>`
           : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
@@ -3881,6 +3881,15 @@ function resetInProgressInputOnLeave(pageName) {
     const cash = document.getElementById("cfCashInput");
     if (bank) bank.value = "";
     if (cash) cash.value = "";
+  }
+  if (pageName === "graph") {
+    // 取引実績：検索モード・絞り込み条件は一時的な表示設定であり、
+    // 画面を離れたら次に開いたときは「すべて」表示からやり直せるようにする
+    const modeSel = document.getElementById("historySearchMode");
+    if (modeSel && modeSel.value !== "") {
+      modeSel.value = "";
+      onHistorySearchModeChange();
+    }
   }
 }
 
