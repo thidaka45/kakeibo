@@ -117,8 +117,17 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 .tx-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
 .tx-info{flex:1;}
 .tx-name{font-size:16px;font-weight:600;color:var(--text);}
-.tx-date{font-size:13px;color:var(--sub);margin-top:2px;}
+.tx-date{font-size:13px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:0;overflow:hidden;}
+.tx-date .tx-date-fixed{flex:0 0 auto;white-space:nowrap;}
 .tx-amount{font-size:17px;font-weight:700;}
+/* 店名表示：枠の厚みは変えず、入りきらない場合だけ左右に流れるアニメーションで見せる */
+.tx-store-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;margin-left:2px;}
+.tx-store-inner{display:inline-block;white-space:nowrap;}
+.tx-store-wrap.marquee .tx-store-inner{animation:txStoreMarquee linear infinite;animation-duration:var(--marquee-duration,6s);}
+@keyframes txStoreMarquee{
+  0%{transform:translateX(0);}
+  100%{transform:translateX(-50%);}
+}
 .tx-amount.income{color:var(--green);}
 .tx-amount.expense{color:var(--red);}
 
@@ -382,9 +391,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
         <input class="field-input" id="catNameInput_expense" type="text" placeholder="項目名（例: 食料品）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('expense')">
       </div>
     </div>
+    <!-- 商品名・内容 -->
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="itemInput_expense" type="text" placeholder="商品名・内容（任意）"
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;box-sizing:border-box;">
+    </div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
-      <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意）"
+      <textarea class="field-input" id="memoInput_expense" placeholder="メモ（任意の補足）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
       <button id="receiptAccessBtn_expense" onclick="handleReceiptButtonClick()" title="証憑を選択"
         style="display:inline-flex;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
@@ -435,9 +449,14 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
       <button type="button" id="catIconBtn_income" onclick="openCatIconPicker('income')" style="width:100%;padding:8px 4px;height:44px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-s);background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;"></button>
       <input class="field-input" id="catNameInput_income" type="text" placeholder="項目名（例: 給与）" style="width:100%;padding:8px 10px;font-size:16px;" oninput="onCatNameInput('income')">
     </div>
+    <!-- 商品名・内容 -->
+    <div style="margin-bottom:6px;">
+      <input class="field-input" id="itemInput_income" type="text" placeholder="商品名・内容（任意）"
+        style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;box-sizing:border-box;">
+    </div>
     <!-- メモ -->
     <div style="position:relative;margin-bottom:6px;">
-      <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意）"
+      <textarea class="field-input" id="memoInput_income" placeholder="メモ（任意の補足）"
         style="padding:8px 12px;font-size:17px;font-weight:600;width:100%;resize:none;line-height:1.5;font-family:inherit;box-sizing:border-box;"></textarea>
       <button id="receiptAccessBtn_income" onclick="handleReceiptButtonClick()" title="証憑を選択"
         style="display:inline-flex;position:absolute;top:6px;right:6px;border:none;background:var(--blue-l);border-radius:8px;padding:6px 10px;align-items:center;gap:4px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:var(--blue);">
@@ -491,7 +510,20 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 <div class="page" id="page-graph" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
   <div style="flex-shrink:0;padding:10px 21px 6px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
     <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">取引実績</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
-    <input type="text" id="historyTxSearchInput" class="field-input" placeholder="店名・メモ・カテゴリで絞り込み" style="margin-top:6px;font-size:15px;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
+    <div style="display:flex;gap:6px;margin-top:6px;align-items:stretch;">
+      <select id="historySearchMode" class="field-input" style="flex:0 0 25%;font-size:13px;padding:8px 2px;text-align-last:center;" onchange="onHistorySearchModeChange()">
+        <option value="item">商品名</option>
+        <option value="store">店名</option>
+        <option value="cat">カテゴリ</option>
+        <option value="memo">メモ</option>
+        <option value="date">日付</option>
+      </select>
+      <div style="flex:1 1 75%;min-width:0;">
+        <input type="text" id="historyTxSearchInput" class="field-input" placeholder="商品名で絞り込み" style="font-size:15px;width:100%;box-sizing:border-box;" oninput="renderHistoryTxList(selectedGraphPeriodIdx)">
+        <select id="historyTxSearchCat" class="field-input" style="font-size:15px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)"></select>
+        <input type="date" id="historyTxSearchDate" class="field-input" style="font-size:15px;width:100%;box-sizing:border-box;display:none;" onchange="renderHistoryTxList(selectedGraphPeriodIdx)">
+      </div>
+    </div>
   </div>
   <!-- 履歴リストのみが独立してスクロールする領域（9件分の高さに固定し、それ以上はスクロール） -->
   <div style="flex:none;height:596px;overflow-y:scroll;padding:0 21px calc(28px + env(safe-area-inset-bottom));max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;">
@@ -1231,7 +1263,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.102.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.103.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -1447,6 +1479,12 @@ function updatePeriodNavButtons() {
 }
 
 function fmt(n) { return n < 0 ? "-¥" + Math.abs(n).toLocaleString("ja-JP") : "¥" + n.toLocaleString("ja-JP"); }
+// 商品名・店名など、外部（AI/OCR）由来の文字列をHTMLとして安全に挿入するためのエスケープ
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
 // 店名・カテゴリ名などOCR由来の自由入力文字列をinnerHTMLに挿入する際に使う簡易エスケープ
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
@@ -1621,12 +1659,12 @@ function renderHome() {
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
         const d  = new Date(t.date);
         const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
-        const displayName = isFcOrSv ? c.label : (t.memo || c.label);
+        const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
         return `<div class="tx-item">
           <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
           <div class="tx-info">
-            <div class="tx-name">${displayName}</div>
-            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}  ${c.label}</div>
+            <div class="tx-name">${escapeHtml(displayName)}</div>
+            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}  ${escapeHtml(c.label)}</div>
           </div>
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
@@ -2137,6 +2175,7 @@ function submitTx() {
   }
 
   const date = F("dateInput").value || todayLocalStr();
+  const item = (F("itemInput") ? F("itemInput").value : "") || "";
   const memo = F("memoInput").value || "";
   const txs = loadTx();
 
@@ -2147,7 +2186,7 @@ function submitTx() {
     const old = txs[idx];
     // 残高補正：旧内容の影響を取り消してから、新内容の影響を反映する
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
-    txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, memo, date };
+    txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, item, memo, date };
     saveTx(txs);
     adjustBalance(inputType === "expense" ? -amt : amt);
     // カテゴリが変わっていない場合でも、金額だけの編集で積立残高が
@@ -2168,13 +2207,14 @@ function submitTx() {
       type: inputType,
       cat: finalCat,
       amount: amt,
+      item,
       memo,
       date,
       source: "manual",
     };
     // 登録前に証憑を仮選択していれば、ここで識別子を発行して取引に紐付ける
     const fileToSave = pendingReceiptFile;
-    if (fileToSave) newTx.receiptRef = buildManualReceiptFileName(memo, date);
+    if (fileToSave) newTx.receiptRef = buildManualReceiptFileName(item || memo, date);
 
     txs.push(newTx);
     saveTx(txs);
@@ -2202,6 +2242,7 @@ function submitTx() {
   pendingReceiptFile = null;
   updatePendingReceiptButtonUI();
   F("amountDisplay").textContent = "¥0";
+  if (F("itemInput")) F("itemInput").value = "";
   F("memoInput").value = "";
   const nameInputToClear = document.getElementById("catNameInput_" + inputType);
   if (nameInputToClear) nameInputToClear.value = "";
@@ -2255,6 +2296,7 @@ function openTxEdit(id) {
   F("amountDisplay").textContent = "¥" + tx.amount.toLocaleString("ja-JP");
   F("dateInput").value = tx.date;
   syncDateDisplay(inputType);
+  if (F("itemInput")) F("itemInput").value = tx.item || "";
   F("memoInput").value = tx.memo || "";
 
   F("deleteTxBtn").style.display = "block";
@@ -2348,6 +2390,7 @@ function newTxEntry(type) {
   F("amountDisplay").textContent = "¥0";
   F("dateInput").value = todayLocalStr();
   syncDateDisplay(inputType);
+  if (F("itemInput")) F("itemInput").value = "";
   F("memoInput").value = "";
 
   showPage(type); // 'expense' または 'income'
@@ -3591,30 +3634,91 @@ async function reselectCurrentReceiptPhoto() {
   }
 }
 
+// 履歴検索：モードごとの設定（プレースホルダー・どの入力欄を出すか）
+const HISTORY_SEARCH_MODES = {
+  item:  { label: "商品名", kind: "text", placeholder: "商品名で絞り込み" },
+  store: { label: "店名",   kind: "text", placeholder: "店名で絞り込み" },
+  cat:   { label: "カテゴリ", kind: "select" },
+  memo:  { label: "メモ",   kind: "text", placeholder: "メモで絞り込み" },
+  date:  { label: "日付",   kind: "date" },
+};
+
+// 検索モードのプルダウンが変更されたときに、対応する入力欄だけを表示する
+function onHistorySearchModeChange() {
+  const modeSel = document.getElementById("historySearchMode");
+  const mode = modeSel ? modeSel.value : "item";
+  const conf = HISTORY_SEARCH_MODES[mode] || HISTORY_SEARCH_MODES.item;
+
+  const textInput = document.getElementById("historyTxSearchInput");
+  const catSelect = document.getElementById("historyTxSearchCat");
+  const dateInput = document.getElementById("historyTxSearchDate");
+
+  if (textInput) {
+    textInput.style.display = conf.kind === "text" ? "block" : "none";
+    if (conf.kind === "text") { textInput.placeholder = conf.placeholder; textInput.value = ""; }
+  }
+  if (catSelect) {
+    catSelect.style.display = conf.kind === "select" ? "block" : "none";
+    if (conf.kind === "select") {
+      const labels = [...new Set(getAllCats().map(c => c.label))].sort((a,b)=>a.localeCompare(b,"ja"));
+      catSelect.innerHTML = `<option value="">すべてのカテゴリ</option>` +
+        labels.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join("");
+    }
+  }
+  if (dateInput) {
+    dateInput.style.display = conf.kind === "date" ? "block" : "none";
+    if (conf.kind === "date") dateInput.value = "";
+  }
+  renderHistoryTxList(selectedGraphPeriodIdx);
+}
+
 function renderHistoryTxList(idx) {
   const el = document.getElementById("historyTxList");
   if (!el) return;
   const periods = ensurePeriods();
   if (!periods.length || idx === null || !periods[idx]) { el.innerHTML = ""; return; }
 
-  const searchInput = document.getElementById("historyTxSearchInput");
-  const keyword = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  const modeSel = document.getElementById("historySearchMode");
+  const mode = modeSel ? modeSel.value : "item";
+  const textInput = document.getElementById("historyTxSearchInput");
+  const catSelect = document.getElementById("historyTxSearchCat");
+  const dateInput = document.getElementById("historyTxSearchDate");
 
   let txs = [...periodTxs(idx)].sort((a,b)=>b.id-a.id);
   const allCats = getAllCats();
   const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
-  if (keyword) {
-    txs = txs.filter(t => {
-      const c = allCats.find(c=>c.id===t.cat) || {label:"その他"};
-      const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
-      const displayName = isFcOrSv ? c.label : (t.memo || c.label);
-      return displayName.toLowerCase().includes(keyword) || c.label.toLowerCase().includes(keyword);
-    });
+  let hasCondition = false;
+  if (mode === "cat") {
+    const catLabel = catSelect ? catSelect.value : "";
+    if (catLabel) {
+      hasCondition = true;
+      txs = txs.filter(t => {
+        const c = allCats.find(c=>c.id===t.cat) || {label:"その他"};
+        return c.label === catLabel;
+      });
+    }
+  } else if (mode === "date") {
+    const dateVal = dateInput ? dateInput.value : "";
+    if (dateVal) {
+      hasCondition = true;
+      txs = txs.filter(t => t.date === dateVal);
+    }
+  } else {
+    const keyword = textInput ? textInput.value.trim().toLowerCase() : "";
+    if (keyword) {
+      hasCondition = true;
+      txs = txs.filter(t => {
+        const field = mode === "store" ? (t.store || "")
+                    : mode === "memo"  ? (t.memo || "")
+                    : (t.item || ""); // item（既定）
+        return field.toLowerCase().includes(keyword);
+      });
+    }
   }
 
   el.innerHTML = txs.length === 0
-    ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">${keyword ? "該当する取引はありません" : "この月度の取引はありません"}</div>`
+    ? `<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">${hasCondition ? "該当する取引はありません" : "この月度の取引はありません"}</div>`
     : txs.map(t => {
         const c = allCats.find(c=>c.id===t.cat) || {emoji:"📦",label:"その他"};
         const bg = t.type==="income" ? "var(--green-l)" : "var(--red-l)";
@@ -3622,7 +3726,9 @@ function renderHistoryTxList(idx) {
         // 固定費・積立の取引は、登録時に自動入力される定型メモ（登録時点の名前が固定文字列として残る）ではなく、
         // 常に現在の登録名を参照して表示する（項目名を後から変更しても取引履歴が追従するように）
         const isFcOrSv = typeof t.cat === "string" && (t.cat.startsWith("fc_") || t.cat.startsWith("sv_"));
-        const displayName = isFcOrSv ? c.label : (t.memo || c.label);
+        // 1列目（商品名）：商品名 → 店名 → メモ → カテゴリ名 の優先順で表示する
+        // （古い形式のデータはmemoしか持たないため、そのままmemoが使われる）
+        const displayName = isFcOrSv ? c.label : (t.item || t.store || t.memo || c.label);
         const receiptMark = t.receiptRef
           ? `<span title="証憑あり" style="display:inline-flex;vertical-align:middle;margin-left:6px;opacity:0.9;">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3632,15 +3738,39 @@ function renderHistoryTxList(idx) {
                </svg>
              </span>`
           : "";
+        // 2列目：日付・曜日・カテゴリは固定表示、店名だけは枠の厚みを変えずに
+        // 入りきらない場合だけ左右に流れるアニメーションで見せる（renderHistoryTxList実行後に判定）
+        const storeHtml = (!isFcOrSv && t.store)
+          ? `<span class="tx-store-wrap" data-store="${escapeHtml(t.store)}"><span class="tx-store-inner">・${escapeHtml(t.store)}</span></span>`
+          : "";
         return `<div class="tx-item" style="cursor:pointer;" onclick="openTxEdit(${t.id})">
           <div class="tx-icon" style="background:${bg}">${catIconSvg(c.emoji,20)}</div>
           <div class="tx-info">
-            <div class="tx-name">${displayName}${receiptMark}</div>
-            <div class="tx-date">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${c.label}</div>
+            <div class="tx-name">${escapeHtml(displayName)}${receiptMark}</div>
+            <div class="tx-date"><span class="tx-date-fixed">${d.getMonth()+1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）  ${escapeHtml(c.label)}</span>${storeHtml}</div>
           </div>
           <div class="tx-amount ${t.type}">${t.type==="income"?"+":"-"}${fmt(t.amount)}</div>
         </div>`;
       }).join("");
+
+  applyStoreMarquee(el);
+}
+
+// 店名部分が枠に入りきらない場合だけ、左右に流れるアニメーションを付与する
+// （枠の厚みは変えず、テキストの横幅だけで判定する）
+function applyStoreMarquee(container) {
+  container.querySelectorAll(".tx-store-wrap").forEach(wrap => {
+    const inner = wrap.querySelector(".tx-store-inner");
+    if (!inner) return;
+    if (inner.scrollWidth > wrap.clientWidth) {
+      const text = wrap.dataset.store || "";
+      // 継ぎ目が目立たないよう、同じ文字列を余白付きで2回並べてループさせる
+      inner.innerHTML = `・${escapeHtml(text)}　　　・${escapeHtml(text)}`;
+      const duration = Math.max(4, inner.scrollWidth / 40); // 長い文字列ほどゆっくり流す
+      wrap.style.setProperty("--marquee-duration", duration + "s");
+      wrap.classList.add("marquee");
+    }
+  });
 }
 
 // ============================================================
@@ -5744,7 +5874,7 @@ function receiveSingleItemFromUrl(raw) {
     type: "expense",
     cat,
     amount,
-    memo: store || "",
+    store: store || "", // 品目単位ではなくレシート単位（旧形式）の登録なので、店名のみ独立して保持する
     date: finalDate,
     source: "receipt",
     receiptRef: rawRef || null // 画像本体は保存せず、スマホ内の画像を後から呼び出すための識別子のみ保持する
@@ -5831,7 +5961,8 @@ function receiveMultiItemFromUrl(raw) {
       type: "expense",
       cat,
       amount: item.amount,
-      memo: `${item.name}（${store}）`,
+      item: item.name, // 商品名と店名を独立した項目として保持する
+      store: store || "",
       date: finalDate,
       source: "receipt",
       receiptRef: rawRef || null // 同じレシートの品目はすべて同じ証憑IDを共有する
