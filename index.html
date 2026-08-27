@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.108.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.108.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6167,14 +6167,14 @@ function receiveMultiItemFromUrl(raw) {
   // 品目合計とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
   // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
   if (itemsTotal !== receiptTotal) {
-    const itemsListText = items.map(it => `・${it.name} ¥${it.amount.toLocaleString()} ${it.cat || ""}`).join("\n");
+    const itemsListText = items.map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`).join("\n");
     showConfirmModal(
       `${store} ${date}\n\n` +
       `${itemsListText}\n\n` +
       `⚠️注意\n` +
       `品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません。\n\n` +
       `品目の読み落とし・誤読の可能性があります。レシートと見比べてご確認ください。\n\n` +
-      `■OK： 合計¥${itemsTotal.toLocaleString()}で、${items.length}品目を登録します。\n` +
+      `■OK： 品目合計と、${items.length}品目を登録します。\n` +
       `■キャンセル： 登録せずに終了します。`,
       registerMultiItems
     );
