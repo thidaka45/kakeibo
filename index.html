@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.115.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.115.2"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -4000,8 +4000,10 @@ function applyMarquee(container) {
     if (!inner) return;
     if (inner.scrollWidth > wrap.clientWidth) {
       const text = wrap.dataset.marqueeText || inner.textContent;
-      // 継ぎ目が目立たないよう、同じ文字列を余白付きで2回並べてループさせる
-      inner.innerHTML = `${text}　　　${text}`;
+      // 「文字列＋余白」を1セットとして、同じセットを2回並べてループさせる。
+      // translateX(-50%)でちょうど1セット分だけ動かすことになるため、
+      // ループの継ぎ目でも同じ余白が続き、カクッと戻るような不自然な動きにならない。
+      inner.innerHTML = `${text}　　　${text}　　　`;
       const duration = Math.max(0.5, inner.scrollWidth / 39); // 長い文字列ほどゆっくり流す（前回の1.5倍速）
       wrap.style.setProperty("--marquee-duration", duration + "s");
       wrap.classList.add("marquee-active");
