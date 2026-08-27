@@ -124,8 +124,8 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
 /* 商品名・店名の電光掲示板表示：証憑マーク・金額欄は必ず優先表示し、
    商品名・店名は残りの幅に収め、入りきらない場合だけ左右に流れるアニメーションで見せる。
    フォントサイズ・太さ・色は、必ず親（商品名は.tx-name／店名は.tx-date）にそろえる。 */
-.marquee-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;font:inherit;color:inherit;}
-.marquee-inner{display:inline-block;white-space:nowrap;font:inherit;color:inherit;}
+.marquee-wrap{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;font:inherit;color:inherit;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+.marquee-inner{display:inline-block;white-space:nowrap;font-size:inherit;font-family:inherit;font-weight:inherit;line-height:inherit;color:inherit;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 .marquee-wrap.marquee-active .marquee-inner{animation:txMarquee linear infinite;animation-duration:var(--marquee-duration,6s);}
 .tx-name .marquee-wrap{margin-left:0;}
 .tx-date .marquee-wrap{margin-left:0;}
@@ -1271,7 +1271,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.104.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.104.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
