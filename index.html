@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.118.3"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.118.4"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6357,18 +6357,13 @@ function receiveMultiItemFromUrl(raw) {
     ? `¥${itemsToRegister[itemsToRegister.length - 1].amount.toLocaleString()}`
     : "不明";
   const isMatched = Math.abs(registerTotal - receiptTotal) <= TOLERANCE;
-  // レシートに消費税額の印字があったのに、品目との整合が取れず今回は反映しなかった場合は、
-  // 判断材料として参考表示しておく（登録される金額そのものには影響しない）。
-  const unreflectedTaxNote = (!taxLineIncluded && hasPrintedTax)
-    ? `\n（参考：レシートに記載の消費税額 ¥${printedTax.toLocaleString()} は、品目との整合が取れないため今回は反映していません）`
-    : "";
   showConfirmModal(
     `${store}\n` +
     `@@HR@@\n` +
     `${itemsListText}\n` +
     `@@HR@@\n` +
     `小計（品目合計）：¥${itemsTotal.toLocaleString()}\n` +
-    `消費税：${taxDisplay}${unreflectedTaxNote}\n` +
+    `消費税：${taxDisplay}\n` +
     `合計：¥${registerTotal.toLocaleString()}\n` +
     `@@HR@@\n` +
     `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n\n` +
