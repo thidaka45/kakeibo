@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.118.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.118.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2323,7 +2323,9 @@ function openTxEdit(id) {
 function formatModalMessage(message) {
   return escapeHtml(message)
     .replace(/\n/g, "<br>")
-    .replace(/⚠️注意/g, '<span style="color:#d32f2f;">⚠️注意</span>');
+    .replace(/⚠️注意/g, '<span style="color:#d32f2f;">⚠️注意</span>')
+    // 「@@HR@@」を区切り線に変換する（escapeHtmlの後に置換することで、他のHTMLタグと混同されない）
+    .replace(/@@HR@@/g, '<hr style="border:none;border-top:1px solid var(--border,#ddd);margin:8px 0;">');
 }
 
 function showConfirmModal(message, onOk, onCancel) {
@@ -6346,7 +6348,7 @@ function receiveMultiItemFromUrl(raw) {
   // ¥0を、消費税欄として提示するところまでを行い、それで合計金額が一致するかどうかも
   // あわせて示す。最終的に「この内容で登録するか、撮り直すか」は利用者に判断してもらう。
   const itemsListText = items
-    .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
+    .map(it => `・${it.name}：¥${it.amount.toLocaleString()}`)
     .join("\n");
   // 表示する消費税額：itemsToRegisterに実際に追加された「消費税」行があればその金額、
   // 無ければ「不明」（AIが読み取れなかった、または品目との整合が取れず今回は反映していない）。
@@ -6361,12 +6363,15 @@ function receiveMultiItemFromUrl(raw) {
     ? `\n（参考：レシートに記載の消費税額 ¥${printedTax.toLocaleString()} は、品目との整合が取れないため今回は反映していません）`
     : "";
   showConfirmModal(
-    `${store} ${date}\n\n` +
-    `${itemsListText}\n\n` +
+    `${store}\n` +
+    `@@HR@@\n` +
+    `${itemsListText}\n` +
+    `@@HR@@\n` +
     `小計（品目合計）：¥${itemsTotal.toLocaleString()}\n` +
     `消費税：${taxDisplay}${unreflectedTaxNote}\n` +
     `合計：¥${registerTotal.toLocaleString()}\n` +
-    `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n` +
+    `@@HR@@\n` +
+    `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n\n` +
     (isMatched ? `✅ 一致しています\n\n` : `⚠️ 一致しません（読み落とし・誤読の可能性があります。レシートと見比べてご確認ください）\n\n`) +
     `■OK： この内容で${itemsToRegister.length}品目を登録します。\n` +
     `■キャンセル： 登録せずに終了します（撮り直す場合はキャンセルしてください）。`,
