@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.118.2"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.118.3"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6348,14 +6348,14 @@ function receiveMultiItemFromUrl(raw) {
   // ¥0を、消費税欄として提示するところまでを行い、それで合計金額が一致するかどうかも
   // あわせて示す。最終的に「この内容で登録するか、撮り直すか」は利用者に判断してもらう。
   const itemsListText = items
-    .map(it => `・${it.name}：¥${it.amount.toLocaleString()}`)
+    .map((it, i) => `${i + 1}．${it.name}：¥${it.amount.toLocaleString()}`)
     .join("\n");
   // 表示する消費税額：itemsToRegisterに実際に追加された「消費税」行があればその金額、
   // 無ければ「不明」（AIが読み取れなかった、または品目との整合が取れず今回は反映していない）。
   const taxLineIncluded = itemsToRegister.length > items.length;
   const taxDisplay = taxLineIncluded
     ? `¥${itemsToRegister[itemsToRegister.length - 1].amount.toLocaleString()}`
-    : "不明（登録には反映しません）";
+    : "不明";
   const isMatched = Math.abs(registerTotal - receiptTotal) <= TOLERANCE;
   // レシートに消費税額の印字があったのに、品目との整合が取れず今回は反映しなかった場合は、
   // 判断材料として参考表示しておく（登録される金額そのものには影響しない）。
@@ -6372,7 +6372,7 @@ function receiveMultiItemFromUrl(raw) {
     `合計：¥${registerTotal.toLocaleString()}\n` +
     `@@HR@@\n` +
     `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n\n` +
-    (isMatched ? `✅ 一致しています\n\n` : `⚠️ 一致しません（読み落とし・誤読の可能性があります。レシートと見比べてご確認ください）\n\n`) +
+    (isMatched ? `✅ 一致しています\n\n` : `⚠️ 一致しません\n\n`) +
     `■OK： この内容で登録します。\n` +
     `■キャンセル： 登録せずに終了します。`,
     registerMultiItems
