@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.117.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.117.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6285,10 +6285,17 @@ function receiveMultiItemFromUrl(raw) {
   // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
   const taxNotConsidered = !rawMatches && totalsMatchWithTax;
 
+  // 品目合計だけで既にレシート合計と一致している（内税）場合は、AIが誤って消費税額（非ゼロ）を
+  // 渡してきていたとしても、実際に上乗せする額は必ず0にする（品目合計とレシート合計が既に
+  // 一致しているという事実の方が、AIの読み取り結果より確実な判断材料のため）。
+  // これを怠ると、内税レシートなのに消費税額が二重に加算されてしまう不具合になる。
+  const taxLineAmount = taxRecordedAsZero ? 0 : printedTax;
   const itemsToRegister = (taxRecordedAsZero || taxNotConsidered)
-    ? [...items, { name: "消費税", amount: printedTax, cat: TAX_LINE_CAT }]
+    ? [...items, { name: "消費税", amount: taxLineAmount, cat: TAX_LINE_CAT }]
     : items;
-  const registerTotal = (taxRecordedAsZero || taxNotConsidered) ? itemsTotalWithTax : itemsTotal;
+  const registerTotal = taxRecordedAsZero ? itemsTotal
+    : taxNotConsidered ? itemsTotalWithTax
+    : itemsTotal;
 
   const registerMultiItems = () => {
     resolveReceiptFinalDate(date, store, registerTotal, (finalDate) => {
