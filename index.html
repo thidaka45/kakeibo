@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.118.4"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.119.1"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6232,15 +6232,16 @@ function receiveMultiItemFromUrl(raw) {
     showToast("受け取ったデータの形式が正しくありませんでした（ヘッダー部）");
     return;
   }
-  // ヘッダーは「日付,店名,合計金額,消費税額,証憑ファイル名」の5項目。
-  // 4番目（消費税）は任意項目。レシートに消費税額が印字されている場合のみ、
-  // AI（ChatGPT）がその実際の数値を読み取って渡す。印字が無い・読み取れない場合は空でよい。
-  // 5番目（証憑ファイル名）も任意項目。ショートカット側が実際に写真を保存したときの
+  // ヘッダーは「日付,店名,合計金額,消費税額,値引き・割引額,証憑ファイル名」の6項目。
+  // 4番目（消費税）・5番目（値引き・割引）はどちらも任意項目。レシートにその金額が
+  // 印字されている場合のみ、AI（ChatGPT）が実際の数値を読み取って渡す。
+  // 印字が無い・読み取れない場合は空でよい。
+  // 6番目（証憑ファイル名）も任意項目。ショートカット側が実際に写真を保存したときの
   // ファイル名（例:"○○_2026-08-20_10-15-30.jpg"）をそのまま渡してもらうことで、
   // アプリ側で名前を独自に組み立て直す必要がなくなり、実ファイルと確実に一致する。
   // 省略された場合（古いショートカットのまま等）は、これまで通りアプリ側で
   // 店名・登録日から名前を組み立てる。
-  const [rawDate, store, rawTotal, rawPrintedTax, rawFileName] = headerParts;
+  const [rawDate, store, rawTotal, rawPrintedTax, rawDiscount, rawFileName] = headerParts;
   const date = normalizeDateStr(rawDate);
   const receiptTotal = parseInt(rawTotal.replace(/[^\d]/g, ""), 10);
   if (!date || isNaN(receiptTotal)) {
@@ -6248,6 +6249,7 @@ function receiveMultiItemFromUrl(raw) {
     return;
   }
   const printedTax = rawPrintedTax ? parseInt(String(rawPrintedTax).replace(/[^\d]/g, ""), 10) : NaN;
+  const printedDiscount = rawDiscount ? parseInt(String(rawDiscount).replace(/[^\d]/g, ""), 10) : NaN;
 
   // 品目行をパースする（品目名,金額,カテゴリ）。金額が数値にならない行はスキップする。
   const items = [];
@@ -6268,36 +6270,60 @@ function receiveMultiItemFromUrl(raw) {
 
   // 読み取り誤差やレジの端数処理の違いを吸収するための許容差（品目数が多いほど広めにとる）
   const TOLERANCE = Math.max(3, items.length);
-  const rawMatches = Math.abs(itemsTotal - receiptTotal) <= TOLERANCE;
-  // 消費税額は「推測計算」ではなく、レシートに実際に印字されている数値（AIが読み取ってヘッダーの
-  // 4番目に渡してきた値）のみを使う。印字が無く読み取れなかった場合（printedTaxが数値でない場合）は、
-  // 証憑に基づく判断材料が無いということなので、この判定は行わない（下の通常の不一致警告になる）。
-  // 0（内税と判断された）も含めて、AIが明示的に判断できた場合は hasPrintedTax = true とする
-  // （内税・外税どちらだったかを、取引実績に「消費税：¥0」等の形で必ず残せるようにするため）。
+  // 消費税額・値引き額は「推測計算」ではなく、レシートに実際に印字されている数値
+  // （AIが読み取ってヘッダーの4番目・5番目に渡してきた値）のみを使う。
+  // 印字が無く読み取れなかった場合（数値でない場合）は0として扱う。
   const hasPrintedTax = !isNaN(printedTax);
-  const itemsTotalWithTax = itemsTotal + (hasPrintedTax ? printedTax : 0);
-  const totalsMatchWithTax = hasPrintedTax && Math.abs(itemsTotalWithTax - receiptTotal) <= TOLERANCE;
+  const hasPrintedDiscount = !isNaN(printedDiscount) && printedDiscount > 0;
+  const discountAmount = hasPrintedDiscount ? printedDiscount : 0;
   const TAX_LINE_CAT = "その他";
 
-  // 品目合計だけで既にレシート合計と一致している（＝内税だったと考えられる）場合は、消費税を
-  // 上乗せする必要はないが、AIがどう判断したかを記録として残すため「消費税：¥0」等をそのまま追加する
-  // （品目の金額自体は変更しない＝誤読チェックの担保は崩さない）。この場合は確認なしでそのまま登録する
-  // （これまで通り、一致しているものにまで確認を挟むと煩わしいため）。
-  const taxRecordedAsZero = hasPrintedTax && rawMatches;
-  // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
-  const taxNotConsidered = !rawMatches && totalsMatchWithTax;
+  // 値引き・割引は「品目合計から差し引かれるもの」として先に反映してから、消費税の内税／外税判定を行う。
+  const baseAfterDiscount = itemsTotal - discountAmount;
+  const baseWithTax = baseAfterDiscount + (hasPrintedTax ? printedTax : 0);
 
-  // 品目合計だけで既にレシート合計と一致している（内税）場合は、AIが誤って消費税額（非ゼロ）を
-  // 渡してきていたとしても、実際に上乗せする額は必ず0にする（品目合計とレシート合計が既に
-  // 一致しているという事実の方が、AIの読み取り結果より確実な判断材料のため）。
-  // これを怠ると、内税レシートなのに消費税額が二重に加算されてしまう不具合になる。
+  // 品目合計（値引き控除後）だけで既にレシート合計と一致している（＝内税だったと考えられる）場合。
+  const matchNoTax = Math.abs(baseAfterDiscount - receiptTotal) <= TOLERANCE;
+  // 値引き控除後に消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
+  const matchWithTax = hasPrintedTax && Math.abs(baseWithTax - receiptTotal) <= TOLERANCE;
+  const isMatched = matchNoTax || matchWithTax;
+
+  // 品目合計（値引き控除後）だけで一致している場合は、消費税を上乗せする必要はないが、
+  // AIがどう判断したかを記録として残すため「消費税：¥0」等をそのまま追加する
+  // （品目の金額自体は変更しない＝誤読チェックの担保は崩さない）。
+  const taxRecordedAsZero = hasPrintedTax && matchNoTax;
+  const taxNotConsidered = !matchNoTax && matchWithTax;
+
+  // 内税と判断できた場合、AIが誤って消費税額（非ゼロ）を渡してきていたとしても、
+  // 実際に上乗せする額は必ず0にする（二重加算の防止）。
   const taxLineAmount = taxRecordedAsZero ? 0 : printedTax;
-  const itemsToRegister = (taxRecordedAsZero || taxNotConsidered)
-    ? [...items, { name: "消費税", amount: taxLineAmount, cat: TAX_LINE_CAT }]
-    : items;
-  const registerTotal = taxRecordedAsZero ? itemsTotal
-    : taxNotConsidered ? itemsTotalWithTax
-    : itemsTotal;
+  const needsTaxLine = taxRecordedAsZero || taxNotConsidered;
+
+  // 値引き・割引は、金額が読み取れていれば一致・不一致にかかわらず必ず明細行として残す
+  // （消費税と同列で、常に取引実績・確認画面の両方に反映させるため）。
+  const itemsToRegister = [...items];
+  if (hasPrintedDiscount) {
+    itemsToRegister.push({ name: "値引き・割引", amount: -discountAmount, cat: TAX_LINE_CAT });
+  }
+  if (needsTaxLine) {
+    itemsToRegister.push({ name: "消費税", amount: taxLineAmount, cat: TAX_LINE_CAT });
+  }
+
+  let registerTotal;
+  let adjustmentAmount = 0; // 不一致のままOKされた場合の差額調整額（確認画面にも表示するため保持）
+  if (isMatched) {
+    registerTotal = matchNoTax ? baseAfterDiscount : baseWithTax;
+  } else {
+    // 不一致の場合でも、利用者が内容を確認した上でOKした場合は、レシートに記載された
+    // 合計金額の方を正としてそのまま登録する（品目・消費税・値引きの読み取り誤差を、
+    // 差額調整として吸収する）。
+    registerTotal = receiptTotal;
+    const sumSoFar = itemsToRegister.reduce((s, it) => s + it.amount, 0);
+    adjustmentAmount = receiptTotal - sumSoFar;
+    if (adjustmentAmount !== 0) {
+      itemsToRegister.push({ name: "差額調整", amount: adjustmentAmount, cat: TAX_LINE_CAT });
+    }
+  }
 
   const registerMultiItems = () => {
     resolveReceiptFinalDate(date, store, registerTotal, (finalDate) => {
@@ -6350,20 +6376,24 @@ function receiveMultiItemFromUrl(raw) {
   const itemsListText = items
     .map((it, i) => `${i + 1}．${it.name}：¥${it.amount.toLocaleString()}`)
     .join("\n");
-  // 表示する消費税額：itemsToRegisterに実際に追加された「消費税」行があればその金額、
-  // 無ければ「不明」（AIが読み取れなかった、または品目との整合が取れず今回は反映していない）。
-  const taxLineIncluded = itemsToRegister.length > items.length;
-  const taxDisplay = taxLineIncluded
-    ? `¥${itemsToRegister[itemsToRegister.length - 1].amount.toLocaleString()}`
-    : "不明";
-  const isMatched = Math.abs(registerTotal - receiptTotal) <= TOLERANCE;
+  // 表示する消費税額：needsTaxLineがtrueなら実際に上乗せする額、そうでなければ「不明」
+  // （AIが読み取れなかった、または品目との整合が取れず今回は反映していない）。
+  const taxDisplay = needsTaxLine ? `¥${taxLineAmount.toLocaleString()}` : "不明";
+  // 値引き・割引は、消費税と同列で常に表示する（読み取れていなければ¥0）。
+  const discountDisplay = `¥${discountAmount.toLocaleString()}`;
+  // 不一致のままOKした場合に登録される差額調整も、内訳としてそのまま表示する。
+  const adjustmentLine = adjustmentAmount !== 0
+    ? `差額調整：¥${adjustmentAmount.toLocaleString()}\n`
+    : "";
   showConfirmModal(
     `${store}\n` +
     `@@HR@@\n` +
     `${itemsListText}\n` +
     `@@HR@@\n` +
     `小計（品目合計）：¥${itemsTotal.toLocaleString()}\n` +
+    `値引き・割引：${discountDisplay}\n` +
     `消費税：${taxDisplay}\n` +
+    adjustmentLine +
     `合計：¥${registerTotal.toLocaleString()}\n` +
     `@@HR@@\n` +
     `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n\n` +
