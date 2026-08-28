@@ -1281,7 +1281,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.117.1"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.118.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6341,42 +6341,37 @@ function receiveMultiItemFromUrl(raw) {
     });
   };
 
-  if (taxNotConsidered) {
-    // 品目合計だけでは一致しないが、消費税を加えると一致する＝消費税が未考慮だった（外税）と判断できるケース。
-    // 各品目はそのまま（誤読チェックの担保）、「消費税」という1件を追加した上で確認を求める。
-    const itemsListText = items
-      .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
-      .concat(`・消費税：¥${printedTax.toLocaleString()}（税金）`)
-      .join("\n");
-    showConfirmModal(
-      `${store} ${date}\n\n` +
-      `${itemsListText}\n\n` +
-      `⚠️注意\n` +
-      `品目合計（¥${itemsTotal.toLocaleString()}）に消費税が含まれていないようです。\n` +
-      `レシートに記載の消費税（¥${printedTax.toLocaleString()}）を加えると、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）と一致します。\n\n` +
-      `■OK： 消費税を含めて${itemsToRegister.length}品目を登録します。\n` +
-      `■キャンセル： 登録せずに終了します。`,
-      registerMultiItems
-    );
-  } else if (!rawMatches) {
-    // 品目合計（税込換算しても）とレシート記載合計が一致しない場合は、登録前に必ず利用者に警告する
-    // （品目の読み落とし・二重計上など、金額に直結する誤りを検知するための最終チェック）。
-    const itemsListText = items
-      .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
-      .join("\n");
-    showConfirmModal(
-      `${store} ${date}\n\n` +
-      `${itemsListText}\n\n` +
-      `⚠️注意\n` +
-      `品目合計（¥${itemsTotal.toLocaleString()}）と、レシート記載の合計金額（¥${receiptTotal.toLocaleString()}）が一致しません。\n\n` +
-      `品目の読み落とし・誤読の可能性があります。レシートと見比べてご確認ください。\n\n` +
-      `■OK： 品目合計と${items.length}品目を登録します。\n` +
-      `■キャンセル： 登録せずに終了します。`,
-      registerMultiItems
-    );
-  } else {
-    registerMultiItems();
-  }
+  // 内税・外税の自動判定に頼りきらず、必ず利用者自身の目で最終確認してから登録する。
+  // 「機能側（アプリ）」は、外税と判断できた場合は実際の消費税額を、内税と判断できた場合は
+  // ¥0を、消費税欄として提示するところまでを行い、それで合計金額が一致するかどうかも
+  // あわせて示す。最終的に「この内容で登録するか、撮り直すか」は利用者に判断してもらう。
+  const itemsListText = items
+    .map(it => `・${it.name}：¥${it.amount.toLocaleString()}（${it.cat || ""}）`)
+    .join("\n");
+  // 表示する消費税額：itemsToRegisterに実際に追加された「消費税」行があればその金額、
+  // 無ければ「不明」（AIが読み取れなかった、または品目との整合が取れず今回は反映していない）。
+  const taxLineIncluded = itemsToRegister.length > items.length;
+  const taxDisplay = taxLineIncluded
+    ? `¥${itemsToRegister[itemsToRegister.length - 1].amount.toLocaleString()}`
+    : "不明（登録には反映しません）";
+  const isMatched = Math.abs(registerTotal - receiptTotal) <= TOLERANCE;
+  // レシートに消費税額の印字があったのに、品目との整合が取れず今回は反映しなかった場合は、
+  // 判断材料として参考表示しておく（登録される金額そのものには影響しない）。
+  const unreflectedTaxNote = (!taxLineIncluded && hasPrintedTax)
+    ? `\n（参考：レシートに記載の消費税額 ¥${printedTax.toLocaleString()} は、品目との整合が取れないため今回は反映していません）`
+    : "";
+  showConfirmModal(
+    `${store} ${date}\n\n` +
+    `${itemsListText}\n\n` +
+    `小計（品目合計）：¥${itemsTotal.toLocaleString()}\n` +
+    `消費税：${taxDisplay}${unreflectedTaxNote}\n` +
+    `合計：¥${registerTotal.toLocaleString()}\n` +
+    `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n` +
+    (isMatched ? `✅ 一致しています\n\n` : `⚠️ 一致しません（読み落とし・誤読の可能性があります。レシートと見比べてご確認ください）\n\n`) +
+    `■OK： この内容で${itemsToRegister.length}品目を登録します。\n` +
+    `■キャンセル： 登録せずに終了します（撮り直す場合はキャンセルしてください）。`,
+    registerMultiItems
+  );
 }
 
 // ============================================================
