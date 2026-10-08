@@ -761,6 +761,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     </button>
   </div>
 
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> AI分類（有料プラン）</div>
+  <div class="export-section" style="padding:14px;">
+    <button onclick="showPage('license')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+      会員証の設定を開く
+    </button>
+  </div>
+
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> バージョン情報</div>
   <div class="export-section" style="padding:14px;">
     <button onclick="showPage('versioninfo')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--muted);background:var(--gray-l);color:var(--text);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
@@ -969,6 +976,33 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
       ※ 証憑を追加しなかった取引は、証憑欄が空欄のまま出力されます。あとから追加し直して再出力することもできます。<br>
       ※ 出力後は共有シートが開きます。「メール」を選ぶと、ZIPファイルが添付された状態でメール作成画面が開きます（AirDropやFiles保存も選べます）。
     </div>
+  </div>
+</div>
+</div>
+
+<!-- ===== AI分類（有料プラン）会員証設定 ===== -->
+<div class="page" id="page-license" style="flex-direction:column;padding:0;overflow:hidden;background:var(--blue-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">AI分類（有料プラン）</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+
+  <div style="font-size:17px;color:var(--text);line-height:1.8;margin-bottom:16px;">
+    レシートを撮るだけで、品目ごとの金額を費目に自動で振り分けます（税・値引きは差額調整として合計に一致させます）。お申し込み時に届いた会員証（英数字）を貼り付けて保存してください。未設定のときは、店名と合計金額を登録し、費目は店名から自動判定する端末内モード（履歴から変更可）で動作します。
+  </div>
+
+  <div class="budget-card">
+    <label style="font-size:14px;font-weight:700;color:var(--sub);display:block;margin-bottom:6px;">会員証</label>
+    <input id="licenseTokenInput" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例: KK-XXXX-XXXX-XXXX"
+           style="width:100%;box-sizing:border-box;padding:14px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:16px;font-family:inherit;">
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="export-btn" onclick="saveLicenseFromInput()" style="flex:1;background:var(--blue);border-color:var(--blue);color:#fff;padding:14px;font-size:16px;font-weight:700;border-radius:12px;">保存</button>
+      <button class="export-btn" onclick="checkLicenseStatus()" style="flex:1;background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:14px;font-size:16px;font-weight:700;border-radius:12px;">確認</button>
+    </div>
+    <div id="licenseStatusText" style="font-size:13px;color:var(--sub);margin-top:12px;line-height:1.6;"></div>
+  </div>
+
+  <div style="font-size:13px;color:var(--sub);line-height:1.7;margin-top:14px;">
+    ※ レシートの文字情報は分類のためだけに中継サーバーへ送られ、画像や本文が保存されることはありません。<br>
+    ※ 月の上限枚数に達した場合や会員証の期限が切れた場合は、自動的に端末内モードで登録を続けます。
   </div>
 </div>
 </div>
@@ -1281,7 +1315,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.120.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.121.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -2225,6 +2259,8 @@ function submitTxProceed() {
     adjustBalance(old.type === "expense" ? old.amount : -old.amount);
     txs[idx] = { ...old, type: inputType, cat: finalCat, amount: amt, item, memo, store, date };
     saveTx(txs);
+    // レシート由来の取引で費目を直した場合、その店名→費目を記憶し、次回の自動付与に使う
+    if (old.source === "receipt" && inputType === "expense" && finalCat !== old.cat) rememberStoreCat(store || old.store, finalCat);
     adjustBalance(inputType === "expense" ? -amt : amt);
     // カテゴリが変わっていない場合でも、金額だけの編集で積立残高が
     // 二重加算されないよう、必ず旧内容を取り消してから新内容を反映する
@@ -4071,7 +4107,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","expensebreakdown","customcats","caticonpicker","quickitempicker"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","expensebreakdown","customcats","caticonpicker","quickitempicker","license"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
@@ -4087,6 +4123,7 @@ function showPage(name, isBack) {
   if (name==="trend")      renderTrend();
   if (name==="expensebreakdown") renderExpenseBreakdown();
   if (name==="customcats") renderCustomCatsList();
+  if (name==="license")    renderLicensePage();
   if (name==="excelexport") renderExcelExportPeriodSelects();
 }
 
@@ -6153,10 +6190,19 @@ function resolveReceiptFinalDate(date, store, displayAmount, onResolved) {
 function receiveFromUrl() {
   const params = new URLSearchParams(location.search);
   const raw = params.get("data");
-  if (!raw) return;
+  const ocr = params.get("ocr");
+  if (!raw && !ocr) return;
 
   // 同じデータの重複登録・リロード時の再登録を防ぐため、先にURLをきれいにする
   history.replaceState(null, "", location.pathname);
+
+  // 新経路（グレード対応版ショートカット）: ショートカットはAIを呼ばず、ライブテキストで
+  // 文字化したレシート本文をそのまま渡す。費目の判定はPWA側（ライト＝端末規則＋利用者選択、
+  // 有料＝中継サーバー経由のAI）で行う。
+  if (ocr) {
+    receiveOcrFromUrl(ocr, params.get("file") || "");
+    return;
+  }
 
   // 複数品目形式かどうかは「|」区切りの有無で判定する。
   //   複数品目形式: "YYYY/MM/DD,店名,レシート記載合計,証憑ID|品目名,金額,カテゴリ|品目名,金額,カテゴリ|..."
@@ -6362,6 +6408,311 @@ function receiveMultiItemFromUrl(raw) {
     `■キャンセル： 登録せずに終了します。`,
     registerMultiItems
   );
+}
+
+// ============================================================
+// グレード対応レシート取込（ocr経路）
+// ============================================================
+// ショートカットから「ライブテキストで文字化したレシート本文」を受け取り、
+//   ・会員証トークンあり（有料）→ 中継サーバー（Cloudflare Workers）でAI分類 → 既存の複数品目登録へ
+//   ・トークンなし／無効／上限超過（ライト）→ 端末規則で店名・合計を確定し、費目は利用者が選ぶ
+// という2経路に振り分ける。レシート画像や本文が中継サーバーに保存されることはない。
+
+const RECEIPT_AI_ENDPOINT = "https://kakeibo-ai.thidaka45.workers.dev"; // ← Workersをデプロイした実URLに合わせる
+const LICENSE_TOKEN_KEY = "kakeibo_license_token";
+const STORE_CAT_MEMORY_KEY = "kakeibo_store_cat_memory";
+
+function loadLicenseToken() { return (localStorage.getItem(LICENSE_TOKEN_KEY) || "").trim(); }
+function saveLicenseToken(t) {
+  const v = (t || "").trim();
+  if (v) localStorage.setItem(LICENSE_TOKEN_KEY, v); else localStorage.removeItem(LICENSE_TOKEN_KEY);
+}
+
+// 店名→費目の記憶（ライトで一度選んだ費目を、同じ店の2回目以降に自動で当てる）
+function loadStoreCatMemory() {
+  try { return JSON.parse(localStorage.getItem(STORE_CAT_MEMORY_KEY) || "{}"); } catch { return {}; }
+}
+function rememberStoreCat(store, catId) {
+  const key = normalizeStoreKey(store);
+  if (!key || !catId) return;
+  const m = loadStoreCatMemory();
+  m[key] = catId;
+  localStorage.setItem(STORE_CAT_MEMORY_KEY, JSON.stringify(m));
+}
+function recallStoreCat(store) {
+  const key = normalizeStoreKey(store);
+  return key ? (loadStoreCatMemory()[key] || null) : null;
+}
+function normalizeStoreKey(store) {
+  return String(store || "")
+    .replace(/[\s　]+/g, "")
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .toLowerCase()
+    .slice(0, 40);
+}
+
+// --- OCR本文の正規化と抽出規則（ライト経路の中核。AIに依存しない） ---
+function normalizeOcrText(text) {
+  return String(text || "")
+    .replace(/\r/g, "")
+    .replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[，]/g, ",")
+    .replace(/[￥]/g, "¥")
+    .replace(/[：]/g, ":")
+    .replace(/[　]/g, " ");
+}
+
+// 1行の中から「金額らしい整数」をすべて取り出す（カンマ区切り・¥・円・末尾の税区分記号に対応）
+function extractAmountsFromLine(line) {
+  const out = [];
+  // 日付・時刻・電話番号の数字を金額と誤認しないよう、先に取り除く
+  const cleaned = String(line)
+    .replace(/\d{2,4}[\/\-\.年]\d{1,2}[\/\-\.月]\d{1,2}日?/g, " ")
+    .replace(/\d{1,2}:\d{2}(?::\d{2})?/g, " ")
+    .replace(/\d{2,4}-\d{2,4}-\d{3,4}/g, " ");
+  const re = /(?:¥|\\)?\s*(-?\d{1,3}(?:,\d{3})+|-?\d+)\s*(?:円)?/g;
+  let m;
+  while ((m = re.exec(cleaned)) !== null) {
+    const n = parseInt(m[1].replace(/,/g, ""), 10);
+    if (!isNaN(n)) out.push(n);
+  }
+  return out;
+}
+
+const OCR_EXCLUDE_LINE = /(お預|お釣|釣銭|おつり|預り|ポイント|pt|残高|クレジット|電話|tel|〒|登録番号|レジ|No\.|№|時刻)/i;
+const OCR_TOTAL_LINE = /(合\s*計|お買上げ?計|お買い上げ?計|総額|total|ご請求|請求額|お支払い?金額|お支払い?額)/i;
+const OCR_SUBTOTAL_LINE = /小\s*計|subtotal/i;
+const OCR_TAX_LINE = /(消費税|内税|外税|税額|課税|対象)/;
+
+function parseReceiptOcr(rawText) {
+  const text = normalizeOcrText(rawText);
+  const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+
+  // 日付: 最初に見つかった妥当な年月日（YYYY/MM/DD・YYYY年MM月DD日・YY/MM/DD）
+  let date = null;
+  for (const line of lines) {
+    const m4 = line.match(/(20\d{2})[\/\-\.年](\d{1,2})[\/\-\.月](\d{1,2})/);
+    if (m4) { date = normalizeDateStr(`${m4[1]}/${m4[2]}/${m4[3]}`); if (date) break; }
+    const m2 = line.match(/(?:^|[^\d])(\d{2})[\/\.](\d{1,2})[\/\.](\d{1,2})(?:[^\d]|$)/);
+    if (m2) { date = normalizeDateStr(`20${m2[1]}/${m2[2]}/${m2[3]}`); if (date) break; }
+  }
+  if (!date) date = todayLocalStr();
+
+  // 合計: 「合計」系の語を含む行（小計・税・預り等は除外）の金額。行内に金額が無ければ次の行を見る。
+  //       候補が複数ある場合は最後のもの（レシートは小計→合計→預り→釣りの順が多い）。
+  const pickAmountNear = (idx) => {
+    const same = extractAmountsFromLine(lines[idx].replace(OCR_TOTAL_LINE, "").replace(OCR_SUBTOTAL_LINE, ""));
+    const cand = same.filter(n => n > 0);
+    if (cand.length) return cand[cand.length - 1];
+    const next = lines[idx + 1] ? extractAmountsFromLine(lines[idx + 1]).filter(n => n > 0) : [];
+    return next.length ? next[next.length - 1] : null;
+  };
+  let total = null, subtotal = null;
+  lines.forEach((line, i) => {
+    if (OCR_SUBTOTAL_LINE.test(line)) { const v = pickAmountNear(i); if (v != null) subtotal = v; return; }
+    if (OCR_TOTAL_LINE.test(line) && !OCR_TAX_LINE.test(line) && !/(お預|預り|お釣|釣銭)/.test(line)) {
+      const v = pickAmountNear(i); if (v != null) total = v;
+    }
+  });
+  // 合計が取れなかった場合の保険: 除外語を含まない行の金額の最大値
+  if (total == null) {
+    let max = 0;
+    lines.forEach(line => {
+      if (OCR_EXCLUDE_LINE.test(line) || OCR_TAX_LINE.test(line)) return;
+      extractAmountsFromLine(line).forEach(n => { if (n > max && n < 10000000) max = n; });
+    });
+    total = max || null;
+  }
+
+  // 店名: 上位数行のうち、日付・電話・住所・金額・定型文でない最初の行
+  let store = "";
+  const STORE_SKIP = /(領収|レシート|receipt|様|ありがとう|お買上|お買い上げ|tel|電話|〒|fax|http|www|登録番号|\d{2,4}-\d{2,4}-\d{3,4})/i;
+  for (const line of lines.slice(0, 8)) {
+    if (STORE_SKIP.test(line)) continue;
+    if (/\d{4}[\/\-\.年]\d{1,2}/.test(line)) continue;
+    const letters = line.replace(/[\d\s¥,\.\-:\/()（）]/g, "");
+    if (letters.length < 2) continue;
+    if (/^[\d\s¥,\.\-:\/]+$/.test(line)) continue;
+    store = line.replace(/[＊*]/g, "").slice(0, 30);
+    break;
+  }
+  return { date, store, total, subtotal, lineCount: lines.length };
+}
+
+// --- 入口: ocr経路の振り分け ---
+function receiveOcrFromUrl(ocrText, fileName) {
+  const parsed = parseReceiptOcr(ocrText);
+  if (parsed.total == null) {
+    showAlertModal(
+      `レシートの合計金額を読み取れませんでした。\n\n` +
+      `文字が薄い・折れている・複数枚に分かれている場合は、撮り直すか手入力で登録してください。`
+    );
+    return;
+  }
+  const token = loadLicenseToken();
+  if (token) {
+    requestReceiptAi(ocrText, token, fileName, parsed);
+  } else {
+    registerLiteReceipt(parsed, fileName);
+  }
+}
+
+// --- 有料経路: 中継サーバーでAI分類 ---
+let receiptAiBusy = false;
+function requestReceiptAi(ocrText, token, fileName, parsed) {
+  if (receiptAiBusy) return;
+  receiptAiBusy = true;
+  showAiWaitOverlay(true);
+  const catLabels = CATS_EXPENSE.map(c => c.label).concat(loadCustomCats("expense").map(c => c.label));
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 40000);
+  fetch(RECEIPT_AI_ENDPOINT + "/receipt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, ocr: ocrText, cats: catLabels, hint: { date: parsed.date, store: parsed.store, total: parsed.total, subtotal: parsed.subtotal } }),
+    signal: ctrl.signal
+  })
+  .then(async r => {
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (!r.ok || !body || !body.ok) {
+      const code = (body && body.code) || ("http_" + r.status);
+      throw Object.assign(new Error((body && body.message) || "中継サーバーからエラーが返されました"), { code });
+    }
+    return body;
+  })
+  .then(body => {
+    clearTimeout(timer); receiptAiBusy = false; showAiWaitOverlay(false);
+    const raw = convertAiCsvToRaw(body.csv, fileName, parsed);
+    if (!raw) throw Object.assign(new Error("AIの応答を解釈できませんでした"), { code: "bad_csv" });
+    if (body.remaining != null) showToast(`AI分類（今月の残り ${body.remaining} 枚）`);
+    receiveMultiItemFromUrl(raw);
+  })
+  .catch(err => {
+    clearTimeout(timer); receiptAiBusy = false; showAiWaitOverlay(false);
+    const code = err && err.code;
+    let reason;
+    if (code === "invalid_token") reason = "会員証が無効です（入力ミスまたは期限切れ）。";
+    else if (code === "limit_exceeded") reason = "今月のAI分類の上限枚数に達しました。来月まで端末内モードで登録します。";
+    else if (code === "rate_limited") reason = "短時間に送信しすぎました。少し待ってから再度お試しください。";
+    else if (err && err.name === "AbortError") reason = "中継サーバーの応答がありませんでした。";
+    else reason = (err && err.message) || "AI分類に失敗しました。";
+    showAlertModal(`${reason}\n\n店名と合計金額で登録を続けます（費目は店名から自動判定し、履歴から変更できます）。`, () => registerLiteReceipt(parsed, fileName));
+  });
+}
+
+// AIが返したCSV（1行目: 日付,店名,小計,合計 ／ 2行目以降: 品目,金額,カテゴリ）を
+// 既存の receiveMultiItemFromUrl() が受け取る「ヘッダー|品目|品目…」形式に変換する。
+function convertAiCsvToRaw(csv, fileName, parsed) {
+  const lines = String(csv || "").split("\n").map(s => s.trim()).filter(Boolean)
+    .filter(s => !/^```/.test(s));
+  if (lines.length < 2) return null;
+  const h = lines[0].split(",").map(s => s.trim());
+  if (h.length < 4) return null;
+  const date = normalizeDateStr(h[0]) || parsed.date;
+  const store = h[1] || parsed.store || "";
+  const subtotal = String(h[2] || "").replace(/[^\d]/g, "");
+  let total = String(h[3] || "").replace(/[^\d]/g, "");
+  // 合計は端末規則で読んだ値を優先する（AIの読み違いより規則の方が安定するため）。
+  // 両者が食い違う場合は規則側を採用し、確認モーダルで利用者が最終判断する。
+  if (parsed.total != null) total = String(parsed.total);
+  const safe = s => String(s).replace(/[|,]/g, " ");
+  const header = [date.replace(/-/g, "/"), safe(store), subtotal, total, safe(fileName || "")].join(",");
+  const items = lines.slice(1).map(l => {
+    const p = l.split(",").map(s => s.trim());
+    if (p.length < 2) return null;
+    const amt = String(p[1]).replace(/[^\d\-]/g, "");
+    if (!p[0] || amt === "") return null;
+    return [safe(p[0]), amt, safe(p[2] || "")].join(",");
+  }).filter(Boolean);
+  if (!items.length) return null;
+  return header + "|" + items.join("|");
+}
+
+function showAiWaitOverlay(show) {
+  let el = document.getElementById("aiWaitOverlay");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "aiWaitOverlay";
+    el.style.cssText = "display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;";
+    el.innerHTML = '<div style="background:var(--card,#fff);border-radius:14px;padding:18px 24px;font-size:16px;font-weight:700;color:var(--text,#222);">AIがレシートを分類しています…</div>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? "flex" : "none";
+}
+
+// --- ライト経路: 店名から費目を自動判定し、確認なしで1件登録（費目は履歴から後で直せる） ---
+// 店名キーワード → 費目ID。上から順に最初に一致したものを採用する。
+const STORE_CAT_RULES = [
+  ["daily",     /(ドラッグ|薬局|コスモス|ウエルシア|ツルハ|マツモトキヨシ|マツキヨ|サンドラッグ|スギ薬局|ココカラ|ドラモリ|ダイソー|セリア|キャンドゥ|100円|ニトリ|無印|ホームセンター|ナフコ|コーナン|カインズ|コメリ|グッデイ|ハンズ|ロフト|トライアル)/i],
+  ["dining",    /(食堂|レストラン|ラーメン|らーめん|うどん|そば|寿司|すし|焼肉|焼鳥|居酒屋|カフェ|cafe|珈琲|コーヒー|スターバックス|スタバ|ドトール|マクドナルド|モスバーガー|ケンタッキー|kfc|吉野家|すき家|松屋|サイゼ|ガスト|ジョイフル|丸亀|はなまる|びっくりドンキー|ココス|デニーズ|バーガー|ピザ|pizza|弁当|ほっともっと|牛角|串|酒場|バル|bar|ビストロ|食事|丼|亭|庵|屋台)/i],
+  ["food",      /(スーパー|イオン|マックスバリュ|西友|イトーヨーカドー|ヨーカドー|サニー|ハローデイ|ルミエール|マルキョウ|ボンラパス|レッドキャベツ|ダイレックス|業務スーパー|コストコ|オーケー|ライフ|マルエツ|ヤオコー|生協|コープ|coop|食品|フード|food|マーケット|market|青果|精肉|鮮魚|八百屋|肉|魚|米|パン|ベーカリー|セブン|ローソン|ファミリーマート|ファミマ|ミニストップ|デイリー|ポプラ)/i],
+  ["transport", /(jr|ＪＲ|西鉄|地下鉄|鉄道|バス|タクシー|eneos|エネオス|出光|apollo|アポロ|コスモ石油|昭和シェル|シェル|ガソリン|給油|\bSS\b|給油所|駐車|パーキング|parking|高速|etc|フェリー|航空|ana|jal)/i],
+  ["medical",   /(病院|クリニック|医院|歯科|眼科|皮膚科|内科|外科|整形|整骨|接骨|薬|調剤|メディカル|診療)/i],
+  ["comm",      /(docomo|ドコモ|\bau\b|ソフトバンク|softbank|楽天モバイル|ワイモバイル|uq|mineo|nuro|ocn|biglobe|携帯|通信|wi-?fi|プロバイダ)/i],
+  ["housing",   /(電力|電気|ガス|水道|九電|九州電力|西部ガス|家賃|管理費|不動産|住宅)/i],
+  ["hobby",     /(書店|本屋|ブックオフ|book|紀伊國屋|ジュンク堂|tsutaya|ツタヤ|ゲオ|geo|シネマ|映画|カラオケ|ゲーム|楽器|スポーツ|ゴルフ|釣具|模型|ホビー|amazon|アマゾン)/i],
+  ["social",    /(ギフト|贈答|花屋|フラワー|flower|土産|みやげ|のし|冠婚葬祭|ブライダル)/i],
+];
+function guessCatFromStore(store) {
+  const remembered = recallStoreCat(store);
+  if (remembered) return remembered;
+  const name = String(store || "");
+  if (!name) return "other";
+  for (const [id, re] of STORE_CAT_RULES) if (re.test(name)) return id;
+  return "other";
+}
+function registerLiteReceipt(parsed, fileName) {
+  const store = parsed.store || "";
+  const amount = parsed.total;
+  const catId = guessCatFromStore(store);
+  resolveReceiptFinalDate(parsed.date, store, amount, (finalDate) => {
+    if (!finalDate) return;
+    const txs = loadTx();
+    txs.push({
+      id: Date.now(),
+      type: "expense",
+      cat: catId,
+      amount,
+      store,
+      date: finalDate,
+      source: "receipt",
+      receiptRef: (fileName && fileName.trim()) ? fileName.trim() : buildManualReceiptFileName(store, finalDate)
+    });
+    saveTx(txs);
+    adjustBalance(-amount);
+    syncCarryoverIfNeeded(finalDate);
+    if (ensurePeriods().length) viewPeriodIndex = findPeriodIndexForDate(finalDate);
+    const label = (CATS_EXPENSE.concat(loadCustomCats("expense")).find(c => c.id === catId) || {}).label || "その他";
+    showToast(`${finalDate} ${store || "店名不明"} ¥${amount.toLocaleString()} を「${label}」で記録しました（履歴から変更できます）`);
+  });
+}
+
+// --- 会員証（有料プラン）設定画面 ---
+function renderLicensePage() {
+  const input = document.getElementById("licenseTokenInput");
+  if (input) input.value = loadLicenseToken();
+  const status = document.getElementById("licenseStatusText");
+  if (status) status.textContent = loadLicenseToken() ? "会員証が設定されています。「確認」で有効期限と残り枚数を表示できます。" : "未設定（端末内モード：店名＋合計を登録し、費目は店名から自動判定します）";
+}
+function saveLicenseFromInput() {
+  const v = document.getElementById("licenseTokenInput").value;
+  saveLicenseToken(v);
+  renderLicensePage();
+  showToast(v.trim() ? "会員証を保存しました" : "会員証を削除しました（端末内モードに戻ります）");
+}
+function checkLicenseStatus() {
+  const token = loadLicenseToken();
+  const status = document.getElementById("licenseStatusText");
+  if (!token) { status.textContent = "会員証が未設定です"; return; }
+  status.textContent = "確認中…";
+  fetch(RECEIPT_AI_ENDPOINT + "/status?token=" + encodeURIComponent(token))
+    .then(r => r.json())
+    .then(b => {
+      if (!b || !b.ok) { status.textContent = "無効な会員証です（" + ((b && b.message) || "不明") + "）"; return; }
+      status.textContent = `有効：${b.plan || "有料"}／今月 ${b.used} ／ ${b.limit} 枚（残り ${b.remaining}）／有効期限 ${b.expires || "—"}`;
+    })
+    .catch(() => { status.textContent = "中継サーバーに接続できませんでした"; });
 }
 
 // ============================================================
