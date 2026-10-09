@@ -1033,6 +1033,11 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     無料版では、レシートを読み取るAIを3つから選べます。どれも無料です。登録の前に必ず確認画面が出るので、どれを選んでも読み違いのまま登録されることはありません。<b>何を優先したいか</b>で選んでください。
   </div>
 
+  <div class="budget-card" style="font-size:15px;line-height:1.8;color:var(--text);">
+    いま使っているAI：<b id="aiCurrentLabel">ChatGPT</b><br>
+    <span style="font-size:13px;color:var(--sub);">下の「このAIにする」を押すと切り替わります。ショートカットアプリが一瞬開き、自動でこの画面に戻ります。</span>
+  </div>
+
   <div style="font-size:16px;font-weight:700;color:var(--text);margin:6px 0 8px;">何を優先しますか？</div>
   <div class="budget-card" style="font-size:14px;line-height:1.9;color:var(--text);">
     <div>🎯 <b>正確さ</b>を優先 → <b>ChatGPT</b></div>
@@ -1047,36 +1052,37 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">ChatGPT</span><span style="font-size:12px;font-weight:700;color:#fff;background:var(--blue,#2f6fd3);border-radius:8px;padding:2px 8px;">おすすめ</span></div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>◎ 日本語のレシートに強い</span><span style="color:var(--sub);">速さ</span><span>○ 数秒</span><span style="color:var(--sub);">情報の行き先</span><span>OpenAIのサーバー（アカウント未登録なら保存されない取り決め）</span><span style="color:var(--sub);">回数</span><span>1日の上限あり（超えると性能を落とした版で処理は続く）</span><span style="color:var(--sub);">通信</span><span>必要</span></div>
     <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">配布時の初期設定です。迷ったらこれを選んでください。</div>
+    <button type="button" class="ai-pick" data-ai="chatgpt" onclick="switchFreeAi('chatgpt')" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1.5px solid var(--purple);background:#fff;color:var(--purple-d);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">このAIにする</button>
   </div>
 
   <div class="budget-card">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">クラウド（Private Cloud Compute）</span></div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>○</span><span style="color:var(--sub);">速さ</span><span>○ 速め</span><span style="color:var(--sub);">情報の行き先</span><span>Appleのサーバー（処理後に保存されず、Appleも見られない仕組み）</span><span style="color:var(--sub);">回数</span><span>上限の公表なし</span><span style="color:var(--sub);">通信</span><span>必要</span></div>
     <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">ChatGPTの上限に達したときの切り替え先としてもおすすめです。</div>
+    <button type="button" class="ai-pick" data-ai="cloud" onclick="switchFreeAi('cloud')" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1.5px solid var(--purple);background:#fff;color:var(--purple-d);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">このAIにする</button>
   </div>
 
   <div class="budget-card">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">オンデバイス</span></div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>△ 小型のAIのため品目の読み取りは苦手な場合あり</span><span style="color:var(--sub);">速さ</span><span>○ 通信しない分すばやい</span><span style="color:var(--sub);">情報の行き先</span><span>iPhoneの外に一切出ない</span><span style="color:var(--sub);">回数</span><span>上限なし</span><span style="color:var(--sub);">通信</span><span>不要（圏外でも動く）</span></div>
     <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">合計金額の確認さえできればよい、という使い方に向いています。</div>
+    <button type="button" class="ai-pick" data-ai="device" onclick="switchFreeAi('device')" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1.5px solid var(--purple);background:#fff;color:var(--purple-d);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">このAIにする</button>
   </div>
 
 
-  <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">切り替え方</div>
-  <div class="budget-card" style="font-size:14px;line-height:1.9;color:var(--text);">
-    1. 「ショートカット」アプリを開く<br>
-    2. 「レシート記録（無料版）」を長押し →「編集」<br>
-    3. 「モデルを使用」の中の <b>「ChatGPT」の文字</b>（今使っているAIの名前）をタップ<br>
-    4. 「ChatGPT」「Private Cloud Compute（クラウド）」「デバイス上（オンデバイス）」から選ぶ<br>
-    5. 右上の「完了」<br>
-    <span style="color:var(--sub);font-size:13px;">一度変えれば、以後ずっとその設定で動きます。</span>
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">切り替えがうまくいかないとき</div>
+  <div class="budget-card" style="font-size:14px;line-height:1.8;color:var(--text);">
+    「このAIにする」は、切り替え用のショートカット「家計簿AI切り替え」を呼び出して設定を書き換えます（作り方は手順書を参照）。名前を変えた場合は、ここに同じ名前を入れてください。
+    <input type="text" id="freeShortcutName" onchange="saveFreeShortcutName(this.value)" style="width:100%;box-sizing:border-box;margin-top:8px;padding:10px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:15px;font-family:inherit;">
+    <div style="font-size:13px;color:var(--sub);margin-top:8px;">「“ショートカット”で開きますか」と出たら「開く」を選んでください。切り替えた後に戻ってこない場合は、この画面を開き直すと反映されています。</div>
   </div>
 
   <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">困ったとき</div>
   <div class="budget-card" style="font-size:14px;line-height:1.8;color:var(--text);">
-    <div style="margin-bottom:8px;"><b>読み違いが多くなった</b><br>ChatGPTの1日の上限を超えて性能が落ちている可能性があります。翌日まで待つか、クラウドに切り替えてください。</div>
-    <div style="margin-bottom:8px;"><b>ショートカットが「モデルを使用」で止まる</b><br>そのAIが使えない状態です（機種が非対応、Apple Intelligenceがオフ、圏外など）。別のAIに切り替えるか、オンデバイスを試してください。</div>
+    <div style="margin-bottom:8px;"><b>読み違いが多くなった</b><br>ChatGPTの1日の上限を超えて性能が落ちている可能性があります。翌日まで待つか、上の「クラウド」の「このAIにする」で切り替えてください。</div>
+    <div style="margin-bottom:8px;"><b>ショートカットが「モデルを使用」で止まる</b><br>そのAIが使えない状態です（機種が非対応、Apple Intelligenceがオフ、圏外など）。上の「このAIにする」で別のAIに切り替えてください（圏外ならオンデバイス）。</div>
     <div style="margin-bottom:8px;"><b>今すぐ登録したい</b><br>確認画面で「キャンセル」→「金額を選んで登録する」で、読み取った金額の候補から1タップで登録できます。ホームの入力画面からの手入力もいつでも使えます。</div>
+    <div style="margin-bottom:8px;"><b>ChatGPTの返事が読み取れなかったとき</b><br>ショートカットが自動でクラウドに切り替えて読み直します（ChatGPTを選んでいるときだけ）。</div>
     <div><b>AIが選べない機種</b><br>これらのAIは、Apple Intelligence対応機種（iPhone 15 Pro以降・iOS 26以降）でのみ使えます。それ以外の機種では金額の候補から選ぶ方式になります。有料プランなら機種を問わず全自動で読み取れます。</div>
   </div>
 </div>
@@ -1390,7 +1396,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.124.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.125.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -6264,6 +6270,19 @@ function resolveReceiptFinalDate(date, store, displayAmount, onResolved) {
 
 function receiveFromUrl() {
   const params = new URLSearchParams(location.search);
+  renderFreeAiState();
+  // 無料版ショートカットの「AIの切り替え」完了通知（?aiset=chatgpt|cloud|device）
+  if (params.has("aiset")) {
+    history.replaceState(null, "", location.pathname);
+    const k = normalizeFreeAi(params.get("aiset"));
+    if (k) {
+      saveFreeAi(k);
+      showToast(`読み取りAIを「${FREE_AI_LABELS[k]}」に切り替えました。次の撮影から使われます`);
+    } else {
+      showToast("AIの切り替えを受け取れませんでした");
+    }
+    return;
+  }
   const raw = params.get("data");
   const ocr = params.get("ocr");
   if (!raw && !ocr && !params.get("csv") && !params.get("img")) return;
@@ -6275,7 +6294,7 @@ function receiveFromUrl() {
   // 文字化したレシート本文をそのまま渡す。費目の判定はPWA側（ライト＝端末規則＋利用者選択、
   // 有料＝中継サーバー経由のAI）で行う。
   if (ocr || params.get("csv") || params.get("img")) {
-    receiveOcrFromUrl(ocr || "", params.get("file") || "", params.get("csv") || "", params.get("img") || "");
+    receiveOcrFromUrl(ocr || "", params.get("file") || "", params.get("csv") || "", params.get("img") || "", params.get("ai"));
     return;
   }
 
@@ -6639,7 +6658,7 @@ function loadLastOcr() {
   try { return JSON.parse(localStorage.getItem(LAST_OCR_KEY) || "null"); } catch { return null; }
 }
 
-function receiveOcrFromUrl(ocrText, fileName, csvText, imgId) {
+function receiveOcrFromUrl(ocrText, fileName, csvText, imgId, aiParam) {
   const parsed = parseReceiptOcr(ocrText);
   saveLastOcr(ocrText + (csvText ? "\n\n===== iPhoneのChatGPTの応答 =====\n" + csvText : ""), parsed); // 確認・改善用（端末内のみ）
   const token = loadLicenseToken();
@@ -6652,9 +6671,14 @@ function receiveOcrFromUrl(ocrText, fileName, csvText, imgId) {
   }
   // 無料版: iPhoneのChatGPT（ショートカットの「モデルを使用」）の結果があれば、それを確認画面に出す
   if (csvText) {
+    // ショートカットが使ったAI（ai=chatgpt|cloud|device|cloud-retry、空＝初期設定のChatGPT）
+    const retried = String(aiParam || "").trim().toLowerCase() === "cloud-retry";
+    const usedAi = retried ? "cloud" : (normalizeFreeAi(aiParam) || (aiParam != null ? "chatgpt" : ""));
+    if (usedAi && !retried) saveFreeAi(usedAi); // ショートカット側の設定に合わせる
     const raw = convertAiCsvToRaw(csvText, fileName, parsed);
     if (raw) {
-      receiveMultiItemFromUrl(raw, { onCancel: () => openReceiptAlternatives(ocrText, parsed, fileName) });
+      if (retried) showToast("ChatGPTの返事を読み取れなかったため、クラウドで読み直しました");
+      receiveMultiItemFromUrl(raw, { onCancel: () => openReceiptAlternatives(ocrText, parsed, fileName, usedAi) });
       return;
     }
     // 応答の形式が崩れていたら、金額選択へ
@@ -6732,7 +6756,56 @@ function openAmountPicker(ocrText, parsed, fileName) {
 }
 
 // AIの読み取り結果を使わないときの逃げ道（手動で金額を選ぶ／AIの切り替え方を見る／登録しない）
-function openReceiptAlternatives(ocrText, parsed, fileName) {
+// ===== 無料版：読み取りAIの切り替え =====
+// 設定の本体はショートカット側（iCloud Drive/レシート/AI設定.txt）。PWAは小さな切り替え用ショートカット
+// 「家計簿AI切り替え」を入力（chatgpt|cloud|device）付きで呼び出し、完了は ?aiset= で受け取る。
+const FREE_AI_KEY = "kakeibo_free_ai";
+const FREE_SC_NAME_KEY = "kakeibo_free_shortcut_name";
+const FREE_SC_NAME_DEFAULT = "家計簿AI切り替え";
+const FREE_AI_LABELS = { chatgpt: "ChatGPT", cloud: "クラウド", device: "オンデバイス" };
+function normalizeFreeAi(v) {
+  const k = String(v || "").trim().toLowerCase();
+  return FREE_AI_LABELS[k] ? k : "";
+}
+function loadFreeAi() {
+  try { return normalizeFreeAi(localStorage.getItem(FREE_AI_KEY)) || "chatgpt"; } catch (e) { return "chatgpt"; }
+}
+function saveFreeAi(k) {
+  try { localStorage.setItem(FREE_AI_KEY, k); } catch (e) {}
+  renderFreeAiState();
+}
+function loadFreeShortcutName() {
+  try { return localStorage.getItem(FREE_SC_NAME_KEY) || FREE_SC_NAME_DEFAULT; } catch (e) { return FREE_SC_NAME_DEFAULT; }
+}
+function saveFreeShortcutName(v) {
+  const name = String(v || "").trim() || FREE_SC_NAME_DEFAULT;
+  try { localStorage.setItem(FREE_SC_NAME_KEY, name); } catch (e) {}
+  renderFreeAiState();
+  showToast("ショートカットの名前を保存しました");
+}
+function suggestFreeAi(used) { return used === "chatgpt" ? "cloud" : "chatgpt"; }
+function buildFreeAiSwitchUrl(k) {
+  return "shortcuts://run-shortcut?name=" + encodeURIComponent(loadFreeShortcutName()) + "&input=text&text=" + encodeURIComponent(k);
+}
+function switchFreeAi(k) {
+  if (!normalizeFreeAi(k)) return;
+  location.href = buildFreeAiSwitchUrl(k);
+}
+function renderFreeAiState() {
+  const cur = loadFreeAi();
+  const lab = document.getElementById("aiCurrentLabel");
+  if (lab) lab.textContent = FREE_AI_LABELS[cur];
+  const nm = document.getElementById("freeShortcutName");
+  if (nm && document.activeElement !== nm) nm.value = loadFreeShortcutName();
+  document.querySelectorAll(".ai-pick").forEach(btn => {
+    const on = btn.dataset.ai === cur;
+    btn.textContent = on ? "使用中" : "このAIにする";
+    btn.disabled = on;
+    btn.style.opacity = on ? "0.55" : "1";
+  });
+}
+
+function openReceiptAlternatives(ocrText, parsed, fileName, usedAi) {
   let el = document.getElementById("receiptAltModal");
   if (!el) {
     el = document.createElement("div");
@@ -6747,6 +6820,7 @@ function openReceiptAlternatives(ocrText, parsed, fileName) {
     '<div style="background:var(--card,#fff);border-radius:16px;padding:20px 18px 10px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">' +
     '<p style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 12px;color:var(--text,#222);">AIの読み取り結果を使わずに、どうしますか？</p>' +
     b("altManual", "金額を選んで登録する", "読み取った金額の候補から1タップ。候補にない場合は手入力", true) +
+    (usedAi ? b("altSwitch", `${FREE_AI_LABELS[suggestFreeAi(usedAi)]}に切り替える`, `今回は${FREE_AI_LABELS[usedAi]}で読み取りました。切り替えたら、もう一度撮影してください`, false) : "") +
     b("altHelp", "AIの切り替え方を見る", "読み違いが多い・上限に達したときは、別のAIに切り替えられます", false) +
     b("altCancel", "登録しない", "何も登録せずに閉じます", false) +
     '</div>';
@@ -6754,6 +6828,7 @@ function openReceiptAlternatives(ocrText, parsed, fileName) {
   const close = () => { el.style.display = "none"; };
   document.getElementById("altManual").onclick = () => { close(); openAmountPicker(ocrText || "", parsed, fileName); };
   document.getElementById("altHelp").onclick = () => { close(); showPage("aihelp"); };
+  if (usedAi) document.getElementById("altSwitch").onclick = () => { close(); switchFreeAi(suggestFreeAi(usedAi)); };
   document.getElementById("altCancel").onclick = () => { close(); showToast("登録しませんでした"); };
 }
 
