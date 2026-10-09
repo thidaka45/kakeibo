@@ -761,6 +761,13 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     </button>
   </div>
 
+  <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4z"/><path d="M19 15l.8 1.9L21.7 18l-1.9.8L19 20.7l-.8-1.9L16.3 18l1.9-1.1z"/></svg> レシート読み取りのAIを選ぶ</div>
+  <div class="export-section" style="padding:14px;">
+    <button onclick="showPage('aihelp')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--purple);background:var(--purple-l);color:var(--purple-d);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
+      AIの選び方を見る
+    </button>
+  </div>
+
   <div style="font-size:18px;font-weight:700;color:var(--text);margin:26px 0 10px;display:flex;align-items:center;gap:8px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--sub);"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> AI分類（有料プラン）</div>
   <div class="export-section" style="padding:14px;">
     <button onclick="showPage('license')" style="width:100%;padding:16px;border-radius:12px;border:1.5px solid var(--blue);background:var(--blue-l);color:var(--blue);font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">
@@ -1005,12 +1012,72 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
     ※ 月の上限枚数に達した場合や会員証の期限が切れた場合は、自動的に端末内モードで登録を続けます。
   </div>
 
+  <button class="export-btn" onclick="showPage('aihelp')" style="margin-top:14px;background:#fff;border:1.5px solid var(--purple);color:var(--purple-d);padding:12px;font-size:15px;font-weight:700;border-radius:12px;">無料版のAIの選び方を見る</button>
+
   <div style="font-size:16px;font-weight:700;color:var(--text);margin:22px 0 8px;">最後に読み取ったレシートの文字</div>
   <div class="budget-card">
     <div id="lastOcrMeta" style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:8px;"></div>
     <textarea id="lastOcrText" readonly style="width:100%;box-sizing:border-box;height:180px;padding:10px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:13px;font-family:inherit;line-height:1.5;"></textarea>
     <button class="export-btn" onclick="copyLastOcr()" style="margin-top:10px;background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:12px;font-size:15px;font-weight:700;border-radius:12px;">文字をコピー</button>
     <div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6;">読み取りがうまくいかないときの確認用です。この端末の中にだけ保存され、外部には送られません。</div>
+  </div>
+</div>
+</div>
+
+<!-- ===== レシート読み取りのAIを選ぶ（無料版） ===== -->
+<div class="page" id="page-aihelp" style="flex-direction:column;padding:0;overflow:hidden;background:var(--purple-l);">
+<div style="flex:1;overflow-y:auto;padding:10px 21px 20px;max-width:430px;width:100%;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;">
+  <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">AIの選び方</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
+
+  <div style="font-size:16px;color:var(--text);line-height:1.8;margin-bottom:14px;">
+    無料版では、レシートを読み取るAIを3つから選べます。どれも無料です。登録の前に必ず確認画面が出るので、どれを選んでも読み違いのまま登録されることはありません。<b>何を優先したいか</b>で選んでください。
+  </div>
+
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:6px 0 8px;">何を優先しますか？</div>
+  <div class="budget-card" style="font-size:14px;line-height:1.9;color:var(--text);">
+    <div>🎯 <b>正確さ</b>を優先 → <b>ChatGPT</b></div>
+    <div>♾️ <b>回数を気にせず</b>使いたい → <b>クラウド</b></div>
+    <div>🔒 <b>家計の情報を外に出したくない</b> → <b>オンデバイス</b></div>
+    <div>📶 <b>圏外</b>でも使いたい → <b>オンデバイス</b></div>
+    <div>⚡ <b>撮るだけで確認もなし</b>にしたい → <b>有料プラン</b>（全機種対応）</div>
+  </div>
+
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">それぞれの特徴</div>
+  <div class="budget-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">ChatGPT</span><span style="font-size:12px;font-weight:700;color:#fff;background:var(--blue,#2f6fd3);border-radius:8px;padding:2px 8px;">おすすめ</span></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>◎ 日本語のレシートに強い</span><span style="color:var(--sub);">速さ</span><span>○ 数秒</span><span style="color:var(--sub);">情報の行き先</span><span>OpenAIのサーバー（アカウント未登録なら保存されない取り決め）</span><span style="color:var(--sub);">回数</span><span>1日の上限あり（超えると性能を落とした版で処理は続く）</span><span style="color:var(--sub);">通信</span><span>必要</span></div>
+    <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">配布時の初期設定です。迷ったらこれを選んでください。</div>
+  </div>
+
+  <div class="budget-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">クラウド（Private Cloud Compute）</span></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>○</span><span style="color:var(--sub);">速さ</span><span>○ 速め</span><span style="color:var(--sub);">情報の行き先</span><span>Appleのサーバー（処理後に保存されず、Appleも見られない仕組み）</span><span style="color:var(--sub);">回数</span><span>上限の公表なし</span><span style="color:var(--sub);">通信</span><span>必要</span></div>
+    <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">ChatGPTの上限に達したときの切り替え先としてもおすすめです。</div>
+  </div>
+
+  <div class="budget-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:17px;font-weight:700;color:var(--text);">オンデバイス</span></div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:14px;line-height:1.6;color:var(--text);"><span style="color:var(--sub);">正確さ</span><span>△ 小型のAIのため品目の読み取りは苦手な場合あり</span><span style="color:var(--sub);">速さ</span><span>○ 通信しない分すばやい</span><span style="color:var(--sub);">情報の行き先</span><span>iPhoneの外に一切出ない</span><span style="color:var(--sub);">回数</span><span>上限なし</span><span style="color:var(--sub);">通信</span><span>不要（圏外でも動く）</span></div>
+    <div style="font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6;">合計金額の確認さえできればよい、という使い方に向いています。</div>
+  </div>
+
+
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">切り替え方</div>
+  <div class="budget-card" style="font-size:14px;line-height:1.9;color:var(--text);">
+    1. 「ショートカット」アプリを開く<br>
+    2. 「レシート記録（無料版）」を長押し →「編集」<br>
+    3. 「モデルを使用」の中の <b>「ChatGPT」の文字</b>（今使っているAIの名前）をタップ<br>
+    4. 「ChatGPT」「Private Cloud Compute（クラウド）」「デバイス上（オンデバイス）」から選ぶ<br>
+    5. 右上の「完了」<br>
+    <span style="color:var(--sub);font-size:13px;">一度変えれば、以後ずっとその設定で動きます。</span>
+  </div>
+
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:16px 0 8px;">困ったとき</div>
+  <div class="budget-card" style="font-size:14px;line-height:1.8;color:var(--text);">
+    <div style="margin-bottom:8px;"><b>読み違いが多くなった</b><br>ChatGPTの1日の上限を超えて性能が落ちている可能性があります。翌日まで待つか、クラウドに切り替えてください。</div>
+    <div style="margin-bottom:8px;"><b>ショートカットが「モデルを使用」で止まる</b><br>そのAIが使えない状態です（機種が非対応、Apple Intelligenceがオフ、圏外など）。別のAIに切り替えるか、オンデバイスを試してください。</div>
+    <div style="margin-bottom:8px;"><b>今すぐ登録したい</b><br>確認画面で「キャンセル」→「金額を選んで登録する」で、読み取った金額の候補から1タップで登録できます。ホームの入力画面からの手入力もいつでも使えます。</div>
+    <div><b>AIが選べない機種</b><br>これらのAIは、Apple Intelligence対応機種（iPhone 15 Pro以降・iOS 26以降）でのみ使えます。それ以外の機種では金額の候補から選ぶ方式になります。有料プランなら機種を問わず全自動で読み取れます。</div>
   </div>
 </div>
 </div>
@@ -1323,7 +1390,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.123.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.124.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -4115,7 +4182,7 @@ function showPage(name, isBack) {
     pageHistory.push(currentPageName);
   }
   currentPageName = name;
-  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","expensebreakdown","customcats","caticonpicker","quickitempicker","license"].forEach(p => {
+  ["home","expense","income","graph","savings","fixedcosts","cashflow","utility","initsetup","autotransition","shortcutsguide","backup","excelexport","migration","versioninfo","trend","expensebreakdown","customcats","caticonpicker","quickitempicker","license","aihelp"].forEach(p => {
     document.getElementById(`page-${p}`).classList.toggle("active", p===name);
   });
   if (name==="graph")      renderGraph();
@@ -6421,8 +6488,11 @@ function receiveMultiItemFromUrl(raw, opts) {
     `レシート記載の合計金額：¥${receiptTotal.toLocaleString()}\n\n` +
     (isMatched ? `✅ 品目合計と小計が一致しています\n\n` : `⚠️ 品目合計と小計が一致しません（品目の読み取りミスの可能性があります）\n\n`) +
     `■OK： この内容で登録します。\n` +
-    `■キャンセル： 登録せずに終了します。`,
-    registerMultiItems
+    (opts.onCancel
+      ? `■キャンセル： 登録せず、金額の手動入力やAIの切り替え方を選べます。`
+      : `■キャンセル： 登録せずに終了します。`),
+    registerMultiItems,
+    opts.onCancel
   );
 }
 
@@ -6583,7 +6653,10 @@ function receiveOcrFromUrl(ocrText, fileName, csvText, imgId) {
   // 無料版: iPhoneのChatGPT（ショートカットの「モデルを使用」）の結果があれば、それを確認画面に出す
   if (csvText) {
     const raw = convertAiCsvToRaw(csvText, fileName, parsed);
-    if (raw) { receiveMultiItemFromUrl(raw); return; }
+    if (raw) {
+      receiveMultiItemFromUrl(raw, { onCancel: () => openReceiptAlternatives(ocrText, parsed, fileName) });
+      return;
+    }
     // 応答の形式が崩れていたら、金額選択へ
   }
   // AIが使えない（非対応機種・失敗）: 読み取った金額の候補から1タップで選ぶ
@@ -6638,6 +6711,7 @@ function openAmountPicker(ocrText, parsed, fileName) {
     '<button type="button" id="amountPickerManualOk" style="padding:12px 16px;border-radius:10px;border:none;background:var(--blue,#2f6fd3);color:#fff;font-size:16px;font-weight:700;font-family:inherit;">登録</button>' +
     '</div>' +
     '<button type="button" id="amountPickerCancel" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;">登録しない</button>' +
+    '<button type="button" id="amountPickerHelp" style="width:100%;margin-top:10px;padding:8px;border:none;background:none;color:var(--blue,#2f6fd3);font-size:14px;font-weight:700;font-family:inherit;text-decoration:underline;">AIで自動的に読み取るには（AIの選び方）</button>' +
     '</div>';
   el.style.display = "flex";
   const close = () => { el.style.display = "none"; };
@@ -6654,6 +6728,33 @@ function openAmountPicker(ocrText, parsed, fileName) {
     finish(v);
   };
   document.getElementById("amountPickerCancel").onclick = () => { close(); showToast("登録しませんでした"); };
+  document.getElementById("amountPickerHelp").onclick = () => { close(); showPage("aihelp"); };
+}
+
+// AIの読み取り結果を使わないときの逃げ道（手動で金額を選ぶ／AIの切り替え方を見る／登録しない）
+function openReceiptAlternatives(ocrText, parsed, fileName) {
+  let el = document.getElementById("receiptAltModal");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "receiptAltModal";
+    el.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;";
+    document.body.appendChild(el);
+  }
+  const b = (id, label, sub, primary) =>
+    `<button type="button" id="${id}" style="width:100%;text-align:left;padding:14px;margin-bottom:10px;border-radius:12px;border:${primary ? "none" : "1.5px solid var(--border,#ccc)"};background:${primary ? "var(--blue,#2f6fd3)" : "var(--bg,#f5f5f5)"};color:${primary ? "#fff" : "var(--text,#222)"};font-family:inherit;cursor:pointer;">` +
+    `<div style="font-size:16px;font-weight:700;">${label}</div><div style="font-size:12px;opacity:.85;margin-top:2px;">${sub}</div></button>`;
+  el.innerHTML =
+    '<div style="background:var(--card,#fff);border-radius:16px;padding:20px 18px 10px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">' +
+    '<p style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 12px;color:var(--text,#222);">AIの読み取り結果を使わずに、どうしますか？</p>' +
+    b("altManual", "金額を選んで登録する", "読み取った金額の候補から1タップ。候補にない場合は手入力", true) +
+    b("altHelp", "AIの切り替え方を見る", "読み違いが多い・上限に達したときは、別のAIに切り替えられます", false) +
+    b("altCancel", "登録しない", "何も登録せずに閉じます", false) +
+    '</div>';
+  el.style.display = "flex";
+  const close = () => { el.style.display = "none"; };
+  document.getElementById("altManual").onclick = () => { close(); openAmountPicker(ocrText || "", parsed, fileName); };
+  document.getElementById("altHelp").onclick = () => { close(); showPage("aihelp"); };
+  document.getElementById("altCancel").onclick = () => { close(); showToast("登録しませんでした"); };
 }
 
 // 金額入力用の小さなモーダル（合計が読めなかったときの救済）
