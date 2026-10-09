@@ -986,7 +986,7 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   <div class="page-toolbar"><button class="home-btn" onclick="goBack()">戻る</button><span class="page-name">AI分類（有料プラン）</span><button class="home-btn" onclick="goHome()" aria-label="ホームへ戻る" style="margin-left:auto;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.5 12 4l8.5 7.5"/><path d="M6 10v9a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1H19a1 1 0 0 0 1-1v-9"/></svg></button></div>
 
   <div style="font-size:17px;color:var(--text);line-height:1.8;margin-bottom:16px;">
-    レシートを撮るだけで、品目ごとの金額を費目に自動で振り分けます（税・値引きは差額調整として合計に一致させます）。お申し込み時に届いた会員証（英数字）を貼り付けて保存してください。未設定のときは、店名と合計金額を登録し、費目は店名から自動判定する端末内モード（履歴から変更可）で動作します。
+    <b>高精度の全自動</b>：レシートを撮るだけで、AIが画像を読み取り、品目ごとに費目へ振り分けて確認なしで登録します。小計と合わないときはAIが自動で読み直し、それでも合わないときだけ確認画面を出します。お申し込み時に届いた会員証（英数字）を貼り付けて保存してください。未設定のときは、店名と合計金額を登録し、費目は店名から自動判定する端末内モード（履歴から変更可）で動作します。
   </div>
 
   <div class="budget-card">
@@ -1001,8 +1001,16 @@ body{background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;oversc
   </div>
 
   <div style="font-size:13px;color:var(--sub);line-height:1.7;margin-top:14px;">
-    ※ レシートの文字情報は分類のためだけに中継サーバーへ送られ、画像や本文が保存されることはありません。<br>
+    ※ レシートの画像は読み取りのためだけに中継サーバーへ送られ、読み取り直後に削除されます（保存・学習には使われません）。<br>
     ※ 月の上限枚数に達した場合や会員証の期限が切れた場合は、自動的に端末内モードで登録を続けます。
+  </div>
+
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin:22px 0 8px;">最後に読み取ったレシートの文字</div>
+  <div class="budget-card">
+    <div id="lastOcrMeta" style="font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:8px;"></div>
+    <textarea id="lastOcrText" readonly style="width:100%;box-sizing:border-box;height:180px;padding:10px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:13px;font-family:inherit;line-height:1.5;"></textarea>
+    <button class="export-btn" onclick="copyLastOcr()" style="margin-top:10px;background:#fff;border:1.5px solid var(--blue);color:var(--blue);padding:12px;font-size:15px;font-weight:700;border-radius:12px;">文字をコピー</button>
+    <div style="font-size:12px;color:var(--sub);margin-top:8px;line-height:1.6;">読み取りがうまくいかないときの確認用です。この端末の中にだけ保存され、外部には送られません。</div>
   </div>
 </div>
 </div>
@@ -1315,7 +1323,7 @@ const ICON_ALERT_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill=
 const ICON_CHECK_CIRCLE = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>';
 const ICON_CHECK_CIRCLE_FILLED = '<svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-const APP_VERSION = "2.121.0"; // ← 更新するたびに番号を上げる
+const APP_VERSION = "2.123.0"; // ← 更新するたびに番号を上げる
 
 // 「今日」を端末のローカル日付（YYYY-MM-DD）で正しく返す。
 // new Date().toISOString().slice(0,10) はUTCに変換してから日付を取り出すため、
@@ -4123,7 +4131,7 @@ function showPage(name, isBack) {
   if (name==="trend")      renderTrend();
   if (name==="expensebreakdown") renderExpenseBreakdown();
   if (name==="customcats") renderCustomCatsList();
-  if (name==="license")    renderLicensePage();
+  if (name==="license")    { renderLicensePage(); renderLastOcrBox(); }
   if (name==="excelexport") renderExcelExportPeriodSelects();
 }
 
@@ -6191,7 +6199,7 @@ function receiveFromUrl() {
   const params = new URLSearchParams(location.search);
   const raw = params.get("data");
   const ocr = params.get("ocr");
-  if (!raw && !ocr) return;
+  if (!raw && !ocr && !params.get("csv") && !params.get("img")) return;
 
   // 同じデータの重複登録・リロード時の再登録を防ぐため、先にURLをきれいにする
   history.replaceState(null, "", location.pathname);
@@ -6199,8 +6207,8 @@ function receiveFromUrl() {
   // 新経路（グレード対応版ショートカット）: ショートカットはAIを呼ばず、ライブテキストで
   // 文字化したレシート本文をそのまま渡す。費目の判定はPWA側（ライト＝端末規則＋利用者選択、
   // 有料＝中継サーバー経由のAI）で行う。
-  if (ocr) {
-    receiveOcrFromUrl(ocr, params.get("file") || "");
+  if (ocr || params.get("csv") || params.get("img")) {
+    receiveOcrFromUrl(ocr || "", params.get("file") || "", params.get("csv") || "", params.get("img") || "");
     return;
   }
 
@@ -6266,7 +6274,8 @@ function receiveSingleItemFromUrl(raw) {
 
 // 新形式（1レシート＝複数品目）の受け取り処理。
 // 1件のレシートに含まれる品目をすべて、同じ証憑（receiptRef）を共有する個別の取引として登録する。
-function receiveMultiItemFromUrl(raw) {
+function receiveMultiItemFromUrl(raw, opts) {
+  opts = opts || {};
   const segments = raw.split("|").map(s => s.trim()).filter(Boolean);
   if (segments.length < 2) {
     showToast("受け取ったデータの形式が正しくありませんでした");
@@ -6385,6 +6394,13 @@ function receiveMultiItemFromUrl(raw) {
   // 差はまとめて「差額調整」として登録し、登録される支出額は必ずレシート記載の
   // 合計金額に一致させる。小計が一致しない場合のみ、品目の読み取りミスの疑いとして
   // 警告を表示し、最終的な登録可否は利用者に判断してもらう。
+  // 有料版（画像AI）: レシート印字の小計と品目合計が一致していれば、確認なしで登録する（「撮るだけ」）。
+  // 食い違うとき・小計が読めないときだけ、従来どおり確認画面を出す。
+  if (opts.autoIfMatched && hasPrintedSubtotal && isMatched) {
+    registerMultiItems();
+    return;
+  }
+
   const itemsListText = items
     .map((it, i) => `${i + 1}．${it.name}：¥${it.amount.toLocaleString()}`)
     .join("\n");
@@ -6479,7 +6495,7 @@ function extractAmountsFromLine(line) {
   return out;
 }
 
-const OCR_EXCLUDE_LINE = /(お預|お釣|釣銭|おつり|預り|ポイント|pt|残高|クレジット|電話|tel|〒|登録番号|レジ|No\.|№|時刻)/i;
+const OCR_EXCLUDE_LINE = /(お預|お釣|釣銭|おつり|預り|ポイント|\bpt\b|残高|電話|\btel\b|〒|登録番号|No\.|№|時刻)/i;
 const OCR_TOTAL_LINE = /(合\s*計|お買上げ?計|お買い上げ?計|総額|total|ご請求|請求額|お支払い?金額|お支払い?額)/i;
 const OCR_SUBTOTAL_LINE = /小\s*計|subtotal/i;
 const OCR_TAX_LINE = /(消費税|内税|外税|税額|課税|対象)/;
@@ -6540,26 +6556,165 @@ function parseReceiptOcr(rawText) {
 }
 
 // --- 入口: ocr経路の振り分け ---
-function receiveOcrFromUrl(ocrText, fileName) {
+const LAST_OCR_KEY = "kakeibo_last_ocr";
+function saveLastOcr(text, parsed) {
+  try {
+    localStorage.setItem(LAST_OCR_KEY, JSON.stringify({
+      at: new Date().toISOString(), text: String(text || "").slice(0, 8000),
+      parsed: { date: parsed.date, store: parsed.store, total: parsed.total, subtotal: parsed.subtotal }
+    }));
+  } catch (e) { /* 容量超過などは無視 */ }
+}
+function loadLastOcr() {
+  try { return JSON.parse(localStorage.getItem(LAST_OCR_KEY) || "null"); } catch { return null; }
+}
+
+function receiveOcrFromUrl(ocrText, fileName, csvText, imgId) {
   const parsed = parseReceiptOcr(ocrText);
-  if (parsed.total == null) {
-    showAlertModal(
-      `レシートの合計金額を読み取れませんでした。\n\n` +
-      `文字が薄い・折れている・複数枚に分かれている場合は、撮り直すか手入力で登録してください。`
-    );
+  saveLastOcr(ocrText + (csvText ? "\n\n===== iPhoneのChatGPTの応答 =====\n" + csvText : ""), parsed); // 確認・改善用（端末内のみ）
+  const token = loadLicenseToken();
+
+  // 有料版: 会員証があれば中継サーバーのAIへ。画像の受付番号（img）があれば画像で読む（高精度）。
+  // 受付番号が無い・期限切れのときは、中継サーバー側で本文に切り替えて読む。
+  if (token && (imgId || ocrText)) {
+    requestReceiptAi(ocrText, token, fileName, parsed, imgId);
     return;
   }
-  const token = loadLicenseToken();
-  if (token) {
-    requestReceiptAi(ocrText, token, fileName, parsed);
-  } else {
-    registerLiteReceipt(parsed, fileName);
+  // 無料版: iPhoneのChatGPT（ショートカットの「モデルを使用」）の結果があれば、それを確認画面に出す
+  if (csvText) {
+    const raw = convertAiCsvToRaw(csvText, fileName, parsed);
+    if (raw) { receiveMultiItemFromUrl(raw); return; }
+    // 応答の形式が崩れていたら、金額選択へ
   }
+  // AIが使えない（非対応機種・失敗）: 読み取った金額の候補から1タップで選ぶ
+  if (!ocrText) {
+    showAlertModal(imgId && !token
+      ? "AI読み取り（有料プラン）の会員証が設定されていません。\n補助機能 →「AI分類（有料プラン）」で会員証を保存してから、もう一度撮影してください。"
+      : "レシートの文字を受け取れませんでした。撮り直してください。");
+    return;
+  }
+  openAmountPicker(ocrText, parsed, fileName);
+}
+
+// レシート本文から「金額らしい数字」の候補を集める（¥付き・合計行の金額を優先、大きい順）
+function extractAmountCandidates(ocrText) {
+  const lines = normalizeOcrText(ocrText).split("\n").map(x => x.trim()).filter(Boolean);
+  const SKIP = /(No\s*[.:：]|№|T\d{13}|\*{3,}|\d{2,4}-\d{2,4}-\d{3,4}|ポイント|\d\s*P\b|%)/i;
+  const strong = new Map(), weak = new Map();
+  lines.forEach((line, i) => {
+    if (SKIP.test(line)) return;
+    const hasYen = /[¥\\]|円/.test(line);
+    const nearTotal = OCR_TOTAL_LINE.test(line) || (i > 0 && OCR_TOTAL_LINE.test(lines[i - 1]));
+    extractAmountsFromLine(line).forEach(n => {
+      if (n <= 0 || n >= 10000000) return;
+      (hasYen || nearTotal ? strong : weak).set(n, true);
+    });
+  });
+  const sortDesc = m => Array.from(m.keys()).sort((x, y) => y - x);
+  let list = sortDesc(strong);
+  if (list.length < 3) list = list.concat(sortDesc(weak).filter(n => !strong.has(n) && n >= 10));
+  return list.slice(0, 8);
+}
+
+function openAmountPicker(ocrText, parsed, fileName) {
+  const cands = extractAmountCandidates(ocrText);
+  let el = document.getElementById("amountPickerModal");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "amountPickerModal";
+    el.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;";
+    document.body.appendChild(el);
+  }
+  const btn = (n) => `<button type="button" data-amt="${n}" style="padding:14px 6px;border-radius:12px;border:1.5px solid var(--blue,#2f6fd3);background:var(--blue-l,#e8f0fc);color:var(--blue,#2f6fd3);font-size:18px;font-weight:700;font-family:inherit;">¥${n.toLocaleString()}</button>`;
+  el.innerHTML =
+    '<div style="background:var(--card,#fff);border-radius:16px;padding:20px 18px 16px;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">' +
+    '<p style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 4px;color:var(--text,#222);">支払った合計金額をタップしてください</p>' +
+    `<p style="font-size:13px;color:var(--sub,#666);margin:0 0 12px;">${escapeHtml(parsed.date)}　レシートから読み取った金額の候補です</p>` +
+    '<label style="font-size:13px;font-weight:700;color:var(--sub,#666);display:block;margin-bottom:4px;">店名</label>' +
+    `<input id="amountPickerStore" type="text" value="${escapeHtml(parsed.store || "")}" style="width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:16px;font-family:inherit;margin-bottom:12px;">` +
+    (cands.length ? `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;">${cands.map(btn).join("")}</div>` : '<p style="font-size:14px;color:var(--sub,#666);">金額の候補が見つかりませんでした。下に入力してください。</p>') +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+    '<input id="amountPickerManual" type="number" inputmode="numeric" placeholder="候補にない場合は入力" style="flex:1;min-width:0;box-sizing:border-box;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:16px;font-family:inherit;">' +
+    '<button type="button" id="amountPickerManualOk" style="padding:12px 16px;border-radius:10px;border:none;background:var(--blue,#2f6fd3);color:#fff;font-size:16px;font-weight:700;font-family:inherit;">登録</button>' +
+    '</div>' +
+    '<button type="button" id="amountPickerCancel" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;">登録しない</button>' +
+    '</div>';
+  el.style.display = "flex";
+  const close = () => { el.style.display = "none"; };
+  const finish = (amount) => {
+    close();
+    parsed.total = amount;
+    parsed.store = document.getElementById("amountPickerStore").value.trim();
+    registerLiteReceipt(parsed, fileName);
+  };
+  el.querySelectorAll("[data-amt]").forEach(b => { b.onclick = () => finish(parseInt(b.getAttribute("data-amt"), 10)); });
+  document.getElementById("amountPickerManualOk").onclick = () => {
+    const v = parseInt(String(document.getElementById("amountPickerManual").value).replace(/[^\d]/g, ""), 10);
+    if (isNaN(v) || v <= 0) { showToast("金額を入力してください"); return; }
+    finish(v);
+  };
+  document.getElementById("amountPickerCancel").onclick = () => { close(); showToast("登録しませんでした"); };
+}
+
+// 金額入力用の小さなモーダル（合計が読めなかったときの救済）
+function openAmountInputModal(message, storeDefault, onOk) {
+  let el = document.getElementById("amountInputModal");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "amountInputModal";
+    el.style.cssText = "display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;padding:20px;box-sizing:border-box;";
+    el.innerHTML =
+      '<div style="background:var(--card,#fff);border-radius:16px;padding:20px 18px 16px;max-width:420px;width:100%;box-sizing:border-box;box-shadow:0 8px 30px rgba(0,0,0,0.25);">' +
+      '<p id="amountInputMsg" style="font-size:16px;font-weight:700;line-height:1.6;margin:0 0 12px;color:var(--text,#222);white-space:pre-line;"></p>' +
+      '<label style="font-size:13px;font-weight:700;color:var(--sub,#666);display:block;margin-bottom:4px;">店名</label>' +
+      '<input id="amountInputStore" type="text" style="width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:16px;font-family:inherit;margin-bottom:10px;">' +
+      '<label style="font-size:13px;font-weight:700;color:var(--sub,#666);display:block;margin-bottom:4px;">合計金額（円）</label>' +
+      '<input id="amountInputValue" type="number" inputmode="numeric" style="width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);font-size:18px;font-weight:700;font-family:inherit;margin-bottom:14px;">' +
+      '<div style="display:flex;gap:10px;">' +
+      '<button id="amountInputCancel" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border,#ccc);background:var(--bg,#f5f5f5);color:var(--text,#222);font-size:16px;font-weight:700;font-family:inherit;">登録しない</button>' +
+      '<button id="amountInputOk" style="flex:1;padding:12px;border-radius:10px;border:none;background:var(--blue,#2f6fd3);color:#fff;font-size:16px;font-weight:700;font-family:inherit;">登録</button>' +
+      '</div></div>';
+    document.body.appendChild(el);
+  }
+  document.getElementById("amountInputMsg").textContent = message;
+  document.getElementById("amountInputStore").value = storeDefault || "";
+  const amt = document.getElementById("amountInputValue");
+  amt.value = "";
+  el.style.display = "flex";
+  setTimeout(() => amt.focus(), 50);
+  const close = () => { el.style.display = "none"; };
+  document.getElementById("amountInputCancel").onclick = () => { close(); showToast("登録しませんでした"); };
+  document.getElementById("amountInputOk").onclick = () => {
+    const v = parseInt(String(amt.value).replace(/[^\d]/g, ""), 10);
+    if (isNaN(v) || v <= 0) { showToast("金額を入力してください"); return; }
+    close();
+    onOk(v, document.getElementById("amountInputStore").value.trim());
+  };
+}
+
+// 最後に読み取ったレシート文字の表示・コピー（AI分類画面）
+function renderLastOcrBox() {
+  const box = document.getElementById("lastOcrText");
+  const meta = document.getElementById("lastOcrMeta");
+  if (!box) return;
+  const last = loadLastOcr();
+  if (!last) { box.value = ""; meta.textContent = "まだレシートを読み取っていません"; return; }
+  box.value = last.text;
+  const p = last.parsed || {};
+  meta.textContent = `読み取り日時 ${String(last.at).replace("T", " ").slice(0, 16)}／判定: 日付 ${p.date || "—"}・店名 ${p.store || "—"}・合計 ${p.total != null ? p.total : "読めず"}`;
+}
+function copyLastOcr() {
+  const box = document.getElementById("lastOcrText");
+  if (!box || !box.value) { showToast("コピーする文字がありません"); return; }
+  const done = () => showToast("読み取った文字をコピーしました");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(box.value).then(done).catch(() => { box.select(); document.execCommand("copy"); done(); });
+  } else { box.select(); document.execCommand("copy"); done(); }
 }
 
 // --- 有料経路: 中継サーバーでAI分類 ---
 let receiptAiBusy = false;
-function requestReceiptAi(ocrText, token, fileName, parsed) {
+function requestReceiptAi(ocrText, token, fileName, parsed, imgId) {
   if (receiptAiBusy) return;
   receiptAiBusy = true;
   showAiWaitOverlay(true);
@@ -6569,7 +6724,7 @@ function requestReceiptAi(ocrText, token, fileName, parsed) {
   fetch(RECEIPT_AI_ENDPOINT + "/receipt", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, ocr: ocrText, cats: catLabels, hint: { date: parsed.date, store: parsed.store, total: parsed.total, subtotal: parsed.subtotal } }),
+    body: JSON.stringify({ token, img: imgId || "", ocr: ocrText, cats: catLabels }),
     signal: ctrl.signal
   })
   .then(async r => {
@@ -6585,8 +6740,8 @@ function requestReceiptAi(ocrText, token, fileName, parsed) {
     clearTimeout(timer); receiptAiBusy = false; showAiWaitOverlay(false);
     const raw = convertAiCsvToRaw(body.csv, fileName, parsed);
     if (!raw) throw Object.assign(new Error("AIの応答を解釈できませんでした"), { code: "bad_csv" });
-    if (body.remaining != null) showToast(`AI分類（今月の残り ${body.remaining} 枚）`);
-    receiveMultiItemFromUrl(raw);
+    if (body.remaining != null) showToast(`AI分類${body.retried ? "（自動で読み直しました）" : ""}・今月の残り ${body.remaining} 枚`);
+    receiveMultiItemFromUrl(raw, { autoIfMatched: true });
   })
   .catch(err => {
     clearTimeout(timer); receiptAiBusy = false; showAiWaitOverlay(false);
@@ -6595,9 +6750,10 @@ function requestReceiptAi(ocrText, token, fileName, parsed) {
     if (code === "invalid_token") reason = "会員証が無効です（入力ミスまたは期限切れ）。";
     else if (code === "limit_exceeded") reason = "今月のAI分類の上限枚数に達しました。来月まで端末内モードで登録します。";
     else if (code === "rate_limited") reason = "短時間に送信しすぎました。少し待ってから再度お試しください。";
+    else if (code === "image_expired") reason = "レシート画像の受付期限（10分）が切れていました。";
     else if (err && err.name === "AbortError") reason = "中継サーバーの応答がありませんでした。";
     else reason = (err && err.message) || "AI分類に失敗しました。";
-    showAlertModal(`${reason}\n\n店名と合計金額で登録を続けます（費目は店名から自動判定し、履歴から変更できます）。`, () => registerLiteReceipt(parsed, fileName));
+    showAlertModal(`${reason}\n\n読み取った金額から選んで登録を続けます（費目は店名から自動判定し、履歴から変更できます）。`, () => openAmountPicker(ocrText || "", parsed, fileName));
   });
 }
 
@@ -6613,9 +6769,9 @@ function convertAiCsvToRaw(csv, fileName, parsed) {
   const store = h[1] || parsed.store || "";
   const subtotal = String(h[2] || "").replace(/[^\d]/g, "");
   let total = String(h[3] || "").replace(/[^\d]/g, "");
-  // 合計は端末規則で読んだ値を優先する（AIの読み違いより規則の方が安定するため）。
-  // 両者が食い違う場合は規則側を採用し、確認モーダルで利用者が最終判断する。
-  if (parsed.total != null) total = String(parsed.total);
+  // 合計はAIの読み取りを採用する（ライブテキストは列の順序が崩れ、規則での合計判定は不安定なため）。
+  // AIが合計を返さなかった場合のみ、規則で読めた値で補う。
+  if (!total && parsed.total != null) total = String(parsed.total);
   const safe = s => String(s).replace(/[|,]/g, " ");
   const header = [date.replace(/-/g, "/"), safe(store), subtotal, total, safe(fileName || "")].join(",");
   const items = lines.slice(1).map(l => {
@@ -6635,7 +6791,7 @@ function showAiWaitOverlay(show) {
     el = document.createElement("div");
     el.id = "aiWaitOverlay";
     el.style.cssText = "display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;";
-    el.innerHTML = '<div style="background:var(--card,#fff);border-radius:14px;padding:18px 24px;font-size:16px;font-weight:700;color:var(--text,#222);">AIがレシートを分類しています…</div>';
+    el.innerHTML = '<div style="background:var(--card,#fff);border-radius:14px;padding:18px 24px;font-size:16px;font-weight:700;color:var(--text,#222);">AIがレシートを読み取っています…</div>';
     document.body.appendChild(el);
   }
   el.style.display = show ? "flex" : "none";
